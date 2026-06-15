@@ -12,7 +12,7 @@ export const toggleWarmupFn = createServerFn({ method: "POST" })
     }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const patch: Record<string, unknown> = { warmup_enabled: data.enabled };
+    const patch: { warmup_enabled: boolean; warmup_intensity?: "leve" | "medio" | "forte"; warmup_started_at?: string } = { warmup_enabled: data.enabled };
     if (data.intensity) patch.warmup_intensity = data.intensity;
     if (data.enabled) {
       const { data: cur } = await supabase.from("whatsapp_instances")
