@@ -98,6 +98,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           failed_count: number
+          flow_id: string | null
           id: string
           instance_ids: string[]
           list_id: string
@@ -120,6 +121,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           failed_count?: number
+          flow_id?: string | null
           id?: string
           instance_ids?: string[]
           list_id: string
@@ -142,6 +144,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           failed_count?: number
+          flow_id?: string | null
           id?: string
           instance_ids?: string[]
           list_id?: string
@@ -161,6 +164,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "campaigns_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "campaigns_list_id_fkey"
             columns: ["list_id"]

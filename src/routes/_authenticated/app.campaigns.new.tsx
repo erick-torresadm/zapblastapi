@@ -27,6 +27,7 @@ function NewCampaign() {
     media_url: "" as string | null,
     media_type: null as string | null,
     media_filename: null as string | null,
+    flow_id: "" as string,
   });
   const [mediaUploading, setMediaUploading] = useState(false);
 
@@ -37,6 +38,10 @@ function NewCampaign() {
   const { data: instances } = useQuery({
     queryKey: ["instances-connected"],
     queryFn: async () => (await supabase.from("whatsapp_instances").select("id,instance_name,status").eq("active", true)).data ?? [],
+  });
+  const { data: flows } = useQuery({
+    queryKey: ["flows-active"],
+    queryFn: async () => (await supabase.from("flows").select("id,name,status").order("updated_at", { ascending: false })).data ?? [],
   });
 
   const previews = useMemo(() => {
@@ -81,6 +86,7 @@ function NewCampaign() {
         media_url: form.media_url,
         media_type: form.media_type,
         media_filename: form.media_filename,
+        flow_id: form.flow_id || null,
         status: "draft",
       }).select().single();
       if (error) throw error;
@@ -144,7 +150,30 @@ function NewCampaign() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>4. Chips e timing</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>4. Fluxo automatizado (opcional)</CardTitle>
+          <CardDescription>Após enviar a mensagem inicial, cada contato entra neste fluxo.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select value={form.flow_id || "none"} onValueChange={(v) => setForm({ ...form, flow_id: v === "none" ? "" : v })}>
+            <SelectTrigger><SelectValue placeholder="Sem fluxo (só mensagem única)" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sem fluxo (só mensagem única)</SelectItem>
+              {flows?.map((f) => (
+                <SelectItem key={f.id} value={f.id}>
+                  {f.name} {f.status === "active" ? "" : `(${f.status})`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {flows?.length === 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">Nenhum fluxo criado ainda. Crie em Fluxos.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>5. Chips e timing</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div>
             <Label>Chips a usar (rotação round-robin)</Label>
