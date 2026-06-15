@@ -141,7 +141,7 @@ function InstancesPage() {
                   return (
                     <TableRow key={i.id}>
                       <TableCell className="font-medium">{i.instance_name}<div className="text-xs text-muted-foreground">{i.phone_number ?? "—"}</div></TableCell>
-                      <TableCell>{(i.evolution_servers as { name?: string } | null)?.name ?? "—"}</TableCell>
+                      <TableCell className="flex items-center gap-2">{i.server_name}{i.server_is_shared && <Badge variant="outline" className="gap-1 text-[10px]"><Shield className="h-3 w-3" />Plataforma</Badge>}</TableCell>
                       <TableCell><Badge className={s.cls}>{s.label}</Badge></TableCell>
                       <TableCell>{i.sent_today}</TableCell>
                       <TableCell>{i.daily_limit}</TableCell>
