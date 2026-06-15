@@ -1,105 +1,132 @@
-# Plano: Análise anti-ban + Redesign UI/UX completo
+## Visão geral
 
-## Parte 1 — Análise técnica (entregue como página `/app/anti-ban` + doc interno)
+Transformar o `/app/flows` de canvas em-memória em um **construtor + motor de fluxos** completo, integrado ao Evolution e à inbox, com métricas em tempo real e templates prontos.
 
-### whatsapp-web.js (pedroslopez)
-- **Como funciona**: roda Chromium headless via Puppeteer e automatiza a interface do WhatsApp Web. Cada instância = 1 navegador.
-- **Por que banna mais**:
-  - WhatsApp identifica cliente como "WhatsApp Web" — fingerprint de Chromium automatizado é detectável (navigator.webdriver, ausência de plugins reais, timing perfeito).
-  - Sem suporte nativo a presença/digitação em tempo real do protocolo — simula via DOM, o que gera padrões.
-  - Recursos pesados: cada sessão consome ~300MB RAM, o que limita escala e força reuso agressivo de instâncias.
-  - Bibliotecas desatualizadas frente a mudanças do WA Web quebram fluxo e disparam reconexões suspeitas.
-
-### Evolution API (Baileys por baixo)
-- **Como funciona**: implementa o protocolo multi-device direto via WebSocket. Conecta como se fosse um celular pareado real (mesmo handshake do app oficial).
-- **Por que banna menos** (não "não banna"):
-  - Tráfego é idêntico ao de um device legítimo — sem fingerprint de browser.
-  - Suporte nativo a `presence` (online/typing/recording), read receipts, status — comportamento humano sai "de graça".
-  - Reconexão silenciosa, sem reload de página.
-  - Leve (~30MB por instância), permite ter muitas sessões pequenas em vez de uma sessão sobrecarregada.
-
-### O que realmente derruba número (independente da lib)
-1. **Volume sem warmup** — chip novo disparando 200+ msgs/dia = ban em horas.
-2. **Conteúdo idêntico** — mesma mensagem byte-a-byte pra N contatos.
-3. **Sem variação de timing** — intervalos fixos (ex: 5s exatos).
-4. **Disparo a não-contatos** — quem nunca te salvou e recebe link = denúncia fácil.
-5. **Links/mídia já na 1ª msg** — gatilho clássico.
-6. **Zero inbound** — número que só fala e nunca responde é flagado.
-7. **Denúncias (botão "Bloquear e Denunciar")** — 3-5 denúncias = ban.
-8. **Reconexões frequentes / múltiplos IPs** — sessão instável.
-
-### Boas práticas que vamos aplicar (já temos warmup, falta refinar)
-- Warmup escalonado: dia 1-3 = 20 msg/dia, dia 4-7 = 50, dia 8-14 = 150, depois 300+.
-- Spintax obrigatório (`{Oi|Olá|E aí}, {tudo bem|como vai}?`).
-- Delays randômicos 8-45s entre msgs + janela de horário comercial.
-- `presence: composing` 2-5s antes de enviar.
-- Limite diário por instância configurável + circuit-breaker se taxa de erro >5%.
-- Aquecimento bidirecional (números conectados conversando entre si — já existe).
-- Avisar usuário: primeiro contato sem link, pedir pra salvarem antes de campanhas com mídia.
-
-**Entrega**: página `/app/anti-ban` com esse conteúdo formatado + tooltips/badges nas telas de campanha alertando quando o usuário está pisando em alguma dessas regras.
+Entregue em 5 etapas — cada uma já roda de ponta a ponta.
 
 ---
 
-## Parte 2 — Redesign UI/UX (Midnight Indigo · Sora/Manrope · Sidebar)
+## Etapa 1 — Persistência e tela de listagem
 
-### Design system (src/styles.css)
-- Paleta semântica:
-  - `--background: #0a0a1a` (deep space)
-  - `--card: #141432`
-  - `--border: oklch(...)` ~ #1e1e5a com 40% opacity
-  - `--primary: #4f46e5` + `--primary-glow: #6366f1`
-  - Gradientes: `--gradient-hero`, `--gradient-card`, `--gradient-primary`
-  - Shadows: `--shadow-glow` (indigo bloom), `--shadow-elegant`
-- Fontes: Sora (display, h1-h3) + Manrope (body, ui). Carregadas via `<link>` em `__root.tsx`.
-- Componentes shadcn re-skinados via variantes (button `premium`/`glow`, card com border-beam opcional).
-- Densidade: padding generoso, radius 12-16px, micro-animations (fade/slide 200-300ms).
-- MagicUI seletivo: `BorderBeam` em CTAs, `AnimatedGridPattern` no fundo do dashboard, `NumberTicker` em métricas, `Meteors` na landing.
+### Banco (1 migração)
 
-### Shell (toca toda navegação autenticada)
-- **AppSidebar**: rebuild com seções colapsáveis (Operação / Conta / Admin), ícones lucide consistentes, item ativo com indicador lateral animado em `--primary`, avatar+plano no rodapé, status de conexão (bolinha verde "X instâncias online").
-- **Topbar nova**: breadcrumb dinâmico, busca global (⌘K), saldo da carteira inline, badge de assinatura, avatar dropdown.
-- **Mobile**: sidebar vira sheet, topbar compacta.
+- `flows` — `name`, `description`, `status` (`draft` | `active` | `paused`), `trigger_type`, `trigger_config jsonb`, `instance_id` (qual chip envia), `current_version_id`
+- `flow_versions` — `flow_id`, `version` (int), `nodes jsonb`, `edges jsonb`, `published_at`
+- `flow_runs` — `flow_id`, `version_id`, `contact_id`, `instance_id`, `status` (`running`|`waiting`|`done`|`failed`|`stopped`), `current_node_id`, `wait_until`, `variables jsonb`, `started_at`, `finished_at`, `error`
+- `flow_run_steps` — `run_id`, `node_id`, `node_type`, `status` (`ok`|`error`|`skipped`), `output jsonb`, `duration_ms`, `created_at`
+- RLS por `user_id` em tudo, GRANT pra `authenticated` + `service_role`
 
-### Telas (todas as 14)
+### UI
 
-| Tela | Tratamento |
-|---|---|
-| `/` (landing) | Hero com aurora text "Dispare sem ser banido", meteors, 3 features bento (Anti-ban / Warmup / Marketplace), pricing, FAQ, footer. |
-| `/auth` | Split-screen: form à esquerda, painel decorativo com particles à direita. Google + email. |
-| `/app` (dashboard) | Bento grid: KPIs (msgs hoje, taxa entrega, instâncias online, saldo) com NumberTicker; gráfico de envios 7d (recharts area); lista de campanhas ativas; alertas anti-ban. |
-| `/app/instances` | Grid de cards de instância com QR inline em dialog, status pulsante, ações (restart/desconectar), badge de "health score" baseado em métricas anti-ban. |
-| `/app/servers` | Tabela densa + form lateral, teste de conexão com feedback visual. |
-| `/app/campaigns` | Lista com filtros, cards de status (rascunho/agendada/rodando/concluída), barra de progresso. |
-| `/app/campaigns/new` | Wizard 4 passos (Lista → Mensagem com spintax preview → Anti-ban settings → Revisão), validador anti-ban em tempo real ("⚠ sem spintax, risco alto"). |
-| `/app/campaigns/$id` | Header com KPIs, timeline de envios, logs filtráveis, botão pausar/retomar. |
-| `/app/lists` + `/app/lists/$id` | Upload CSV drag-drop, preview, dedup, validação de número BR. |
-| `/app/inbox` | Layout 3 colunas (conversas / chat / detalhes contato) estilo Intercom. |
-| `/app/warmup` | Dashboard de aquecimento: grafo de conexões entre números, gráfico de progressão diária, controles de intensidade. |
-| `/app/marketplace` | Cards de chip com badge "BR · Virtual", filtros, modal de compra mostrando saldo. |
-| `/app/wallet` | Card grande de saldo com gradient, botões de recarga (R$50/100/250/custom), tabela de transações. |
-| `/app/billing` | 3 cards de planos (Starter/Pro/Scale) com hover-lift e BorderBeam no recomendado. |
-| `/app/admin/catalog` | Tabela admin com inline-edit, badge de margem, drawer pra criar produto. |
-| `/app/anti-ban` (nova) | Doc visual da parte 1 com seções colapsáveis e checklist interativo. |
+- **`/app/flows`** (lista) — cards/tabela com nome, status, gatilho, taxa de conclusão (últimos 7d), botões **Editar · Duplicar · Pausar/Ativar · Excluir**
+- **`/app/flows/$id`** (editor — refator do atual) — recebe `loader` com versão atual + topbar com **Salvar versão · Publicar · Testar**
+- **Toggle Salvar**: cria nova `flow_version`, atualiza `current_version_id`. Auto-save de rascunho a cada 10s (debounce) num campo `draft_nodes/draft_edges` em `flows`
 
-### Implementação em fases
-1. **F1 — Design system + shell** (styles.css, Sidebar, Topbar, fontes, MagicUI base) — base pra tudo.
-2. **F2 — Landing + Auth** (vendem o produto).
-3. **F3 — Dashboard + Instances + Anti-ban page** (core).
-4. **F4 — Campaigns (lista/new/detalhe) + Lists** (fluxo principal).
-5. **F5 — Inbox + Warmup + Marketplace + Wallet + Billing** (suporte).
-6. **F6 — Admin + polish (loading states, empty states, toasts, mobile QA)**.
+### Server fns
 
-### Detalhes técnicos
-- Sem mudança de schema/backend — puro frontend/presentation.
-- `@theme inline` pro shadcn continuar funcionando com os novos tokens.
-- MagicUI: copiar componentes individuais pra `src/components/magicui/` (não tem pacote npm próprio).
-- Garantir contraste AA em todos os pares (Manrope #cbd5e1 sobre #0a0a1a, etc).
-- Reduce-motion respeitado em todas as animações.
+`listFlowsFn`, `getFlowFn`, `saveFlowDraftFn`, `publishFlowVersionFn`, `duplicateFlowFn`, `toggleFlowStatusFn`, `deleteFlowFn`
 
-### Fora do escopo
-- Lógica de negócio (warmup engine, provedores, Stripe) — fica como está.
-- Migrations.
-- Mudanças na Evolution API integration.
+---
 
-Posso começar pela Fase 1 (design system + shell) assim que aprovar.
+## Etapa 2 — Gatilhos reais
+
+### Tipos suportados
+
+1. **Palavra-chave** — quando msg recebida contém X (case-insensitive, lista de palavras)
+2. **Mensagem nova de contato desconhecido** — primeira mensagem de número que nunca falou
+3. **Contato novo na lista X** — quando entra contato na lista escolhida
+4. **Manual / API** — disparo via botão "Testar" ou endpoint `/api/public/flows/$id/trigger`
+
+### Onde liga
+
+- Já existe `src/routes/api/public/evolution-webhook.$token.ts` → estender: ao receber `messages.upsert`, consultar `flows` ativos com `trigger_type='keyword'|'new_contact'` daquele `instance_id`, casar e enfileirar `flow_runs`
+- Bloco de configuração de gatilho na topbar do editor (Sheet com seleção do tipo + config específica)
+- Validação: fluxo não pode ser publicado sem trigger + sem `instance_id`
+
+---
+
+## Etapa 3 — Motor de execução + métricas por nó
+
+### Arquitetura (sem Inngest, usando pg_cron já presente)
+
+- **Enqueue**: webhook do Evolution ou trigger manual cria `flow_runs` com `status='running'` no nó inicial
+- **Worker route** `src/routes/api/public/flow-worker.ts` — busca runs com `status='running'` OU `status='waiting' AND wait_until <= now()`, processa **1 nó por iteração** em lote (até 50), avança `current_node_id` seguindo as `edges`
+- **Cron** `pg_cron` a cada 30s chama o worker (já temos `dispatch-worker` rodando assim)
+- **Tipos de nó executáveis**:
+  - `message` → `sendText` no Evolution (variáveis substituídas)
+  - `media` → `sendMedia` (imagem/áudio/PDF do bucket `campaign-media`)
+  - `buttons` → `sendButtons` (até 3 botões nativos WhatsApp)
+  - `ask` → manda pergunta, marca run como `waiting`, contato deve responder; webhook casa msg de entrada com run em `waiting` e captura em `variables[chave]`
+  - `delay` → `wait_until = now() + seconds`, status `waiting`
+  - `condition` → avalia, segue handle `yes` ou `no`
+  - `branch` (novo) → A/B aleatório por peso
+  - `tag` → grava em `contacts.tags`
+  - `ai` (novo) → chama **Lovable AI** (`google/gemini-2.5-flash` padrão) com prompt + contexto da conversa, salva resposta em `variables.ai_response` e/ou envia direto
+  - `webhook` → POST pra URL externa, body com `{ contact, variables }`, opcionalmente captura resposta JSON em variáveis
+  - `transfer_human` → marca conversa como `awaiting_human` na `inbox`, para o run
+
+### Métricas por nó
+
+- Cada execução grava 1 linha em `flow_run_steps`
+- View materializada `flow_node_stats` (refresh a cada minuto): `flow_id, node_id, entered, completed, errored, avg_duration_ms`
+- **Editor mostra os números em cima de cada nó** (badge "1.247 →" canto sup. direito, vermelho se erro >5%)
+
+### Limites e segurança
+
+- Respeita `daily_limit` e janela `08:00–20:00` do chip
+- Circuit breaker: se >5 erros consecutivos no mesmo nó em 1min, pausa o fluxo e notifica
+- `MAX_RUN_DURATION` 7 dias; runs órfãos são finalizados como `failed`
+
+---
+
+## Etapa 4 — Blocos novos + UX pro
+
+### Novos blocos na palette
+
+- **Mídia** (imagem/áudio/PDF, upload pro `campaign-media`)
+- **Botões WhatsApp** (até 3 opções, cada uma vira saída separada do nó)
+- **Pergunta** (envia + aguarda resposta, salva em variável nomeada, com timeout opcional)
+- **IA** (prompt + modelo + saída em variável)
+- **Split A/B** (peso configurável)
+- **Transferir humano**
+
+### UX
+
+- **Undo/redo** via `zundo` no estado de nodes/edges (Ctrl+Z / Ctrl+Shift+Z)
+- **Auto-layout** com `dagre` (botão "Organizar" — top-down)
+- **Validação ao vivo** — painel inferior lista: nós sem conexão de saída (exceto folha), nós sem entrada (exceto start), ciclos, mensagens vazias, ramo da condição não conectado. Botão "Publicar" desabilita se houver erro
+- **Atalhos**: Del/Backspace remove seleção, Ctrl+D duplica, Ctrl+S salva, espaço+drag para pan
+- **Copiar/colar** nodes selecionados (Ctrl+C/V)
+- **Mini-testador** (Sheet "Testar fluxo"): simula passo-a-passo no browser sem chamar Evolution, mostra mensagens renderizadas com variáveis preenchidas + permite escolher resposta nas perguntas
+- **Versões** — dropdown na topbar lista últimas 10 versões com timestamp, permite "Restaurar"
+
+---
+
+## Etapa 5 — Templates prontos
+
+Tela inicial do editor (quando fluxo está vazio) mostra modal **"Começar do zero" ou template**:
+
+1. **Boas-vindas + qualificação** — saudação → pergunta nome → pergunta interesse → tag + transfere
+2. **Recuperação de carrinho** — delay 1h → msg leve → delay 24h → desconto → delay 3d → última tentativa
+3. **Suporte com IA** — recebe pergunta → IA responde com base no prompt do produto → se "falar com humano" → transfere
+4. **Pesquisa NPS** — agradecimento → pergunta nota 0-10 → condição (≤6 detrator / 7-8 / ≥9) → resposta adequada → tag
+
+Templates são objetos `{ nodes, edges, trigger_default }` em `src/lib/flow-templates.ts`.
+
+---
+
+## Stack adicional
+
+- `bun add zundo dagre @types/dagre` (undo/redo + auto-layout)
+- Sem novas conexões externas — usa Lovable AI Gateway já presente (`LOVABLE_API_KEY`)
+
+## Fora de escopo (próximas fases)
+
+- Colaboração multi-usuário (cursor compartilhado)
+- Agendamento por horário comercial granular por dia
+- Importar fluxos de outras plataformas
+- Versionamento por branch / staging
+
+## Ordem de entrega sugerida
+
+E1 → E2 → E3 → E4 → E5. Cada etapa fecha um ciclo utilizável (E1 sozinha já salva e organiza; E2 já dispara mensagem única; E3 já roda multi-passos).

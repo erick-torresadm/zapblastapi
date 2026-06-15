@@ -385,6 +385,253 @@ export type Database = {
         }
         Relationships: []
       }
+      flow_run_steps: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          flow_id: string
+          id: string
+          node_id: string
+          node_type: string
+          output: Json | null
+          run_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          flow_id: string
+          id?: string
+          node_id: string
+          node_type: string
+          output?: Json | null
+          run_id: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          flow_id?: string
+          id?: string
+          node_id?: string
+          node_type?: string
+          output?: Json | null
+          run_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_run_steps_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_run_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "flow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_runs: {
+        Row: {
+          contact_id: string | null
+          contact_phone: string
+          created_at: string
+          current_node_id: string | null
+          error: string | null
+          finished_at: string | null
+          flow_id: string
+          id: string
+          instance_id: string | null
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+          variables: Json
+          version_id: string | null
+          wait_until: string | null
+          waiting_for: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          contact_phone: string
+          created_at?: string
+          current_node_id?: string | null
+          error?: string | null
+          finished_at?: string | null
+          flow_id: string
+          id?: string
+          instance_id?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          variables?: Json
+          version_id?: string | null
+          wait_until?: string | null
+          waiting_for?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          contact_phone?: string
+          created_at?: string
+          current_node_id?: string | null
+          error?: string | null
+          finished_at?: string | null
+          flow_id?: string
+          id?: string
+          instance_id?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          variables?: Json
+          version_id?: string | null
+          wait_until?: string | null
+          waiting_for?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_runs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_runs_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_runs_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_runs_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "flow_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_versions: {
+        Row: {
+          edges: Json
+          flow_id: string
+          id: string
+          nodes: Json
+          published_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          edges: Json
+          flow_id: string
+          id?: string
+          nodes: Json
+          published_at?: string
+          user_id: string
+          version: number
+        }
+        Update: {
+          edges?: Json
+          flow_id?: string
+          id?: string
+          nodes?: Json
+          published_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_versions_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flows: {
+        Row: {
+          created_at: string
+          current_version_id: string | null
+          description: string | null
+          draft_edges: Json
+          draft_nodes: Json
+          id: string
+          instance_id: string | null
+          name: string
+          status: string
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_version_id?: string | null
+          description?: string | null
+          draft_edges?: Json
+          draft_nodes?: Json
+          id?: string
+          instance_id?: string | null
+          name?: string
+          status?: string
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_version_id?: string | null
+          description?: string | null
+          draft_edges?: Json
+          draft_nodes?: Json
+          id?: string
+          instance_id?: string | null
+          name?: string
+          status?: string
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flows_current_version_fk"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "flow_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flows_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incoming_messages: {
         Row: {
           evolution_message_id: string | null
