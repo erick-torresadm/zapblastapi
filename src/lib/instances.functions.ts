@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 // Resolve um servidor por ID: usa cliente do usuário (RLS) para próprios; admin para compartilhado.
-async function resolveServer(serverId: string, userClient: ReturnType<typeof requireSupabaseAuth> extends never ? never : any) {
+async function resolveServer(serverId: string, userClient: any) {
   const { data: own } = await userClient.from("evolution_servers").select("*").eq("id", serverId).maybeSingle();
   if (own) return { server: own, isShared: own.is_shared as boolean };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
