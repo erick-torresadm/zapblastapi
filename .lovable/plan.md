@@ -1,131 +1,69 @@
+## Aquecimento Automático de Chips
 
-# Plataforma SaaS de Disparo em Massa via Evolution API
+Chips recém-conectados precisam parecer "humanos" antes de disparar em massa. A ideia: os próprios chips do usuário (e, opcionalmente, do pool global da plataforma) trocam mensagens entre si — saudações, perguntas, áudios curtos, figurinhas — simulando conversas naturais. Isso aumenta a reputação do número no WhatsApp e reduz risco de banimento quando a campanha real começar.
 
-## Visão geral
+### Como funciona
 
-Plataforma multi-tenant onde cada cliente conecta vários chips (instâncias Evolution), importa listas, e dispara campanhas com rotação inteligente entre números, delays humanos, spintax e limites diários — tudo pra evitar ban e baratear o custo vs WhatsApp Cloud API oficial.
+1. Usuário liga o **modo aquecimento** num chip conectado e define a intensidade:
+   - **Leve** (chip novo, 1ª semana): ~20 msgs/dia, ramp-up gradual
+   - **Médio** (2ª semana): ~50 msgs/dia
+   - **Forte** (manutenção): ~100 msgs/dia
+2. A plataforma escolhe pares de chips do mesmo usuário que também estão em modo aquecimento e os emparelha.
+3. A cada poucos minutos (com aleatoriedade), um worker dispara uma mensagem do chip A para o chip B usando um banco de frases naturais com spintax.
+4. O chip B "lê" via webhook (já temos `incoming_messages`) e, depois de um delay humano (15s a 3min), responde algo coerente.
+5. O `daily_warmup_sent` é separado do `sent_today` da campanha — aquecimento não compete com disparo real.
+6. Após X dias o sistema sobe automaticamente o `daily_limit` da campanha (ex: 50 → 200 → 500 → 1000).
 
-**Modelo econômico:** chip ~R$7 + Evolution self-hosted = custo marginal por mensagem tendendo a zero, vs R$0,35 da API oficial. Margem alta pra revender em planos mensais.
+### Painel do usuário
 
-## Arquitetura
+Nova aba **Aquecimento** mostrando, por chip:
+- Status (ligado/desligado), intensidade, dia do aquecimento (1, 2, 3…)
+- Msgs trocadas hoje / total
+- Score de "saúde" (% baseado em dias ativos, respostas recebidas, sem ban)
+- Botão "Pausar / Retomar / Resetar"
 
-```text
-Cliente (browser)
-   │
-   ▼
-TanStack Start (frontend + server functions)
-   │
-   ├── Lovable Cloud (Supabase)
-   │     ├── Auth (email/senha + Google)
-   │     ├── Postgres (tenants, chips, campanhas, contatos, logs)
-   │     ├── Storage (mídias das campanhas, CSVs)
-   │     └── pg_cron + pgmq (worker de envio)
-   │
-   └── Evolution API (servidor do cliente — VPS própria)
-         └── instâncias = 1 chip cada
-```
+### Mudanças no banco
 
-O **worker de envio** roda como server route público (`/api/public/dispatch-worker`) acordado por pg_cron a cada N segundos. Ele pega mensagens pendentes da fila, escolhe o próximo chip (round-robin respeitando limites/delays) e POSTa no Evolution do tenant.
+**Novos campos em `whatsapp_instances`:**
+- `warmup_enabled` (bool), `warmup_intensity` (leve/médio/forte), `warmup_started_at`, `warmup_day` (calculado), `warmup_sent_today`, `warmup_received_today`, `warmup_last_at`, `health_score` (0-100).
 
-## Modelo de dados (Postgres)
+**Nova tabela `warmup_messages`** — biblioteca de frases por categoria (saudação, pergunta casual, resposta curta, emoji, etc.), pré-populada em pt-BR com ~80 frases e spintax. Usuário pode adicionar próprias.
 
-- `profiles` — dados do usuário (nome, plano)
-- `user_roles` — admin/user (tabela separada, função `has_role` security definer)
-- `evolution_servers` — `id, user_id, base_url, api_key (criptografada)` — endpoint do Evolution do cliente
-- `whatsapp_instances` — `id, server_id, instance_name, phone_number, status (connected/disconnected/banned), daily_limit, sent_today, last_sent_at`
-- `contact_lists` — `id, user_id, name, total_count`
-- `contacts` — `id, list_id, phone, variables (jsonb: nome, etc), opted_out`
-- `campaigns` — `id, user_id, name, message_template (spintax), media_url, media_type, list_id, status (draft/scheduled/running/paused/done), scheduled_for, min_delay_s, max_delay_s, created_at`
-- `campaign_messages` — fila de envio: `id, campaign_id, contact_id, instance_id (escolhido na hora ou pré-alocado), status (pending/sent/delivered/read/failed/replied), rendered_message, evolution_message_id, sent_at, error`
-- `incoming_messages` — respostas capturadas via webhook do Evolution
-- `plans` / `subscriptions` — limites por plano (nº de chips, msgs/mês), Stripe
+**Nova tabela `warmup_conversations`** — registro de cada troca (from_instance, to_instance, message, sent_at, replied_at, evolution_message_id) para auditoria e dashboard.
 
-Todas as tabelas com RLS isolando por `user_id`. GRANTs explícitos pra `authenticated` e `service_role`.
+### Engine de aquecimento
 
-## Telas principais
+Novo endpoint `/api/public/warmup-worker` chamado pelo mesmo `pg_cron` a cada minuto:
+1. Para cada usuário com 2+ chips em modo aquecimento, monta pares aleatórios.
+2. Respeita a cota diária da intensidade (com ramp-up: dia 1 = 30% da cota, dia 7 = 100%).
+3. Respeita janela de horário humano (8h-22h no fuso do usuário) e delays aleatórios entre mensagens.
+4. Sorteia frase de `warmup_messages`, resolve spintax, envia A→B.
+5. Agenda resposta de B→A com delay humano via campo `reply_due_at` (worker pega no tick seguinte).
+6. Atualiza contadores, `health_score` e `warmup_day`.
 
-1. **Auth** — login/cadastro (email+senha, Google) via `/auth`
-2. **Dashboard** — KPIs: chips conectados, msgs enviadas hoje, taxa de entrega, campanhas ativas
-3. **Servidores Evolution** — CRUD do endpoint + API key
-4. **Chips (Instâncias)** — listar, criar nova (gera QR code via Evolution `/instance/create` + `/instance/connect`), ver status em tempo real, deletar, definir limite diário
-5. **Listas de contatos** — upload CSV (parse client-side, validação E.164, dedupe), visualizar, opt-out manual
-6. **Campanhas** — wizard:
-   - Step 1: nome + lista
-   - Step 2: mensagem com editor spintax `{Oi|Olá|E aí} {{nome}}` + preview de 5 variações
-   - Step 3: mídia opcional (upload pra Storage)
-   - Step 4: agendamento + delay min/max + chips a usar
-   - Step 5: revisar e disparar
-7. **Relatórios** — por campanha: enviadas/entregues/lidas/falha/respostas, gráfico temporal, export CSV
-8. **Caixa de entrada** — respostas recebidas agrupadas por contato
-9. **Billing** — planos, upgrade via Stripe
+Fallback se o usuário tem só 1 chip: opção (opt-in) de usar o **pool global** — chip do usuário conversa com chip de outro cliente que também aceitou o pool, com mensagens 100% neutras. Mantém privacidade (nada do dispatch real é compartilhado).
 
-## Engine de disparo (o coração)
+### Variações naturais
 
-**Enfileiramento:** ao iniciar campanha, gera um row em `campaign_messages` por contato, com `rendered_message` já com spintax resolvido + variáveis substituídas.
+Para não parecer bot:
+- Texto puro 70%, emoji 15%, áudio curto pré-gravado 10%, figurinha 5% (Fase 2 expande mídia).
+- Distribuição não-uniforme de horários (mais conversa de manhã e à noite).
+- Conversas em "rajadas" curtas (3-5 msgs seguidas) e depois pausa de horas.
 
-**Worker (`/api/public/dispatch-worker`, acordado por pg_cron a cada 10s):**
-1. Lock advisory pra não rodar duas vezes
-2. Pega até N mensagens `pending` ordenadas por campanha (respeitando `scheduled_for`)
-3. Pra cada mensagem:
-   - Escolhe instância: round-robin entre chips `connected` do tenant que ainda não atingiram `daily_limit` e cujo `last_sent_at` + delay aleatório já passou
-   - Se nenhum chip disponível agora → deixa pra próximo tick
-   - POST `Evolution /message/sendText` ou `/sendMedia` com `{ number, text, delay }`
-   - Atualiza `status`, `evolution_message_id`, `instance.sent_today++`, `instance.last_sent_at`
-   - Em erro 4xx → marca `failed`; em erro de conexão → marca chip como `disconnected` e re-enfileira
-4. Reset diário de `sent_today` via cron 00:00
+### Integração com campanha
 
-**Anti-ban embutido:**
-- Round-robin entre chips
-- Delay aleatório `min_delay_s..max_delay_s` (default 15-60s) por chip
-- Limite diário por chip (default 200, configurável)
-- Spintax resolvido por mensagem (cada envio é único)
-- Warmup mode: chip novo começa com limite baixo e cresce automaticamente
+- Chips em aquecimento (dia < 7 e intensidade leve) ficam **bloqueados** pra campanhas — só liberam após X dias.
+- O wizard de campanha mostra um aviso se o chip selecionado ainda está "verde".
+- Após o aquecimento concluído, o `daily_limit` sobe automaticamente conforme a curva.
 
-**Webhook do Evolution** (`/api/public/evolution-webhook/:tenantToken`):
-- Verifica token do tenant
-- `messages.upsert` → atualiza status de entrega/leitura ou grava resposta em `incoming_messages`
-- `connection.update` → atualiza status do chip
+### Fases
 
-## Stack técnica
+**Fase 1 (agora):** schema, biblioteca de frases pt-BR, toggle por chip, worker de envio + resposta, dashboard básico, ramp-up, bloqueio de campanha durante warmup.
 
-- **Frontend:** TanStack Start + React + shadcn + Tailwind
-- **Backend:** server functions (`createServerFn`) para CRUD; server routes (`/api/public/*`) para worker e webhook
-- **DB/Auth/Storage:** Lovable Cloud (Supabase)
-- **Filas/cron:** pg_cron + tabela `campaign_messages` (sem precisar de pgmq pra MVP)
-- **Pagamento:** Stripe (`enable_stripe_payments`)
-- **Evolution API:** self-hosted pelo cliente; plataforma só consome HTTP
+**Fase 2 (depois):** pool global cross-tenant, áudios/figurinhas, ML pra detectar padrão de ban, A/B de templates de aquecimento.
 
-## Segurança
+### Perguntas
 
-- API keys do Evolution criptografadas em repouso (coluna com pgcrypto, chave em secret)
-- RLS rigoroso em todas as tabelas
-- Webhook do Evolution autenticado por token único por tenant
-- Validação Zod em todo input
-- Opt-out automático ao receber "PARAR" / "SAIR"
-- Limites por plano enforced no server function antes de enfileirar
-
-## Roadmap em fases
-
-**Fase 1 — MVP (esta entrega):**
-- Auth + multi-tenant
-- CRUD servidor Evolution + chips com QR code
-- Upload CSV + listas
-- Criação de campanha (texto + spintax + mídia + agendamento)
-- Worker de disparo com rotação, delay, limite
-- Webhook básico de status
-- Dashboard e relatório por campanha
-
-**Fase 2 (depois):**
-- Stripe + planos
-- Caixa de entrada de respostas com chatbot básico
-- Warmup automático
-- A/B test de mensagens
-- Templates salvos
-- Equipes/sub-usuários
-
-## O que preciso de você
-
-1. **Subir o Evolution API** numa VPS e me passar uma URL de teste + API key pra eu validar o fluxo na Fase 1 (pode ser depois do MVP estar pronto — a UI já vai estar lá pra cadastrar)
-2. **Confirmar:** começo pela Fase 1 sem Stripe (acesso livre), e adicionamos pagamento na Fase 2? Ou já quer Stripe desde o início?
-
-Quando aprovar, ativo o Lovable Cloud e começo pela base: schema do banco + auth + telas de servidores/chips.
+1. **Pool global** entre clientes do SaaS — incluir já na Fase 1 (mais eficaz pra quem tem 1 chip só) ou deixar pra Fase 2?
+2. **Janela de horário humano** — fixa 8h-22h (horário de Brasília) ou cada usuário configura?
+3. **Bloqueio de campanha durante warmup inicial** — devo travar mesmo (mais seguro) ou só avisar e deixar o usuário decidir?
