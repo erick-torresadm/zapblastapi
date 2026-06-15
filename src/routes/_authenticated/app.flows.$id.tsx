@@ -289,23 +289,6 @@ function FlowsInner() {
     setSelectedId(null);
   };
 
-  // ---- persistência local ----
-  const saveDraft = () => {
-    const payload = { name: flowName, nodes, edges, savedAt: new Date().toISOString() };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    toast.success("Rascunho salvo localmente");
-  };
-  const loadDraft = () => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) { toast.info("Sem rascunho salvo"); return; }
-    try {
-      const p = JSON.parse(raw);
-      setFlowName(p.name ?? "Fluxo");
-      setNodes(p.nodes ?? []);
-      setEdges(p.edges ?? []);
-      toast.success("Rascunho carregado");
-    } catch { toast.error("Rascunho inválido"); }
-  };
   const exportJson = () => {
     const blob = new Blob([JSON.stringify({ name: flowName, nodes, edges }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
@@ -314,26 +297,42 @@ function FlowsInner() {
     a.click();
   };
 
+  const savedLabel = savedAt ? `Salvo ${new Date(savedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : "Não salvo";
+  const status = (flowData?.flow as any)?.status as string | undefined;
+
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-3">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-bold">Construtor de Fluxos</h1>
-            <p className="text-xs text-muted-foreground">Arraste blocos da esquerda e conecte com setas</p>
+          <Button variant="ghost" size="icon" asChild><Link to="/app/flows"><ArrowLeft className="h-4 w-4" /></Link></Button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <Input
+                value={flowName} onChange={(e) => setFlowName(e.target.value)}
+                className="h-8 w-64 border-transparent bg-transparent px-1 text-lg font-bold hover:border-border focus-visible:border-border"
+                placeholder="Nome do fluxo"
+              />
+              {status && <Badge variant={status === "active" ? "default" : "outline"} className="capitalize">{status}</Badge>}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {saveMut.isPending ? <><Loader2 className="h-3 w-3 animate-spin" /> Salvando…</>
+                : dirtyRef.current ? "Alterações não salvas"
+                : <><CheckCircle2 className="h-3 w-3 text-emerald-500" /> {savedLabel}</>}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Input
-            value={flowName} onChange={(e) => setFlowName(e.target.value)}
-            className="w-56" placeholder="Nome do fluxo"
-          />
-          <Button variant="outline" size="sm" onClick={loadDraft}><Upload className="mr-2 h-4 w-4" />Carregar</Button>
           <Button variant="outline" size="sm" onClick={exportJson}><Download className="mr-2 h-4 w-4" />Exportar</Button>
-          <Button size="sm" onClick={saveDraft}><Save className="mr-2 h-4 w-4" />Salvar</Button>
+          <Button variant="outline" size="sm" onClick={() => saveMut.mutate(false)} disabled={saveMut.isPending}>
+            <Save className="mr-2 h-4 w-4" />Salvar
+          </Button>
+          <Button size="sm" onClick={() => publishMut.mutate()} disabled={publishMut.isPending}>
+            <Rocket className="mr-2 h-4 w-4" />Publicar
+          </Button>
         </div>
       </div>
+
 
       <div className="flex flex-1 gap-3 overflow-hidden">
         {/* Palette */}
