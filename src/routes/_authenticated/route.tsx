@@ -1,7 +1,8 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -16,15 +17,23 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthedLayout() {
   return (
     <SidebarProvider>
-      <AppSidebar />
-      <main className="flex-1 overflow-y-auto">
-        <div className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
-          <SidebarTrigger />
-        </div>
-        <div className="container mx-auto max-w-7xl p-6">
-          <Outlet />
-        </div>
-      </main>
+      <div className="flex min-h-screen w-full bg-background">
+        <AppSidebar />
+        <main className="relative flex-1 overflow-y-auto">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[420px] opacity-60"
+            style={{
+              background:
+                "radial-gradient(ellipse 80% 60% at 50% 0%, oklch(0.30 0.18 275 / 0.30), transparent 70%)",
+            }}
+          />
+          <AppTopbar />
+          <div className="relative container mx-auto max-w-7xl p-6">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </SidebarProvider>
   );
 }
