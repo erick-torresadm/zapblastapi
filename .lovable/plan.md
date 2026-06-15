@@ -1,69 +1,80 @@
-## Aquecimento Automático de Chips
+## Marketplace de Chips Virtuais + Assinatura + Carteira
 
-Chips recém-conectados precisam parecer "humanos" antes de disparar em massa. A ideia: os próprios chips do usuário (e, opcionalmente, do pool global da plataforma) trocam mensagens entre si — saudações, perguntas, áudios curtos, figurinhas — simulando conversas naturais. Isso aumenta a reputação do número no WhatsApp e reduz risco de banimento quando a campanha real começar.
+Nova seção da plataforma onde clientes pagam mensalidade pra acessar o SaaS e mantêm um **saldo pré-pago** pra "comprar" chips virtuais (números BR via API tipo SMS-Activate / 5sim). Quando o chip chega, é provisionado automaticamente como instância no Evolution e aparece na aba **Chips** prontinho pra warmup/disparo.
 
-### Como funciona
+### Páginas novas
 
-1. Usuário liga o **modo aquecimento** num chip conectado e define a intensidade:
-   - **Leve** (chip novo, 1ª semana): ~20 msgs/dia, ramp-up gradual
-   - **Médio** (2ª semana): ~50 msgs/dia
-   - **Forte** (manutenção): ~100 msgs/dia
-2. A plataforma escolhe pares de chips do mesmo usuário que também estão em modo aquecimento e os emparelha.
-3. A cada poucos minutos (com aleatoriedade), um worker dispara uma mensagem do chip A para o chip B usando um banco de frases naturais com spintax.
-4. O chip B "lê" via webhook (já temos `incoming_messages`) e, depois de um delay humano (15s a 3min), responde algo coerente.
-5. O `daily_warmup_sent` é separado do `sent_today` da campanha — aquecimento não compete com disparo real.
-6. Após X dias o sistema sobe automaticamente o `daily_limit` da campanha (ex: 50 → 200 → 500 → 1000).
+1. **Planos** (`/app/billing`) — escolhe assinatura mensal (ex: Starter R$ 49, Pro R$ 149, Enterprise R$ 399). Vai pro Stripe Checkout, retorna e libera acesso. Mostra status da assinatura e botão "Gerenciar" (Stripe Customer Portal).
 
-### Painel do usuário
+2. **Carteira** (`/app/wallet`) — saldo atual + histórico de transações. Botão "Adicionar saldo" abre modal com valores pré-definidos (R$ 50 / R$ 100 / R$ 250 / R$ 500 / outro) → Stripe Checkout → webhook credita.
 
-Nova aba **Aquecimento** mostrando, por chip:
-- Status (ligado/desligado), intensidade, dia do aquecimento (1, 2, 3…)
-- Msgs trocadas hoje / total
-- Score de "saúde" (% baseado em dias ativos, respostas recebidas, sem ban)
-- Botão "Pausar / Retomar / Resetar"
+3. **Marketplace de Chips** (`/app/marketplace`) — catálogo com cards: "Chip BR Descartável — R$ 7,90", "Chip BR Premium — R$ 19,90" (markup configurável sobre o custo do provedor). Botão "Comprar" debita carteira, chama o provedor, cria a instância. Tela inicial vem com tudo "Provedor não conectado" até você ligar a API.
 
-### Mudanças no banco
+### Fluxo de compra
 
-**Novos campos em `whatsapp_instances`:**
-- `warmup_enabled` (bool), `warmup_intensity` (leve/médio/forte), `warmup_started_at`, `warmup_day` (calculado), `warmup_sent_today`, `warmup_received_today`, `warmup_last_at`, `health_score` (0-100).
+```
+Cliente clica Comprar  →  valida saldo  →  debita carteira (transação atômica)
+   →  chama provedor (API stub) pra alocar número
+   →  cria evolution_servers (se não tem) e whatsapp_instances  
+   →  retorna QR code ou número pronto  →  registra purchase
+```
 
-**Nova tabela `warmup_messages`** — biblioteca de frases por categoria (saudação, pergunta casual, resposta curta, emoji, etc.), pré-populada em pt-BR com ~80 frases e spintax. Usuário pode adicionar próprias.
+Se a chamada do provedor falhar, **estorna automaticamente** o saldo.
 
-**Nova tabela `warmup_conversations`** — registro de cada troca (from_instance, to_instance, message, sent_at, replied_at, evolution_message_id) para auditoria e dashboard.
+### Schema (Lovable Cloud)
 
-### Engine de aquecimento
+**`subscription_plans`** — tabela seed com nome, preço, stripe_price_id, limites (chips simultâneos, mensagens/dia).
 
-Novo endpoint `/api/public/warmup-worker` chamado pelo mesmo `pg_cron` a cada minuto:
-1. Para cada usuário com 2+ chips em modo aquecimento, monta pares aleatórios.
-2. Respeita a cota diária da intensidade (com ramp-up: dia 1 = 30% da cota, dia 7 = 100%).
-3. Respeita janela de horário humano (8h-22h no fuso do usuário) e delays aleatórios entre mensagens.
-4. Sorteia frase de `warmup_messages`, resolve spintax, envia A→B.
-5. Agenda resposta de B→A com delay humano via campo `reply_due_at` (worker pega no tick seguinte).
-6. Atualiza contadores, `health_score` e `warmup_day`.
+**`subscriptions`** — `user_id`, `plan_id`, `stripe_subscription_id`, `status` (active/past_due/canceled), `current_period_end`. RLS: usuário vê só a sua.
 
-Fallback se o usuário tem só 1 chip: opção (opt-in) de usar o **pool global** — chip do usuário conversa com chip de outro cliente que também aceitou o pool, com mensagens 100% neutras. Mantém privacidade (nada do dispatch real é compartilhado).
+**`wallets`** — `user_id` (unique), `balance_cents`, `total_topped_up_cents`. RLS própria.
 
-### Variações naturais
+**`wallet_transactions`** — `user_id`, `amount_cents` (positivo=crédito, negativo=débito), `type` (topup/purchase/refund/adjustment), `description`, `stripe_payment_intent_id`, `chip_purchase_id`. Imutável (sem update/delete).
 
-Para não parecer bot:
-- Texto puro 70%, emoji 15%, áudio curto pré-gravado 10%, figurinha 5% (Fase 2 expande mídia).
-- Distribuição não-uniforme de horários (mais conversa de manhã e à noite).
-- Conversas em "rajadas" curtas (3-5 msgs seguidas) e depois pausa de horas.
+**`chip_catalog`** — produtos vendáveis: `name`, `description`, `price_cents`, `provider_cost_cents` (custo seu pra calcular margem), `provider` (sms_activate/5sim/etc), `provider_service_code` (ex: "wa" pra WhatsApp), `country_code` (default 'br'), `active`. Você gerencia via tela de admin.
 
-### Integração com campanha
+**`chip_purchases`** — log de cada compra: `user_id`, `catalog_item_id`, `price_paid_cents`, `provider_order_id`, `instance_id` (FK pra `whatsapp_instances` quando provisionado), `status` (pending/provisioning/active/failed/refunded), `phone_number`, `expires_at` (chip virtual tem vida curta).
 
-- Chips em aquecimento (dia < 7 e intensidade leve) ficam **bloqueados** pra campanhas — só liberam após X dias.
-- O wizard de campanha mostra um aviso se o chip selecionado ainda está "verde".
-- Após o aquecimento concluído, o `daily_limit` sobe automaticamente conforme a curva.
+**`user_roles`** ganha valor `'admin'` (já existe o enum) — admin acessa `/app/admin/catalog` pra editar produtos.
+
+### Integração com provedor (stub plugável)
+
+Crio `src/lib/chip-providers/` com interface comum:
+
+```ts
+interface ChipProvider {
+  buyNumber(serviceCode: string, country: string): Promise<{ orderId: string; phone: string }>;
+  checkStatus(orderId: string): Promise<{ phone: string; smsCode?: string; status: string }>;
+  cancelOrder(orderId: string): Promise<void>;
+}
+```
+
+Implementações vazias pra `sms_activate.ts`, `5sim.ts` e um `mock.ts` que retorna número fake pra você testar a UI antes de conectar provedor real. Quando você escolher e me passar a chave, eu pluga em 5 min.
+
+### Stripe (built-in Lovable)
+
+- **Assinatura** mensal recorrente (3 produtos)
+- **Recarga de saldo** como pagamento avulso
+- 1 webhook em `/api/public/stripe-webhook` que processa: `checkout.session.completed` (recarga), `customer.subscription.*` (assinatura), `invoice.paid`/`invoice.payment_failed`
+
+### Controle de acesso
+
+Middleware/guard: se assinatura `status != 'active'` e o usuário não é admin, bloqueia acesso a `/app/campaigns/new` e mostra banner "Assinatura inativa — renovar". Acesso ao Dashboard e Wallet continua livre pra ele recarregar/reativar.
+
+### Sidebar
+
+Adiciono **Marketplace**, **Carteira**, **Planos** (e **Admin** só pra role admin).
 
 ### Fases
 
-**Fase 1 (agora):** schema, biblioteca de frases pt-BR, toggle por chip, worker de envio + resposta, dashboard básico, ramp-up, bloqueio de campanha durante warmup.
+**Fase A (agora):** schema, páginas Wallet + Marketplace + Planos + Admin do catálogo, provider `mock`, stub do Stripe (botões funcionando mas sem conectar pagamento real ainda), guard de assinatura.
 
-**Fase 2 (depois):** pool global cross-tenant, áudios/figurinhas, ML pra detectar padrão de ban, A/B de templates de aquecimento.
+**Fase B:** ativar Stripe payments (faço quando você confirmar) — produtos, checkout, webhook real.
 
-### Perguntas
+**Fase C:** plugar provedor real (SMS-Activate ou 5sim) quando você escolher e me passar a credencial.
 
-1. **Pool global** entre clientes do SaaS — incluir já na Fase 1 (mais eficaz pra quem tem 1 chip só) ou deixar pra Fase 2?
-2. **Janela de horário humano** — fixa 8h-22h (horário de Brasília) ou cada usuário configura?
-3. **Bloqueio de campanha durante warmup inicial** — devo travar mesmo (mais seguro) ou só avisar e deixar o usuário decidir?
+### Perguntas finais
+
+1. **Markup padrão** sobre o custo do provedor — 50%? 100%? 200%? (Você edita por produto depois, é só o default do seed.)
+2. **Pode ativar Stripe payments agora** (Fase B) ou só faço a estrutura visual primeiro?
+3. **Custo do chip virtual descartável pro cliente** — sugiro R$ 7,90 a R$ 14,90 (custo provedor ~R$ 2-5). Concorda ou tem faixa de preço em mente?

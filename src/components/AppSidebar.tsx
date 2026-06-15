@@ -4,9 +4,9 @@ import {
   SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Server, Smartphone, Users, Send, Inbox, LogOut, Zap, Flame } from "lucide-react";
+import { LayoutDashboard, Server, Smartphone, Users, Send, Inbox, LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 
 const nav = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -17,17 +17,49 @@ const nav = [
   { to: "/app/campaigns", label: "Campanhas", icon: Send },
   { to: "/app/inbox", label: "Respostas", icon: Inbox },
 ];
+const billingNav = [
+  { to: "/app/marketplace", label: "Marketplace", icon: ShoppingCart },
+  { to: "/app/wallet", label: "Carteira", icon: Wallet },
+  { to: "/app/billing", label: "Planos", icon: CreditCard },
+];
 
 export function AppSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
   const qc = useQueryClient();
 
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is-admin"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return false;
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", u.user.id);
+      return (data ?? []).some((r) => r.role === "admin");
+    },
+  });
+
   async function signOut() {
     await qc.cancelQueries();
     qc.clear();
     await supabase.auth.signOut();
     router.navigate({ to: "/auth", replace: true });
+  }
+
+  function renderItems(items: typeof nav) {
+    return items.map((n) => {
+      const active = ("exact" in n && n.exact) ? path === n.to : path.startsWith(n.to);
+      const Icon = n.icon;
+      return (
+        <SidebarMenuItem key={n.to}>
+          <SidebarMenuButton asChild isActive={active}>
+            <Link to={n.to}>
+              <Icon className="h-4 w-4" />
+              <span>{n.label}</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      );
+    });
   }
 
   return (
@@ -42,26 +74,25 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {nav.map((n) => {
-                const active = n.exact ? path === n.to : path.startsWith(n.to);
-                const Icon = n.icon;
-                return (
-                  <SidebarMenuItem key={n.to}>
-                    <SidebarMenuButton asChild isActive={active}>
-                      <Link to={n.to}>
-                        <Icon className="h-4 w-4" />
-                        <span>{n.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <SidebarGroupLabel>Operação</SidebarGroupLabel>
+          <SidebarGroupContent><SidebarMenu>{renderItems(nav)}</SidebarMenu></SidebarGroupContent>
         </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Conta</SidebarGroupLabel>
+          <SidebarGroupContent><SidebarMenu>{renderItems(billingNav)}</SidebarMenu></SidebarGroupContent>
+        </SidebarGroup>
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent><SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={path.startsWith("/app/admin")}>
+                  <Link to="/app/admin/catalog"><Shield className="h-4 w-4" /><span>Catálogo</span></Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu></SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter className="border-t">
         <Button variant="ghost" size="sm" onClick={signOut} className="justify-start">

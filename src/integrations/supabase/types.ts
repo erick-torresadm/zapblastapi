@@ -170,6 +170,120 @@ export type Database = {
           },
         ]
       }
+      chip_catalog: {
+        Row: {
+          active: boolean
+          country_code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price_cents: number
+          provider: Database["public"]["Enums"]["chip_provider"]
+          provider_cost_cents: number
+          provider_service_code: string
+          sort_order: number
+          ttl_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          country_code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price_cents: number
+          provider?: Database["public"]["Enums"]["chip_provider"]
+          provider_cost_cents?: number
+          provider_service_code?: string
+          sort_order?: number
+          ttl_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          country_code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price_cents?: number
+          provider?: Database["public"]["Enums"]["chip_provider"]
+          provider_cost_cents?: number
+          provider_service_code?: string
+          sort_order?: number
+          ttl_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chip_purchases: {
+        Row: {
+          catalog_item_id: string | null
+          created_at: string
+          error: string | null
+          expires_at: string | null
+          id: string
+          instance_id: string | null
+          phone_number: string | null
+          price_paid_cents: number
+          provider: Database["public"]["Enums"]["chip_provider"]
+          provider_order_id: string | null
+          sms_code: string | null
+          status: Database["public"]["Enums"]["chip_purchase_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          catalog_item_id?: string | null
+          created_at?: string
+          error?: string | null
+          expires_at?: string | null
+          id?: string
+          instance_id?: string | null
+          phone_number?: string | null
+          price_paid_cents: number
+          provider: Database["public"]["Enums"]["chip_provider"]
+          provider_order_id?: string | null
+          sms_code?: string | null
+          status?: Database["public"]["Enums"]["chip_purchase_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          catalog_item_id?: string | null
+          created_at?: string
+          error?: string | null
+          expires_at?: string | null
+          id?: string
+          instance_id?: string | null
+          phone_number?: string | null
+          price_paid_cents?: number
+          provider?: Database["public"]["Enums"]["chip_provider"]
+          provider_order_id?: string | null
+          sms_code?: string | null
+          status?: Database["public"]["Enums"]["chip_purchase_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chip_purchases_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "chip_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chip_purchases_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_lists: {
         Row: {
           created_at: string
@@ -357,6 +471,98 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          featured: boolean
+          id: string
+          max_chips: number
+          max_messages_per_day: number
+          name: string
+          price_cents: number
+          slug: string
+          sort_order: number
+          stripe_price_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          featured?: boolean
+          id?: string
+          max_chips?: number
+          max_messages_per_day?: number
+          name: string
+          price_cents: number
+          slug: string
+          sort_order?: number
+          stripe_price_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          featured?: boolean
+          id?: string
+          max_chips?: number
+          max_messages_per_day?: number
+          name?: string
+          price_cents?: number
+          slug?: string
+          sort_order?: number
+          stripe_price_id?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          id: string
+          plan_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -374,6 +580,66 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount_cents: number
+          balance_after_cents: number
+          chip_purchase_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          stripe_payment_intent_id: string | null
+          type: Database["public"]["Enums"]["wallet_tx_type"]
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          balance_after_cents: number
+          chip_purchase_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          stripe_payment_intent_id?: string | null
+          type: Database["public"]["Enums"]["wallet_tx_type"]
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          balance_after_cents?: number
+          chip_purchase_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          stripe_payment_intent_id?: string | null
+          type?: Database["public"]["Enums"]["wallet_tx_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          balance_cents: number
+          created_at: string
+          total_topped_up_cents: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance_cents?: number
+          created_at?: string
+          total_topped_up_cents?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance_cents?: number
+          created_at?: string
+          total_topped_up_cents?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -556,6 +822,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      credit_wallet: {
+        Args: {
+          _amount_cents: number
+          _chip_purchase_id?: string
+          _description: string
+          _stripe_pi?: string
+          _type: Database["public"]["Enums"]["wallet_tx_type"]
+          _user_id: string
+        }
+        Returns: number
+      }
+      debit_wallet: {
+        Args: {
+          _amount_cents: number
+          _chip_purchase_id?: string
+          _description: string
+        }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -573,6 +858,14 @@ export type Database = {
         | "paused"
         | "completed"
         | "failed"
+      chip_provider: "mock" | "sms_activate" | "fivesim" | "smspool"
+      chip_purchase_status:
+        | "pending"
+        | "provisioning"
+        | "active"
+        | "failed"
+        | "refunded"
+        | "expired"
       instance_status:
         | "disconnected"
         | "connecting"
@@ -587,6 +880,13 @@ export type Database = {
         | "read"
         | "failed"
         | "replied"
+      subscription_status:
+        | "trialing"
+        | "active"
+        | "past_due"
+        | "canceled"
+        | "incomplete"
+      wallet_tx_type: "topup" | "purchase" | "refund" | "adjustment"
       warmup_category:
         | "saudacao"
         | "pergunta"
@@ -731,6 +1031,15 @@ export const Constants = {
         "completed",
         "failed",
       ],
+      chip_provider: ["mock", "sms_activate", "fivesim", "smspool"],
+      chip_purchase_status: [
+        "pending",
+        "provisioning",
+        "active",
+        "failed",
+        "refunded",
+        "expired",
+      ],
       instance_status: [
         "disconnected",
         "connecting",
@@ -747,6 +1056,14 @@ export const Constants = {
         "failed",
         "replied",
       ],
+      subscription_status: [
+        "trialing",
+        "active",
+        "past_due",
+        "canceled",
+        "incomplete",
+      ],
+      wallet_tx_type: ["topup", "purchase", "refund", "adjustment"],
       warmup_category: [
         "saudacao",
         "pergunta",
