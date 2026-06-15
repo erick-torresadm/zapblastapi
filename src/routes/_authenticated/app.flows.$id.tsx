@@ -144,9 +144,12 @@ function StepNode({ data, selected, type }: NodeProps) {
 const nodeTypes = {
   start: StepNode,
   message: StepNode,
+  ask: StepNode,
   delay: StepNode,
   condition: StepNode,
   tag: StepNode,
+  ai: StepNode,
+  transfer_human: StepNode,
   webhook: StepNode,
 };
 
