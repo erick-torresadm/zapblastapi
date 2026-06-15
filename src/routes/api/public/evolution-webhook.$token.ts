@@ -83,7 +83,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
             const key = (item.key as { id?: string } | undefined);
             const status = String((item as { status?: string }).status ?? "");
             if (!key?.id) continue;
-            const update: Record<string, string> = {};
+            const update: { status?: string; delivered_at?: string; read_at?: string } = {};
             if (status === "DELIVERY_ACK") { update.status = "delivered"; update.delivered_at = new Date().toISOString(); }
             if (status === "READ") { update.status = "read"; update.read_at = new Date().toISOString(); }
             if (Object.keys(update).length) {
