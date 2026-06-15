@@ -14,7 +14,6 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
         const { sendText, sendMedia } = await import("@/lib/evolution.server");
 
         // 1) Reset diário de sent_today
-        await supabaseAdmin.rpc("noop").catch(() => null);
         await supabaseAdmin.from("whatsapp_instances")
           .update({ sent_today: 0, last_reset_date: new Date().toISOString().slice(0, 10) })
           .lt("last_reset_date", new Date().toISOString().slice(0, 10));
