@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,9 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, RefreshCw, QrCode } from "lucide-react";
+import { Plus, Trash2, RefreshCw, QrCode, Shield } from "lucide-react";
 import { toast } from "sonner";
-import { createInstanceFn, getInstanceQrFn, deleteInstanceFn } from "@/lib/instances.functions";
+import { createInstanceFn, getInstanceQrFn, deleteInstanceFn, listAvailableServersFn, listInstancesFn } from "@/lib/instances.functions";
 
 export const Route = createFileRoute("/_authenticated/app/instances")({ component: InstancesPage });
 
@@ -34,19 +33,19 @@ function InstancesPage() {
   const createFn = useServerFn(createInstanceFn);
   const qrFn = useServerFn(getInstanceQrFn);
   const delFn = useServerFn(deleteInstanceFn);
+  const listServersFn = useServerFn(listAvailableServersFn);
+  const listInsts = useServerFn(listInstancesFn);
 
   const { data: servers } = useQuery({
-    queryKey: ["servers-min"],
-    queryFn: async () => (await supabase.from("evolution_servers").select("id,name")).data ?? [],
+    queryKey: ["available-servers"],
+    queryFn: () => listServersFn(),
   });
 
   const { data: instances } = useQuery({
     queryKey: ["instances"],
-    queryFn: async () => {
-      const { data } = await supabase.from("whatsapp_instances").select("*, evolution_servers(name)").order("created_at", { ascending: false });
-      return data ?? [];
-    },
+    queryFn: () => listInsts(),
   });
+
 
   const create = useMutation({
     mutationFn: async (input: { server_id: string; instance_name: string; daily_limit: number }) =>
