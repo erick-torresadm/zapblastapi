@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useMemo, useState, useRef } from "react";
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -25,14 +25,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import {
   Play, MessageSquare, Clock, GitBranch, Tag, Webhook, Trash2, Save, Download, Upload, Plus,
+  ArrowLeft, Rocket, CheckCircle2, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getFlowFn, saveFlowDraftFn, publishFlowFn } from "@/lib/flows.functions";
 
 export const Route = createFileRoute("/_authenticated/app/flows/$id")({
   component: FlowsPage,
 });
+
 
 /* =========================================================
    Tipos de nó disponíveis no fluxo
