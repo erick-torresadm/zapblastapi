@@ -123,7 +123,7 @@ function InstancesPage() {
 
       {!servers?.length && (
         <Card><CardContent className="py-6 text-center text-sm text-muted-foreground">
-          Cadastre um servidor Evolution primeiro em <strong>Servidores</strong>.
+          Nenhum servidor disponível ainda. Aguarde o admin liberar o servidor da plataforma ou conecte o seu em <strong>Servidores</strong>.
         </CardContent></Card>
       )}
 
