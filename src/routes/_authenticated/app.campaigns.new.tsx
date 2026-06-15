@@ -173,7 +173,7 @@ function NewCampaign() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>4. Chips e timing</CardTitle></CardHeader>
+        <CardHeader><CardTitle>5. Chips e timing</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div>
             <Label>Chips a usar (rotação round-robin)</Label>
