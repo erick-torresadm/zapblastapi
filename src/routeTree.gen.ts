@@ -13,11 +13,13 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as ApiPublicDispatchWorkerRouteImport } from './routes/api/public/dispatch-worker'
 import { Route as AuthenticatedAppServersRouteImport } from './routes/_authenticated/app.servers'
 import { Route as AuthenticatedAppListsRouteImport } from './routes/_authenticated/app.lists'
 import { Route as AuthenticatedAppInstancesRouteImport } from './routes/_authenticated/app.instances'
 import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
 import { Route as AuthenticatedAppCampaignsIndexRouteImport } from './routes/_authenticated/app.campaigns.index'
+import { Route as ApiPublicEvolutionWebhookTokenRouteImport } from './routes/api/public/evolution-webhook.$token'
 import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authenticated/app.lists.$id'
 import { Route as AuthenticatedAppCampaignsNewRouteImport } from './routes/_authenticated/app.campaigns.new'
 import { Route as AuthenticatedAppCampaignsIdRouteImport } from './routes/_authenticated/app.campaigns.$id'
@@ -40,6 +42,11 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiPublicDispatchWorkerRoute = ApiPublicDispatchWorkerRouteImport.update({
+  id: '/api/public/dispatch-worker',
+  path: '/api/public/dispatch-worker',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppServersRoute = AuthenticatedAppServersRouteImport.update({
   id: '/app/servers',
@@ -68,6 +75,12 @@ const AuthenticatedAppCampaignsIndexRoute =
     path: '/app/campaigns/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicEvolutionWebhookTokenRoute =
+  ApiPublicEvolutionWebhookTokenRouteImport.update({
+    id: '/api/public/evolution-webhook/$token',
+    path: '/api/public/evolution-webhook/$token',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAppListsIdRoute = AuthenticatedAppListsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -93,10 +106,12 @@ export interface FileRoutesByFullPath {
   '/app/instances': typeof AuthenticatedAppInstancesRoute
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
   '/app/servers': typeof AuthenticatedAppServersRoute
+  '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
+  '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -106,10 +121,12 @@ export interface FileRoutesByTo {
   '/app/instances': typeof AuthenticatedAppInstancesRoute
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
   '/app/servers': typeof AuthenticatedAppServersRoute
+  '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
+  '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/app/campaigns': typeof AuthenticatedAppCampaignsIndexRoute
 }
 export interface FileRoutesById {
@@ -121,10 +138,12 @@ export interface FileRoutesById {
   '/_authenticated/app/instances': typeof AuthenticatedAppInstancesRoute
   '/_authenticated/app/lists': typeof AuthenticatedAppListsRouteWithChildren
   '/_authenticated/app/servers': typeof AuthenticatedAppServersRoute
+  '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/_authenticated/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/_authenticated/app/lists/$id': typeof AuthenticatedAppListsIdRoute
+  '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/_authenticated/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
 }
 export interface FileRouteTypes {
@@ -136,10 +155,12 @@ export interface FileRouteTypes {
     | '/app/instances'
     | '/app/lists'
     | '/app/servers'
+    | '/api/public/dispatch-worker'
     | '/app/'
     | '/app/campaigns/$id'
     | '/app/campaigns/new'
     | '/app/lists/$id'
+    | '/api/public/evolution-webhook/$token'
     | '/app/campaigns/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -149,10 +170,12 @@ export interface FileRouteTypes {
     | '/app/instances'
     | '/app/lists'
     | '/app/servers'
+    | '/api/public/dispatch-worker'
     | '/app'
     | '/app/campaigns/$id'
     | '/app/campaigns/new'
     | '/app/lists/$id'
+    | '/api/public/evolution-webhook/$token'
     | '/app/campaigns'
   id:
     | '__root__'
@@ -163,10 +186,12 @@ export interface FileRouteTypes {
     | '/_authenticated/app/instances'
     | '/_authenticated/app/lists'
     | '/_authenticated/app/servers'
+    | '/api/public/dispatch-worker'
     | '/_authenticated/app/'
     | '/_authenticated/app/campaigns/$id'
     | '/_authenticated/app/campaigns/new'
     | '/_authenticated/app/lists/$id'
+    | '/api/public/evolution-webhook/$token'
     | '/_authenticated/app/campaigns/'
   fileRoutesById: FileRoutesById
 }
@@ -174,6 +199,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
+  ApiPublicEvolutionWebhookTokenRoute: typeof ApiPublicEvolutionWebhookTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -205,6 +232,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/'
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/dispatch-worker': {
+      id: '/api/public/dispatch-worker'
+      path: '/api/public/dispatch-worker'
+      fullPath: '/api/public/dispatch-worker'
+      preLoaderRoute: typeof ApiPublicDispatchWorkerRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/servers': {
       id: '/_authenticated/app/servers'
@@ -240,6 +274,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/campaigns/'
       preLoaderRoute: typeof AuthenticatedAppCampaignsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/evolution-webhook/$token': {
+      id: '/api/public/evolution-webhook/$token'
+      path: '/api/public/evolution-webhook/$token'
+      fullPath: '/api/public/evolution-webhook/$token'
+      preLoaderRoute: typeof ApiPublicEvolutionWebhookTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/lists/$id': {
       id: '/_authenticated/app/lists/$id'
@@ -307,6 +348,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
+  ApiPublicEvolutionWebhookTokenRoute: ApiPublicEvolutionWebhookTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
