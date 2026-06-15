@@ -90,11 +90,14 @@ function StepNode({ data, selected, type }: NodeProps) {
   const d = data as StepData;
 
   const preview =
-    stepType === "message"   ? (d.message || "Clique para editar a mensagem…")
-  : stepType === "delay"     ? `Aguardar ${d.delaySeconds ?? 60}s`
-  : stepType === "condition" ? `Se "${d.conditionField || "campo"}" = "${d.conditionEquals || "valor"}"`
-  : stepType === "tag"       ? `Adicionar tag: ${d.tag || "—"}`
-  : stepType === "webhook"   ? (d.webhookUrl || "Configure a URL")
+    stepType === "message"        ? (d.message || "Clique para editar a mensagem…")
+  : stepType === "ask"            ? (d.message ? `Pergunta: ${d.message}` : "Configure a pergunta…")
+  : stepType === "ai"             ? (d.systemPrompt || "Configure o prompt da IA…")
+  : stepType === "transfer_human" ? "Encaminha a conversa para um humano"
+  : stepType === "delay"          ? `Aguardar ${d.delaySeconds ?? 60}s`
+  : stepType === "condition"      ? `Se "${d.conditionField || "campo"}" = "${d.conditionEquals || "valor"}"`
+  : stepType === "tag"            ? `Adicionar tag: ${d.tag || "—"}`
+  : stepType === "webhook"        ? (d.webhookUrl || "Configure a URL")
   : "Ponto de entrada — o fluxo começa aqui";
 
   return (
