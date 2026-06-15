@@ -150,6 +150,29 @@ function NewCampaign() {
       </Card>
 
       <Card>
+        <CardHeader>
+          <CardTitle>4. Fluxo automatizado (opcional)</CardTitle>
+          <CardDescription>Após enviar a mensagem inicial, cada contato entra neste fluxo.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select value={form.flow_id || "none"} onValueChange={(v) => setForm({ ...form, flow_id: v === "none" ? "" : v })}>
+            <SelectTrigger><SelectValue placeholder="Sem fluxo (só mensagem única)" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sem fluxo (só mensagem única)</SelectItem>
+              {flows?.map((f) => (
+                <SelectItem key={f.id} value={f.id}>
+                  {f.name} {f.status === "active" ? "" : `(${f.status})`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {flows?.length === 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">Nenhum fluxo criado ainda. Crie em Fluxos.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle>4. Chips e timing</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div>
