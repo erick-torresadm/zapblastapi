@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,9 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, RefreshCw, QrCode } from "lucide-react";
+import { Plus, Trash2, RefreshCw, QrCode, Shield } from "lucide-react";
 import { toast } from "sonner";
-import { createInstanceFn, getInstanceQrFn, deleteInstanceFn } from "@/lib/instances.functions";
+import { createInstanceFn, getInstanceQrFn, deleteInstanceFn, listAvailableServersFn, listInstancesFn } from "@/lib/instances.functions";
 
 export const Route = createFileRoute("/_authenticated/app/instances")({ component: InstancesPage });
 
@@ -34,19 +33,19 @@ function InstancesPage() {
   const createFn = useServerFn(createInstanceFn);
   const qrFn = useServerFn(getInstanceQrFn);
   const delFn = useServerFn(deleteInstanceFn);
+  const listServersFn = useServerFn(listAvailableServersFn);
+  const listInsts = useServerFn(listInstancesFn);
 
   const { data: servers } = useQuery({
-    queryKey: ["servers-min"],
-    queryFn: async () => (await supabase.from("evolution_servers").select("id,name")).data ?? [],
+    queryKey: ["available-servers"],
+    queryFn: () => listServersFn(),
   });
 
   const { data: instances } = useQuery({
     queryKey: ["instances"],
-    queryFn: async () => {
-      const { data } = await supabase.from("whatsapp_instances").select("*, evolution_servers(name)").order("created_at", { ascending: false });
-      return data ?? [];
-    },
+    queryFn: () => listInsts(),
   });
+
 
   const create = useMutation({
     mutationFn: async (input: { server_id: string; instance_name: string; daily_limit: number }) =>
@@ -110,7 +109,7 @@ function InstancesPage() {
                 <Select name="server_id" required>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {servers?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    {servers?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}{s.is_shared ? " · Plataforma" : ""}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -124,7 +123,7 @@ function InstancesPage() {
 
       {!servers?.length && (
         <Card><CardContent className="py-6 text-center text-sm text-muted-foreground">
-          Cadastre um servidor Evolution primeiro em <strong>Servidores</strong>.
+          Nenhum servidor disponível ainda. Aguarde o admin liberar o servidor da plataforma ou conecte o seu em <strong>Servidores</strong>.
         </CardContent></Card>
       )}
 
@@ -142,7 +141,7 @@ function InstancesPage() {
                   return (
                     <TableRow key={i.id}>
                       <TableCell className="font-medium">{i.instance_name}<div className="text-xs text-muted-foreground">{i.phone_number ?? "—"}</div></TableCell>
-                      <TableCell>{(i.evolution_servers as { name?: string } | null)?.name ?? "—"}</TableCell>
+                      <TableCell className="flex items-center gap-2">{i.server_name}{i.server_is_shared && <Badge variant="outline" className="gap-1 text-[10px]"><Shield className="h-3 w-3" />Plataforma</Badge>}</TableCell>
                       <TableCell><Badge className={s.cls}>{s.label}</Badge></TableCell>
                       <TableCell>{i.sent_today}</TableCell>
                       <TableCell>{i.daily_limit}</TableCell>
