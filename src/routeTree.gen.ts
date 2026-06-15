@@ -22,6 +22,7 @@ import { Route as AuthenticatedAppMarketplaceRouteImport } from './routes/_authe
 import { Route as AuthenticatedAppListsRouteImport } from './routes/_authenticated/app.lists'
 import { Route as AuthenticatedAppInstancesRouteImport } from './routes/_authenticated/app.instances'
 import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
+import { Route as AuthenticatedAppFlowsRouteImport } from './routes/_authenticated/app.flows'
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppAntiBanRouteImport } from './routes/_authenticated/app.anti-ban'
 import { Route as AuthenticatedAppFlowsIndexRouteImport } from './routes/_authenticated/app.flows.index'
@@ -99,6 +100,11 @@ const AuthenticatedAppInboxRoute = AuthenticatedAppInboxRouteImport.update({
   path: '/app/inbox',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppFlowsRoute = AuthenticatedAppFlowsRouteImport.update({
+  id: '/app/flows',
+  path: '/app/flows',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAppBillingRoute = AuthenticatedAppBillingRouteImport.update({
   id: '/app/billing',
   path: '/app/billing',
@@ -111,9 +117,9 @@ const AuthenticatedAppAntiBanRoute = AuthenticatedAppAntiBanRouteImport.update({
 } as any)
 const AuthenticatedAppFlowsIndexRoute =
   AuthenticatedAppFlowsIndexRouteImport.update({
-    id: '/app/flows/',
-    path: '/app/flows/',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAppFlowsRoute,
   } as any)
 const AuthenticatedAppCampaignsIndexRoute =
   AuthenticatedAppCampaignsIndexRouteImport.update({
@@ -133,9 +139,9 @@ const AuthenticatedAppListsIdRoute = AuthenticatedAppListsIdRouteImport.update({
   getParentRoute: () => AuthenticatedAppListsRoute,
 } as any)
 const AuthenticatedAppFlowsIdRoute = AuthenticatedAppFlowsIdRouteImport.update({
-  id: '/app/flows/$id',
-  path: '/app/flows/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedAppFlowsRoute,
 } as any)
 const AuthenticatedAppCampaignsNewRoute =
   AuthenticatedAppCampaignsNewRouteImport.update({
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
+  '/app/flows': typeof AuthenticatedAppFlowsRouteWithChildren
   '/app/inbox': typeof AuthenticatedAppInboxRoute
   '/app/instances': typeof AuthenticatedAppInstancesRoute
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
@@ -211,6 +218,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
+  '/_authenticated/app/flows': typeof AuthenticatedAppFlowsRouteWithChildren
   '/_authenticated/app/inbox': typeof AuthenticatedAppInboxRoute
   '/_authenticated/app/instances': typeof AuthenticatedAppInstancesRoute
   '/_authenticated/app/lists': typeof AuthenticatedAppListsRouteWithChildren
@@ -237,6 +245,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app/anti-ban'
     | '/app/billing'
+    | '/app/flows'
     | '/app/inbox'
     | '/app/instances'
     | '/app/lists'
@@ -286,6 +295,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/app/anti-ban'
     | '/_authenticated/app/billing'
+    | '/_authenticated/app/flows'
     | '/_authenticated/app/inbox'
     | '/_authenticated/app/instances'
     | '/_authenticated/app/lists'
@@ -408,6 +418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppInboxRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/flows': {
+      id: '/_authenticated/app/flows'
+      path: '/app/flows'
+      fullPath: '/app/flows'
+      preLoaderRoute: typeof AuthenticatedAppFlowsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/billing': {
       id: '/_authenticated/app/billing'
       path: '/app/billing'
@@ -424,10 +441,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/app/flows/': {
       id: '/_authenticated/app/flows/'
-      path: '/app/flows'
+      path: '/'
       fullPath: '/app/flows/'
       preLoaderRoute: typeof AuthenticatedAppFlowsIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAppFlowsRoute
     }
     '/_authenticated/app/campaigns/': {
       id: '/_authenticated/app/campaigns/'
@@ -452,10 +469,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/app/flows/$id': {
       id: '/_authenticated/app/flows/$id'
-      path: '/app/flows/$id'
+      path: '/$id'
       fullPath: '/app/flows/$id'
       preLoaderRoute: typeof AuthenticatedAppFlowsIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAppFlowsRoute
     }
     '/_authenticated/app/campaigns/new': {
       id: '/_authenticated/app/campaigns/new'
@@ -481,6 +498,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAppFlowsRouteChildren {
+  AuthenticatedAppFlowsIdRoute: typeof AuthenticatedAppFlowsIdRoute
+  AuthenticatedAppFlowsIndexRoute: typeof AuthenticatedAppFlowsIndexRoute
+}
+
+const AuthenticatedAppFlowsRouteChildren: AuthenticatedAppFlowsRouteChildren = {
+  AuthenticatedAppFlowsIdRoute: AuthenticatedAppFlowsIdRoute,
+  AuthenticatedAppFlowsIndexRoute: AuthenticatedAppFlowsIndexRoute,
+}
+
+const AuthenticatedAppFlowsRouteWithChildren =
+  AuthenticatedAppFlowsRoute._addFileChildren(
+    AuthenticatedAppFlowsRouteChildren,
+  )
+
 interface AuthenticatedAppListsRouteChildren {
   AuthenticatedAppListsIdRoute: typeof AuthenticatedAppListsIdRoute
 }
@@ -497,6 +529,7 @@ const AuthenticatedAppListsRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAntiBanRoute: typeof AuthenticatedAppAntiBanRoute
   AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
+  AuthenticatedAppFlowsRoute: typeof AuthenticatedAppFlowsRouteWithChildren
   AuthenticatedAppInboxRoute: typeof AuthenticatedAppInboxRoute
   AuthenticatedAppInstancesRoute: typeof AuthenticatedAppInstancesRoute
   AuthenticatedAppListsRoute: typeof AuthenticatedAppListsRouteWithChildren
@@ -508,14 +541,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAdminCatalogRoute: typeof AuthenticatedAppAdminCatalogRoute
   AuthenticatedAppCampaignsIdRoute: typeof AuthenticatedAppCampaignsIdRoute
   AuthenticatedAppCampaignsNewRoute: typeof AuthenticatedAppCampaignsNewRoute
-  AuthenticatedAppFlowsIdRoute: typeof AuthenticatedAppFlowsIdRoute
   AuthenticatedAppCampaignsIndexRoute: typeof AuthenticatedAppCampaignsIndexRoute
-  AuthenticatedAppFlowsIndexRoute: typeof AuthenticatedAppFlowsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppAntiBanRoute: AuthenticatedAppAntiBanRoute,
   AuthenticatedAppBillingRoute: AuthenticatedAppBillingRoute,
+  AuthenticatedAppFlowsRoute: AuthenticatedAppFlowsRouteWithChildren,
   AuthenticatedAppInboxRoute: AuthenticatedAppInboxRoute,
   AuthenticatedAppInstancesRoute: AuthenticatedAppInstancesRoute,
   AuthenticatedAppListsRoute: AuthenticatedAppListsRouteWithChildren,
@@ -527,9 +559,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppAdminCatalogRoute: AuthenticatedAppAdminCatalogRoute,
   AuthenticatedAppCampaignsIdRoute: AuthenticatedAppCampaignsIdRoute,
   AuthenticatedAppCampaignsNewRoute: AuthenticatedAppCampaignsNewRoute,
-  AuthenticatedAppFlowsIdRoute: AuthenticatedAppFlowsIdRoute,
   AuthenticatedAppCampaignsIndexRoute: AuthenticatedAppCampaignsIndexRoute,
-  AuthenticatedAppFlowsIndexRoute: AuthenticatedAppFlowsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
