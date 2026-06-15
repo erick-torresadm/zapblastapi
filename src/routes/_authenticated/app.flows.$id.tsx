@@ -464,6 +464,38 @@ function FlowsInner() {
                     </div>
                   )}
 
+                  {t === "ask" && (
+                    <>
+                      <div>
+                        <Label htmlFor="ask-message">Pergunta</Label>
+                        <Textarea id="ask-message" rows={4} value={d.message ?? ""} onChange={(e) => updateSelected({ message: e.target.value })} placeholder="Como posso te chamar?" />
+                      </div>
+                      <div>
+                        <Label htmlFor="ask-var">Salvar resposta em</Label>
+                        <Input id="ask-var" value={d.variable ?? ""} onChange={(e) => updateSelected({ variable: e.target.value })} placeholder="nome" />
+                        <p className="mt-1 text-[11px] text-muted-foreground">Use depois como <code className="rounded bg-muted px-1">{`{{${d.variable || "nome"}}}`}</code></p>
+                      </div>
+                    </>
+                  )}
+
+                  {t === "ai" && (
+                    <>
+                      <div>
+                        <Label htmlFor="ai-sys">Instrução para a IA</Label>
+                        <Textarea id="ai-sys" rows={5} value={d.systemPrompt ?? ""} onChange={(e) => updateSelected({ systemPrompt: e.target.value })} placeholder="Você é um atendente educado..." />
+                      </div>
+                      <div>
+                        <Label htmlFor="ai-input">Entrada do usuário</Label>
+                        <Input id="ai-input" value={(d.userInput as string) ?? ""} onChange={(e) => updateSelected({ userInput: e.target.value })} placeholder="{{pergunta}}" />
+                      </div>
+                    </>
+                  )}
+
+                  {t === "transfer_human" && (
+                    <p className="text-xs text-muted-foreground">Esse passo encerra a automação e notifica seu time para assumir a conversa.</p>
+                  )}
+
+
                   {t === "delay" && (
                     <div>
                       <Label htmlFor="delay">Esperar (segundos)</Label>
