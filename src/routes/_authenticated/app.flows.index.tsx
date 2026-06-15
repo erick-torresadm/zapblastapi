@@ -16,7 +16,7 @@ import {
 } from "@/lib/flows.functions";
 import { FLOW_TEMPLATES } from "@/lib/flow-templates";
 
-export const Route = createFileRoute("/_authenticated/app/flows")({
+export const Route = createFileRoute("/_authenticated/app/flows/")({
   component: FlowsListPage,
 });
 
