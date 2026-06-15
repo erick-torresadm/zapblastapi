@@ -9,38 +9,189 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as AuthenticatedAppServersRouteImport } from './routes/_authenticated/app.servers'
+import { Route as AuthenticatedAppListsRouteImport } from './routes/_authenticated/app.lists'
+import { Route as AuthenticatedAppInstancesRouteImport } from './routes/_authenticated/app.instances'
+import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
+import { Route as AuthenticatedAppCampaignsIndexRouteImport } from './routes/_authenticated/app.campaigns.index'
+import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authenticated/app.lists.$id'
+import { Route as AuthenticatedAppCampaignsNewRouteImport } from './routes/_authenticated/app.campaigns.new'
+import { Route as AuthenticatedAppCampaignsIdRouteImport } from './routes/_authenticated/app.campaigns.$id'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
+  id: '/app/',
+  path: '/app/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppServersRoute = AuthenticatedAppServersRouteImport.update({
+  id: '/app/servers',
+  path: '/app/servers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppListsRoute = AuthenticatedAppListsRouteImport.update({
+  id: '/app/lists',
+  path: '/app/lists',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppInstancesRoute =
+  AuthenticatedAppInstancesRouteImport.update({
+    id: '/app/instances',
+    path: '/app/instances',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppInboxRoute = AuthenticatedAppInboxRouteImport.update({
+  id: '/app/inbox',
+  path: '/app/inbox',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppCampaignsIndexRoute =
+  AuthenticatedAppCampaignsIndexRouteImport.update({
+    id: '/app/campaigns/',
+    path: '/app/campaigns/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppListsIdRoute = AuthenticatedAppListsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedAppListsRoute,
+} as any)
+const AuthenticatedAppCampaignsNewRoute =
+  AuthenticatedAppCampaignsNewRouteImport.update({
+    id: '/app/campaigns/new',
+    path: '/app/campaigns/new',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppCampaignsIdRoute =
+  AuthenticatedAppCampaignsIdRouteImport.update({
+    id: '/app/campaigns/$id',
+    path: '/app/campaigns/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/app/instances': typeof AuthenticatedAppInstancesRoute
+  '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
+  '/app/servers': typeof AuthenticatedAppServersRoute
+  '/app/': typeof AuthenticatedAppIndexRoute
+  '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
+  '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
+  '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
+  '/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/app/instances': typeof AuthenticatedAppInstancesRoute
+  '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
+  '/app/servers': typeof AuthenticatedAppServersRoute
+  '/app': typeof AuthenticatedAppIndexRoute
+  '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
+  '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
+  '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
+  '/app/campaigns': typeof AuthenticatedAppCampaignsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/_authenticated/app/instances': typeof AuthenticatedAppInstancesRoute
+  '/_authenticated/app/lists': typeof AuthenticatedAppListsRouteWithChildren
+  '/_authenticated/app/servers': typeof AuthenticatedAppServersRoute
+  '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
+  '/_authenticated/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
+  '/_authenticated/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
+  '/_authenticated/app/lists/$id': typeof AuthenticatedAppListsIdRoute
+  '/_authenticated/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/app/inbox'
+    | '/app/instances'
+    | '/app/lists'
+    | '/app/servers'
+    | '/app/'
+    | '/app/campaigns/$id'
+    | '/app/campaigns/new'
+    | '/app/lists/$id'
+    | '/app/campaigns/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/app/inbox'
+    | '/app/instances'
+    | '/app/lists'
+    | '/app/servers'
+    | '/app'
+    | '/app/campaigns/$id'
+    | '/app/campaigns/new'
+    | '/app/lists/$id'
+    | '/app/campaigns'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/app/inbox'
+    | '/_authenticated/app/instances'
+    | '/_authenticated/app/lists'
+    | '/_authenticated/app/servers'
+    | '/_authenticated/app/'
+    | '/_authenticated/app/campaigns/$id'
+    | '/_authenticated/app/campaigns/new'
+    | '/_authenticated/app/lists/$id'
+    | '/_authenticated/app/campaigns/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +199,114 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/app/': {
+      id: '/_authenticated/app/'
+      path: '/app'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/servers': {
+      id: '/_authenticated/app/servers'
+      path: '/app/servers'
+      fullPath: '/app/servers'
+      preLoaderRoute: typeof AuthenticatedAppServersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/lists': {
+      id: '/_authenticated/app/lists'
+      path: '/app/lists'
+      fullPath: '/app/lists'
+      preLoaderRoute: typeof AuthenticatedAppListsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/instances': {
+      id: '/_authenticated/app/instances'
+      path: '/app/instances'
+      fullPath: '/app/instances'
+      preLoaderRoute: typeof AuthenticatedAppInstancesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/inbox': {
+      id: '/_authenticated/app/inbox'
+      path: '/app/inbox'
+      fullPath: '/app/inbox'
+      preLoaderRoute: typeof AuthenticatedAppInboxRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/campaigns/': {
+      id: '/_authenticated/app/campaigns/'
+      path: '/app/campaigns'
+      fullPath: '/app/campaigns/'
+      preLoaderRoute: typeof AuthenticatedAppCampaignsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/lists/$id': {
+      id: '/_authenticated/app/lists/$id'
+      path: '/$id'
+      fullPath: '/app/lists/$id'
+      preLoaderRoute: typeof AuthenticatedAppListsIdRouteImport
+      parentRoute: typeof AuthenticatedAppListsRoute
+    }
+    '/_authenticated/app/campaigns/new': {
+      id: '/_authenticated/app/campaigns/new'
+      path: '/app/campaigns/new'
+      fullPath: '/app/campaigns/new'
+      preLoaderRoute: typeof AuthenticatedAppCampaignsNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/campaigns/$id': {
+      id: '/_authenticated/app/campaigns/$id'
+      path: '/app/campaigns/$id'
+      fullPath: '/app/campaigns/$id'
+      preLoaderRoute: typeof AuthenticatedAppCampaignsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedAppListsRouteChildren {
+  AuthenticatedAppListsIdRoute: typeof AuthenticatedAppListsIdRoute
+}
+
+const AuthenticatedAppListsRouteChildren: AuthenticatedAppListsRouteChildren = {
+  AuthenticatedAppListsIdRoute: AuthenticatedAppListsIdRoute,
+}
+
+const AuthenticatedAppListsRouteWithChildren =
+  AuthenticatedAppListsRoute._addFileChildren(
+    AuthenticatedAppListsRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAppInboxRoute: typeof AuthenticatedAppInboxRoute
+  AuthenticatedAppInstancesRoute: typeof AuthenticatedAppInstancesRoute
+  AuthenticatedAppListsRoute: typeof AuthenticatedAppListsRouteWithChildren
+  AuthenticatedAppServersRoute: typeof AuthenticatedAppServersRoute
+  AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
+  AuthenticatedAppCampaignsIdRoute: typeof AuthenticatedAppCampaignsIdRoute
+  AuthenticatedAppCampaignsNewRoute: typeof AuthenticatedAppCampaignsNewRoute
+  AuthenticatedAppCampaignsIndexRoute: typeof AuthenticatedAppCampaignsIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAppInboxRoute: AuthenticatedAppInboxRoute,
+  AuthenticatedAppInstancesRoute: AuthenticatedAppInstancesRoute,
+  AuthenticatedAppListsRoute: AuthenticatedAppListsRouteWithChildren,
+  AuthenticatedAppServersRoute: AuthenticatedAppServersRoute,
+  AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
+  AuthenticatedAppCampaignsIdRoute: AuthenticatedAppCampaignsIdRoute,
+  AuthenticatedAppCampaignsNewRoute: AuthenticatedAppCampaignsNewRoute,
+  AuthenticatedAppCampaignsIndexRoute: AuthenticatedAppCampaignsIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
