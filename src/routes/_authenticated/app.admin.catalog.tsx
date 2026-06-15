@@ -141,7 +141,7 @@ function AdminCatalogPage() {
                   <TableCell>R$ {((i.price_cents - i.provider_cost_cents) / 100).toFixed(2)}</TableCell>
                   <TableCell>{i.active ? "✅" : "❌"}</TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" variant="ghost" onClick={() => openEdit(i)}><Pencil className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => openEdit({ ...i, description: i.description ?? "" })}><Pencil className="h-3 w-3" /></Button>
                     <Button size="sm" variant="ghost" onClick={() => { if (confirm("Excluir?")) del.mutate(i.id); }}><Trash2 className="h-3 w-3" /></Button>
                   </TableCell>
                 </TableRow>

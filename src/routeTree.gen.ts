@@ -16,15 +16,19 @@ import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticat
 import { Route as ApiPublicWarmupWorkerRouteImport } from './routes/api/public/warmup-worker'
 import { Route as ApiPublicDispatchWorkerRouteImport } from './routes/api/public/dispatch-worker'
 import { Route as AuthenticatedAppWarmupRouteImport } from './routes/_authenticated/app.warmup'
+import { Route as AuthenticatedAppWalletRouteImport } from './routes/_authenticated/app.wallet'
 import { Route as AuthenticatedAppServersRouteImport } from './routes/_authenticated/app.servers'
+import { Route as AuthenticatedAppMarketplaceRouteImport } from './routes/_authenticated/app.marketplace'
 import { Route as AuthenticatedAppListsRouteImport } from './routes/_authenticated/app.lists'
 import { Route as AuthenticatedAppInstancesRouteImport } from './routes/_authenticated/app.instances'
 import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
+import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppCampaignsIndexRouteImport } from './routes/_authenticated/app.campaigns.index'
 import { Route as ApiPublicEvolutionWebhookTokenRouteImport } from './routes/api/public/evolution-webhook.$token'
 import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authenticated/app.lists.$id'
 import { Route as AuthenticatedAppCampaignsNewRouteImport } from './routes/_authenticated/app.campaigns.new'
 import { Route as AuthenticatedAppCampaignsIdRouteImport } from './routes/_authenticated/app.campaigns.$id'
+import { Route as AuthenticatedAppAdminCatalogRouteImport } from './routes/_authenticated/app.admin.catalog'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -60,11 +64,22 @@ const AuthenticatedAppWarmupRoute = AuthenticatedAppWarmupRouteImport.update({
   path: '/app/warmup',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppWalletRoute = AuthenticatedAppWalletRouteImport.update({
+  id: '/app/wallet',
+  path: '/app/wallet',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAppServersRoute = AuthenticatedAppServersRouteImport.update({
   id: '/app/servers',
   path: '/app/servers',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppMarketplaceRoute =
+  AuthenticatedAppMarketplaceRouteImport.update({
+    id: '/app/marketplace',
+    path: '/app/marketplace',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppListsRoute = AuthenticatedAppListsRouteImport.update({
   id: '/app/lists',
   path: '/app/lists',
@@ -79,6 +94,11 @@ const AuthenticatedAppInstancesRoute =
 const AuthenticatedAppInboxRoute = AuthenticatedAppInboxRouteImport.update({
   id: '/app/inbox',
   path: '/app/inbox',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppBillingRoute = AuthenticatedAppBillingRouteImport.update({
+  id: '/app/billing',
+  path: '/app/billing',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppCampaignsIndexRoute =
@@ -110,18 +130,28 @@ const AuthenticatedAppCampaignsIdRoute =
     path: '/app/campaigns/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppAdminCatalogRoute =
+  AuthenticatedAppAdminCatalogRouteImport.update({
+    id: '/app/admin/catalog',
+    path: '/app/admin/catalog',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
   '/app/instances': typeof AuthenticatedAppInstancesRoute
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
+  '/app/marketplace': typeof AuthenticatedAppMarketplaceRoute
   '/app/servers': typeof AuthenticatedAppServersRoute
+  '/app/wallet': typeof AuthenticatedAppWalletRoute
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app/': typeof AuthenticatedAppIndexRoute
+  '/app/admin/catalog': typeof AuthenticatedAppAdminCatalogRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
@@ -131,14 +161,18 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
   '/app/instances': typeof AuthenticatedAppInstancesRoute
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
+  '/app/marketplace': typeof AuthenticatedAppMarketplaceRoute
   '/app/servers': typeof AuthenticatedAppServersRoute
+  '/app/wallet': typeof AuthenticatedAppWalletRoute
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app': typeof AuthenticatedAppIndexRoute
+  '/app/admin/catalog': typeof AuthenticatedAppAdminCatalogRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
@@ -150,14 +184,18 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
   '/_authenticated/app/inbox': typeof AuthenticatedAppInboxRoute
   '/_authenticated/app/instances': typeof AuthenticatedAppInstancesRoute
   '/_authenticated/app/lists': typeof AuthenticatedAppListsRouteWithChildren
+  '/_authenticated/app/marketplace': typeof AuthenticatedAppMarketplaceRoute
   '/_authenticated/app/servers': typeof AuthenticatedAppServersRoute
+  '/_authenticated/app/wallet': typeof AuthenticatedAppWalletRoute
   '/_authenticated/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
+  '/_authenticated/app/admin/catalog': typeof AuthenticatedAppAdminCatalogRoute
   '/_authenticated/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/_authenticated/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/_authenticated/app/lists/$id': typeof AuthenticatedAppListsIdRoute
@@ -169,14 +207,18 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/app/billing'
     | '/app/inbox'
     | '/app/instances'
     | '/app/lists'
+    | '/app/marketplace'
     | '/app/servers'
+    | '/app/wallet'
     | '/app/warmup'
     | '/api/public/dispatch-worker'
     | '/api/public/warmup-worker'
     | '/app/'
+    | '/app/admin/catalog'
     | '/app/campaigns/$id'
     | '/app/campaigns/new'
     | '/app/lists/$id'
@@ -186,14 +228,18 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/app/billing'
     | '/app/inbox'
     | '/app/instances'
     | '/app/lists'
+    | '/app/marketplace'
     | '/app/servers'
+    | '/app/wallet'
     | '/app/warmup'
     | '/api/public/dispatch-worker'
     | '/api/public/warmup-worker'
     | '/app'
+    | '/app/admin/catalog'
     | '/app/campaigns/$id'
     | '/app/campaigns/new'
     | '/app/lists/$id'
@@ -204,14 +250,18 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/app/billing'
     | '/_authenticated/app/inbox'
     | '/_authenticated/app/instances'
     | '/_authenticated/app/lists'
+    | '/_authenticated/app/marketplace'
     | '/_authenticated/app/servers'
+    | '/_authenticated/app/wallet'
     | '/_authenticated/app/warmup'
     | '/api/public/dispatch-worker'
     | '/api/public/warmup-worker'
     | '/_authenticated/app/'
+    | '/_authenticated/app/admin/catalog'
     | '/_authenticated/app/campaigns/$id'
     | '/_authenticated/app/campaigns/new'
     | '/_authenticated/app/lists/$id'
@@ -279,11 +329,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppWarmupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/wallet': {
+      id: '/_authenticated/app/wallet'
+      path: '/app/wallet'
+      fullPath: '/app/wallet'
+      preLoaderRoute: typeof AuthenticatedAppWalletRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/servers': {
       id: '/_authenticated/app/servers'
       path: '/app/servers'
       fullPath: '/app/servers'
       preLoaderRoute: typeof AuthenticatedAppServersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/marketplace': {
+      id: '/_authenticated/app/marketplace'
+      path: '/app/marketplace'
+      fullPath: '/app/marketplace'
+      preLoaderRoute: typeof AuthenticatedAppMarketplaceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/lists': {
@@ -305,6 +369,13 @@ declare module '@tanstack/react-router' {
       path: '/app/inbox'
       fullPath: '/app/inbox'
       preLoaderRoute: typeof AuthenticatedAppInboxRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/billing': {
+      id: '/_authenticated/app/billing'
+      path: '/app/billing'
+      fullPath: '/app/billing'
+      preLoaderRoute: typeof AuthenticatedAppBillingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/campaigns/': {
@@ -342,6 +413,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppCampaignsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/admin/catalog': {
+      id: '/_authenticated/app/admin/catalog'
+      path: '/app/admin/catalog'
+      fullPath: '/app/admin/catalog'
+      preLoaderRoute: typeof AuthenticatedAppAdminCatalogRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -359,24 +437,32 @@ const AuthenticatedAppListsRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
   AuthenticatedAppInboxRoute: typeof AuthenticatedAppInboxRoute
   AuthenticatedAppInstancesRoute: typeof AuthenticatedAppInstancesRoute
   AuthenticatedAppListsRoute: typeof AuthenticatedAppListsRouteWithChildren
+  AuthenticatedAppMarketplaceRoute: typeof AuthenticatedAppMarketplaceRoute
   AuthenticatedAppServersRoute: typeof AuthenticatedAppServersRoute
+  AuthenticatedAppWalletRoute: typeof AuthenticatedAppWalletRoute
   AuthenticatedAppWarmupRoute: typeof AuthenticatedAppWarmupRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
+  AuthenticatedAppAdminCatalogRoute: typeof AuthenticatedAppAdminCatalogRoute
   AuthenticatedAppCampaignsIdRoute: typeof AuthenticatedAppCampaignsIdRoute
   AuthenticatedAppCampaignsNewRoute: typeof AuthenticatedAppCampaignsNewRoute
   AuthenticatedAppCampaignsIndexRoute: typeof AuthenticatedAppCampaignsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAppBillingRoute: AuthenticatedAppBillingRoute,
   AuthenticatedAppInboxRoute: AuthenticatedAppInboxRoute,
   AuthenticatedAppInstancesRoute: AuthenticatedAppInstancesRoute,
   AuthenticatedAppListsRoute: AuthenticatedAppListsRouteWithChildren,
+  AuthenticatedAppMarketplaceRoute: AuthenticatedAppMarketplaceRoute,
   AuthenticatedAppServersRoute: AuthenticatedAppServersRoute,
+  AuthenticatedAppWalletRoute: AuthenticatedAppWalletRoute,
   AuthenticatedAppWarmupRoute: AuthenticatedAppWarmupRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
+  AuthenticatedAppAdminCatalogRoute: AuthenticatedAppAdminCatalogRoute,
   AuthenticatedAppCampaignsIdRoute: AuthenticatedAppCampaignsIdRoute,
   AuthenticatedAppCampaignsNewRoute: AuthenticatedAppCampaignsNewRoute,
   AuthenticatedAppCampaignsIndexRoute: AuthenticatedAppCampaignsIndexRoute,
