@@ -1,0 +1,1 @@
+ALTER TABLE public.campaigns ADD COLUMN flow_id uuid REFERENCES public.flows(id) ON DELETE SET NULL;
