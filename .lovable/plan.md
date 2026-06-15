@@ -1,80 +1,105 @@
-## Marketplace de Chips Virtuais + Assinatura + Carteira
+# Plano: Análise anti-ban + Redesign UI/UX completo
 
-Nova seção da plataforma onde clientes pagam mensalidade pra acessar o SaaS e mantêm um **saldo pré-pago** pra "comprar" chips virtuais (números BR via API tipo SMS-Activate / 5sim). Quando o chip chega, é provisionado automaticamente como instância no Evolution e aparece na aba **Chips** prontinho pra warmup/disparo.
+## Parte 1 — Análise técnica (entregue como página `/app/anti-ban` + doc interno)
 
-### Páginas novas
+### whatsapp-web.js (pedroslopez)
+- **Como funciona**: roda Chromium headless via Puppeteer e automatiza a interface do WhatsApp Web. Cada instância = 1 navegador.
+- **Por que banna mais**:
+  - WhatsApp identifica cliente como "WhatsApp Web" — fingerprint de Chromium automatizado é detectável (navigator.webdriver, ausência de plugins reais, timing perfeito).
+  - Sem suporte nativo a presença/digitação em tempo real do protocolo — simula via DOM, o que gera padrões.
+  - Recursos pesados: cada sessão consome ~300MB RAM, o que limita escala e força reuso agressivo de instâncias.
+  - Bibliotecas desatualizadas frente a mudanças do WA Web quebram fluxo e disparam reconexões suspeitas.
 
-1. **Planos** (`/app/billing`) — escolhe assinatura mensal (ex: Starter R$ 49, Pro R$ 149, Enterprise R$ 399). Vai pro Stripe Checkout, retorna e libera acesso. Mostra status da assinatura e botão "Gerenciar" (Stripe Customer Portal).
+### Evolution API (Baileys por baixo)
+- **Como funciona**: implementa o protocolo multi-device direto via WebSocket. Conecta como se fosse um celular pareado real (mesmo handshake do app oficial).
+- **Por que banna menos** (não "não banna"):
+  - Tráfego é idêntico ao de um device legítimo — sem fingerprint de browser.
+  - Suporte nativo a `presence` (online/typing/recording), read receipts, status — comportamento humano sai "de graça".
+  - Reconexão silenciosa, sem reload de página.
+  - Leve (~30MB por instância), permite ter muitas sessões pequenas em vez de uma sessão sobrecarregada.
 
-2. **Carteira** (`/app/wallet`) — saldo atual + histórico de transações. Botão "Adicionar saldo" abre modal com valores pré-definidos (R$ 50 / R$ 100 / R$ 250 / R$ 500 / outro) → Stripe Checkout → webhook credita.
+### O que realmente derruba número (independente da lib)
+1. **Volume sem warmup** — chip novo disparando 200+ msgs/dia = ban em horas.
+2. **Conteúdo idêntico** — mesma mensagem byte-a-byte pra N contatos.
+3. **Sem variação de timing** — intervalos fixos (ex: 5s exatos).
+4. **Disparo a não-contatos** — quem nunca te salvou e recebe link = denúncia fácil.
+5. **Links/mídia já na 1ª msg** — gatilho clássico.
+6. **Zero inbound** — número que só fala e nunca responde é flagado.
+7. **Denúncias (botão "Bloquear e Denunciar")** — 3-5 denúncias = ban.
+8. **Reconexões frequentes / múltiplos IPs** — sessão instável.
 
-3. **Marketplace de Chips** (`/app/marketplace`) — catálogo com cards: "Chip BR Descartável — R$ 7,90", "Chip BR Premium — R$ 19,90" (markup configurável sobre o custo do provedor). Botão "Comprar" debita carteira, chama o provedor, cria a instância. Tela inicial vem com tudo "Provedor não conectado" até você ligar a API.
+### Boas práticas que vamos aplicar (já temos warmup, falta refinar)
+- Warmup escalonado: dia 1-3 = 20 msg/dia, dia 4-7 = 50, dia 8-14 = 150, depois 300+.
+- Spintax obrigatório (`{Oi|Olá|E aí}, {tudo bem|como vai}?`).
+- Delays randômicos 8-45s entre msgs + janela de horário comercial.
+- `presence: composing` 2-5s antes de enviar.
+- Limite diário por instância configurável + circuit-breaker se taxa de erro >5%.
+- Aquecimento bidirecional (números conectados conversando entre si — já existe).
+- Avisar usuário: primeiro contato sem link, pedir pra salvarem antes de campanhas com mídia.
 
-### Fluxo de compra
+**Entrega**: página `/app/anti-ban` com esse conteúdo formatado + tooltips/badges nas telas de campanha alertando quando o usuário está pisando em alguma dessas regras.
 
-```
-Cliente clica Comprar  →  valida saldo  →  debita carteira (transação atômica)
-   →  chama provedor (API stub) pra alocar número
-   →  cria evolution_servers (se não tem) e whatsapp_instances  
-   →  retorna QR code ou número pronto  →  registra purchase
-```
+---
 
-Se a chamada do provedor falhar, **estorna automaticamente** o saldo.
+## Parte 2 — Redesign UI/UX (Midnight Indigo · Sora/Manrope · Sidebar)
 
-### Schema (Lovable Cloud)
+### Design system (src/styles.css)
+- Paleta semântica:
+  - `--background: #0a0a1a` (deep space)
+  - `--card: #141432`
+  - `--border: oklch(...)` ~ #1e1e5a com 40% opacity
+  - `--primary: #4f46e5` + `--primary-glow: #6366f1`
+  - Gradientes: `--gradient-hero`, `--gradient-card`, `--gradient-primary`
+  - Shadows: `--shadow-glow` (indigo bloom), `--shadow-elegant`
+- Fontes: Sora (display, h1-h3) + Manrope (body, ui). Carregadas via `<link>` em `__root.tsx`.
+- Componentes shadcn re-skinados via variantes (button `premium`/`glow`, card com border-beam opcional).
+- Densidade: padding generoso, radius 12-16px, micro-animations (fade/slide 200-300ms).
+- MagicUI seletivo: `BorderBeam` em CTAs, `AnimatedGridPattern` no fundo do dashboard, `NumberTicker` em métricas, `Meteors` na landing.
 
-**`subscription_plans`** — tabela seed com nome, preço, stripe_price_id, limites (chips simultâneos, mensagens/dia).
+### Shell (toca toda navegação autenticada)
+- **AppSidebar**: rebuild com seções colapsáveis (Operação / Conta / Admin), ícones lucide consistentes, item ativo com indicador lateral animado em `--primary`, avatar+plano no rodapé, status de conexão (bolinha verde "X instâncias online").
+- **Topbar nova**: breadcrumb dinâmico, busca global (⌘K), saldo da carteira inline, badge de assinatura, avatar dropdown.
+- **Mobile**: sidebar vira sheet, topbar compacta.
 
-**`subscriptions`** — `user_id`, `plan_id`, `stripe_subscription_id`, `status` (active/past_due/canceled), `current_period_end`. RLS: usuário vê só a sua.
+### Telas (todas as 14)
 
-**`wallets`** — `user_id` (unique), `balance_cents`, `total_topped_up_cents`. RLS própria.
+| Tela | Tratamento |
+|---|---|
+| `/` (landing) | Hero com aurora text "Dispare sem ser banido", meteors, 3 features bento (Anti-ban / Warmup / Marketplace), pricing, FAQ, footer. |
+| `/auth` | Split-screen: form à esquerda, painel decorativo com particles à direita. Google + email. |
+| `/app` (dashboard) | Bento grid: KPIs (msgs hoje, taxa entrega, instâncias online, saldo) com NumberTicker; gráfico de envios 7d (recharts area); lista de campanhas ativas; alertas anti-ban. |
+| `/app/instances` | Grid de cards de instância com QR inline em dialog, status pulsante, ações (restart/desconectar), badge de "health score" baseado em métricas anti-ban. |
+| `/app/servers` | Tabela densa + form lateral, teste de conexão com feedback visual. |
+| `/app/campaigns` | Lista com filtros, cards de status (rascunho/agendada/rodando/concluída), barra de progresso. |
+| `/app/campaigns/new` | Wizard 4 passos (Lista → Mensagem com spintax preview → Anti-ban settings → Revisão), validador anti-ban em tempo real ("⚠ sem spintax, risco alto"). |
+| `/app/campaigns/$id` | Header com KPIs, timeline de envios, logs filtráveis, botão pausar/retomar. |
+| `/app/lists` + `/app/lists/$id` | Upload CSV drag-drop, preview, dedup, validação de número BR. |
+| `/app/inbox` | Layout 3 colunas (conversas / chat / detalhes contato) estilo Intercom. |
+| `/app/warmup` | Dashboard de aquecimento: grafo de conexões entre números, gráfico de progressão diária, controles de intensidade. |
+| `/app/marketplace` | Cards de chip com badge "BR · Virtual", filtros, modal de compra mostrando saldo. |
+| `/app/wallet` | Card grande de saldo com gradient, botões de recarga (R$50/100/250/custom), tabela de transações. |
+| `/app/billing` | 3 cards de planos (Starter/Pro/Scale) com hover-lift e BorderBeam no recomendado. |
+| `/app/admin/catalog` | Tabela admin com inline-edit, badge de margem, drawer pra criar produto. |
+| `/app/anti-ban` (nova) | Doc visual da parte 1 com seções colapsáveis e checklist interativo. |
 
-**`wallet_transactions`** — `user_id`, `amount_cents` (positivo=crédito, negativo=débito), `type` (topup/purchase/refund/adjustment), `description`, `stripe_payment_intent_id`, `chip_purchase_id`. Imutável (sem update/delete).
+### Implementação em fases
+1. **F1 — Design system + shell** (styles.css, Sidebar, Topbar, fontes, MagicUI base) — base pra tudo.
+2. **F2 — Landing + Auth** (vendem o produto).
+3. **F3 — Dashboard + Instances + Anti-ban page** (core).
+4. **F4 — Campaigns (lista/new/detalhe) + Lists** (fluxo principal).
+5. **F5 — Inbox + Warmup + Marketplace + Wallet + Billing** (suporte).
+6. **F6 — Admin + polish (loading states, empty states, toasts, mobile QA)**.
 
-**`chip_catalog`** — produtos vendáveis: `name`, `description`, `price_cents`, `provider_cost_cents` (custo seu pra calcular margem), `provider` (sms_activate/5sim/etc), `provider_service_code` (ex: "wa" pra WhatsApp), `country_code` (default 'br'), `active`. Você gerencia via tela de admin.
+### Detalhes técnicos
+- Sem mudança de schema/backend — puro frontend/presentation.
+- `@theme inline` pro shadcn continuar funcionando com os novos tokens.
+- MagicUI: copiar componentes individuais pra `src/components/magicui/` (não tem pacote npm próprio).
+- Garantir contraste AA em todos os pares (Manrope #cbd5e1 sobre #0a0a1a, etc).
+- Reduce-motion respeitado em todas as animações.
 
-**`chip_purchases`** — log de cada compra: `user_id`, `catalog_item_id`, `price_paid_cents`, `provider_order_id`, `instance_id` (FK pra `whatsapp_instances` quando provisionado), `status` (pending/provisioning/active/failed/refunded), `phone_number`, `expires_at` (chip virtual tem vida curta).
+### Fora do escopo
+- Lógica de negócio (warmup engine, provedores, Stripe) — fica como está.
+- Migrations.
+- Mudanças na Evolution API integration.
 
-**`user_roles`** ganha valor `'admin'` (já existe o enum) — admin acessa `/app/admin/catalog` pra editar produtos.
-
-### Integração com provedor (stub plugável)
-
-Crio `src/lib/chip-providers/` com interface comum:
-
-```ts
-interface ChipProvider {
-  buyNumber(serviceCode: string, country: string): Promise<{ orderId: string; phone: string }>;
-  checkStatus(orderId: string): Promise<{ phone: string; smsCode?: string; status: string }>;
-  cancelOrder(orderId: string): Promise<void>;
-}
-```
-
-Implementações vazias pra `sms_activate.ts`, `5sim.ts` e um `mock.ts` que retorna número fake pra você testar a UI antes de conectar provedor real. Quando você escolher e me passar a chave, eu pluga em 5 min.
-
-### Stripe (built-in Lovable)
-
-- **Assinatura** mensal recorrente (3 produtos)
-- **Recarga de saldo** como pagamento avulso
-- 1 webhook em `/api/public/stripe-webhook` que processa: `checkout.session.completed` (recarga), `customer.subscription.*` (assinatura), `invoice.paid`/`invoice.payment_failed`
-
-### Controle de acesso
-
-Middleware/guard: se assinatura `status != 'active'` e o usuário não é admin, bloqueia acesso a `/app/campaigns/new` e mostra banner "Assinatura inativa — renovar". Acesso ao Dashboard e Wallet continua livre pra ele recarregar/reativar.
-
-### Sidebar
-
-Adiciono **Marketplace**, **Carteira**, **Planos** (e **Admin** só pra role admin).
-
-### Fases
-
-**Fase A (agora):** schema, páginas Wallet + Marketplace + Planos + Admin do catálogo, provider `mock`, stub do Stripe (botões funcionando mas sem conectar pagamento real ainda), guard de assinatura.
-
-**Fase B:** ativar Stripe payments (faço quando você confirmar) — produtos, checkout, webhook real.
-
-**Fase C:** plugar provedor real (SMS-Activate ou 5sim) quando você escolher e me passar a credencial.
-
-### Perguntas finais
-
-1. **Markup padrão** sobre o custo do provedor — 50%? 100%? 200%? (Você edita por produto depois, é só o default do seed.)
-2. **Pode ativar Stripe payments agora** (Fase B) ou só faço a estrutura visual primeiro?
-3. **Custo do chip virtual descartável pro cliente** — sugiro R$ 7,90 a R$ 14,90 (custo provedor ~R$ 2-5). Concorda ou tem faixa de preço em mente?
+Posso começar pela Fase 1 (design system + shell) assim que aprovar.
