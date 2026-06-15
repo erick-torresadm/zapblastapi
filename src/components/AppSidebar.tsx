@@ -4,7 +4,7 @@ import {
   SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Server, Smartphone, Users, Send, Inbox, LogOut, Zap } from "lucide-react";
+import { LayoutDashboard, Server, Smartphone, Users, Send, Inbox, LogOut, Zap, Flame } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -12,6 +12,7 @@ const nav = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/app/servers", label: "Servidores", icon: Server },
   { to: "/app/instances", label: "Chips", icon: Smartphone },
+  { to: "/app/warmup", label: "Aquecimento", icon: Flame },
   { to: "/app/lists", label: "Contatos", icon: Users },
   { to: "/app/campaigns", label: "Campanhas", icon: Send },
   { to: "/app/inbox", label: "Respostas", icon: Inbox },
