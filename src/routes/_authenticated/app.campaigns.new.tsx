@@ -27,6 +27,7 @@ function NewCampaign() {
     media_url: "" as string | null,
     media_type: null as string | null,
     media_filename: null as string | null,
+    flow_id: "" as string,
   });
   const [mediaUploading, setMediaUploading] = useState(false);
 
