@@ -109,7 +109,7 @@ function InstancesPage() {
                 <Select name="server_id" required>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {servers?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    {servers?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}{s.is_shared ? " · Plataforma" : ""}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
