@@ -25,6 +25,7 @@ import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppFlowsRouteImport } from './routes/_authenticated/app.flows'
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppAntiBanRouteImport } from './routes/_authenticated/app.anti-ban'
+import { Route as AuthenticatedAppFlowsIndexRouteImport } from './routes/_authenticated/app.flows.index'
 import { Route as AuthenticatedAppCampaignsIndexRouteImport } from './routes/_authenticated/app.campaigns.index'
 import { Route as ApiPublicEvolutionWebhookTokenRouteImport } from './routes/api/public/evolution-webhook.$token'
 import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authenticated/app.lists.$id'
@@ -114,6 +115,12 @@ const AuthenticatedAppAntiBanRoute = AuthenticatedAppAntiBanRouteImport.update({
   path: '/app/anti-ban',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppFlowsIndexRoute =
+  AuthenticatedAppFlowsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAppFlowsRoute,
+  } as any)
 const AuthenticatedAppCampaignsIndexRoute =
   AuthenticatedAppCampaignsIndexRouteImport.update({
     id: '/app/campaigns/',
@@ -178,13 +185,13 @@ export interface FileRoutesByFullPath {
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
+  '/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
-  '/app/flows': typeof AuthenticatedAppFlowsRouteWithChildren
   '/app/inbox': typeof AuthenticatedAppInboxRoute
   '/app/instances': typeof AuthenticatedAppInstancesRoute
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/app/campaigns': typeof AuthenticatedAppCampaignsIndexRoute
+  '/app/flows': typeof AuthenticatedAppFlowsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/_authenticated/app/lists/$id': typeof AuthenticatedAppListsIdRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/_authenticated/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
+  '/_authenticated/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -254,13 +263,13 @@ export interface FileRouteTypes {
     | '/app/lists/$id'
     | '/api/public/evolution-webhook/$token'
     | '/app/campaigns/'
+    | '/app/flows/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/app/anti-ban'
     | '/app/billing'
-    | '/app/flows'
     | '/app/inbox'
     | '/app/instances'
     | '/app/lists'
@@ -278,6 +287,7 @@ export interface FileRouteTypes {
     | '/app/lists/$id'
     | '/api/public/evolution-webhook/$token'
     | '/app/campaigns'
+    | '/app/flows'
   id:
     | '__root__'
     | '/'
@@ -303,6 +313,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/lists/$id'
     | '/api/public/evolution-webhook/$token'
     | '/_authenticated/app/campaigns/'
+    | '/_authenticated/app/flows/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -428,6 +439,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAntiBanRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/flows/': {
+      id: '/_authenticated/app/flows/'
+      path: '/'
+      fullPath: '/app/flows/'
+      preLoaderRoute: typeof AuthenticatedAppFlowsIndexRouteImport
+      parentRoute: typeof AuthenticatedAppFlowsRoute
+    }
     '/_authenticated/app/campaigns/': {
       id: '/_authenticated/app/campaigns/'
       path: '/app/campaigns'
@@ -482,10 +500,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAppFlowsRouteChildren {
   AuthenticatedAppFlowsIdRoute: typeof AuthenticatedAppFlowsIdRoute
+  AuthenticatedAppFlowsIndexRoute: typeof AuthenticatedAppFlowsIndexRoute
 }
 
 const AuthenticatedAppFlowsRouteChildren: AuthenticatedAppFlowsRouteChildren = {
   AuthenticatedAppFlowsIdRoute: AuthenticatedAppFlowsIdRoute,
+  AuthenticatedAppFlowsIndexRoute: AuthenticatedAppFlowsIndexRoute,
 }
 
 const AuthenticatedAppFlowsRouteWithChildren =
