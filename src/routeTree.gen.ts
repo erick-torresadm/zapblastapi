@@ -23,6 +23,7 @@ import { Route as AuthenticatedAppListsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppInstancesRouteImport } from './routes/_authenticated/app.instances'
 import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
+import { Route as AuthenticatedAppAntiBanRouteImport } from './routes/_authenticated/app.anti-ban'
 import { Route as AuthenticatedAppCampaignsIndexRouteImport } from './routes/_authenticated/app.campaigns.index'
 import { Route as ApiPublicEvolutionWebhookTokenRouteImport } from './routes/api/public/evolution-webhook.$token'
 import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authenticated/app.lists.$id'
@@ -101,6 +102,11 @@ const AuthenticatedAppBillingRoute = AuthenticatedAppBillingRouteImport.update({
   path: '/app/billing',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppAntiBanRoute = AuthenticatedAppAntiBanRouteImport.update({
+  id: '/app/anti-ban',
+  path: '/app/anti-ban',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAppCampaignsIndexRoute =
   AuthenticatedAppCampaignsIndexRouteImport.update({
     id: '/app/campaigns/',
@@ -140,6 +146,7 @@ const AuthenticatedAppAdminCatalogRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
   '/app/instances': typeof AuthenticatedAppInstancesRoute
@@ -161,6 +168,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
   '/app/instances': typeof AuthenticatedAppInstancesRoute
@@ -184,6 +192,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
   '/_authenticated/app/inbox': typeof AuthenticatedAppInboxRoute
   '/_authenticated/app/instances': typeof AuthenticatedAppInstancesRoute
@@ -207,6 +216,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/app/anti-ban'
     | '/app/billing'
     | '/app/inbox'
     | '/app/instances'
@@ -228,6 +238,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/app/anti-ban'
     | '/app/billing'
     | '/app/inbox'
     | '/app/instances'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/app/anti-ban'
     | '/_authenticated/app/billing'
     | '/_authenticated/app/inbox'
     | '/_authenticated/app/instances'
@@ -378,6 +390,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppBillingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/anti-ban': {
+      id: '/_authenticated/app/anti-ban'
+      path: '/app/anti-ban'
+      fullPath: '/app/anti-ban'
+      preLoaderRoute: typeof AuthenticatedAppAntiBanRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/campaigns/': {
       id: '/_authenticated/app/campaigns/'
       path: '/app/campaigns'
@@ -437,6 +456,7 @@ const AuthenticatedAppListsRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAppAntiBanRoute: typeof AuthenticatedAppAntiBanRoute
   AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
   AuthenticatedAppInboxRoute: typeof AuthenticatedAppInboxRoute
   AuthenticatedAppInstancesRoute: typeof AuthenticatedAppInstancesRoute
@@ -453,6 +473,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAppAntiBanRoute: AuthenticatedAppAntiBanRoute,
   AuthenticatedAppBillingRoute: AuthenticatedAppBillingRoute,
   AuthenticatedAppInboxRoute: AuthenticatedAppInboxRoute,
   AuthenticatedAppInstancesRoute: AuthenticatedAppInstancesRoute,
