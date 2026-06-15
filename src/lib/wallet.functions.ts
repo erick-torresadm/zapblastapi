@@ -24,8 +24,6 @@ export const mockTopupFn = createServerFn({ method: "POST" })
       _amount_cents: data.amount_cents,
       _type: "topup",
       _description: "Recarga manual (DEV)",
-      _stripe_pi: null,
-      _chip_purchase_id: null,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
