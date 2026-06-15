@@ -39,6 +39,10 @@ function NewCampaign() {
     queryKey: ["instances-connected"],
     queryFn: async () => (await supabase.from("whatsapp_instances").select("id,instance_name,status").eq("active", true)).data ?? [],
   });
+  const { data: flows } = useQuery({
+    queryKey: ["flows-active"],
+    queryFn: async () => (await supabase.from("flows").select("id,name,status").order("updated_at", { ascending: false })).data ?? [],
+  });
 
   const previews = useMemo(() => {
     if (!form.message_template) return [];
