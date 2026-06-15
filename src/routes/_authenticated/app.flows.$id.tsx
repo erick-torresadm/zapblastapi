@@ -142,25 +142,8 @@ const nodeTypes = {
 /* =========================================================
    Estado inicial
    ========================================================= */
-const initialNodes: Node[] = [
-  {
-    id: "start",
-    type: "start",
-    position: { x: 240, y: 40 },
-    data: { label: "Início do fluxo" } as StepData,
-  },
-  {
-    id: "n1",
-    type: "message",
-    position: { x: 220, y: 220 },
-    data: { label: "Boas-vindas", message: "Olá {{nome}}! Tudo bem? 👋" } as StepData,
-  },
-];
-const initialEdges: Edge[] = [
-  { id: "e1", source: "start", target: "n1", animated: true, markerEnd: { type: MarkerType.ArrowClosed } },
-];
-
-const STORAGE_KEY = "zapblast.flow.draft";
+const initialNodes: Node[] = [];
+const initialEdges: Edge[] = [];
 
 /* =========================================================
    Página
@@ -174,14 +157,85 @@ function FlowsPage() {
 }
 
 function FlowsInner() {
+  const { id } = useParams({ from: "/_authenticated/app/flows/$id" });
+  const qc = useQueryClient();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialEdges);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [flowName, setFlowName] = useState("Meu primeiro fluxo");
+  const [flowName, setFlowName] = useState("Carregando…");
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const rfRef = useRef<ReactFlowInstance | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const dirtyRef = useRef(false);
+
+  const getFlow = useServerFn(getFlowFn);
+  const saveDraft = useServerFn(saveFlowDraftFn);
+  const publish = useServerFn(publishFlowFn);
+
+  // Carrega o fluxo do servidor
+  const { data: flowData } = useQuery({
+    queryKey: ["flow", id],
+    queryFn: () => getFlow({ data: { id } }),
+  });
+
+  useEffect(() => {
+    if (!flowData || loaded) return;
+    const f: any = flowData.flow;
+    setFlowName(f.name ?? "Fluxo");
+    setNodes((f.draft_nodes ?? []) as Node[]);
+    setEdges((f.draft_edges ?? []) as Edge[]);
+    setLoaded(true);
+  }, [flowData, loaded, setEdges, setNodes]);
+
+  // Mutation de salvar
+  const saveMut = useMutation({
+    mutationFn: (silent?: boolean) =>
+      saveDraft({ data: { id, name: flowName, nodes, edges } }).then((r) => ({ r, silent })),
+    onSuccess: ({ r, silent }) => {
+      setSavedAt(r.saved_at);
+      dirtyRef.current = false;
+      if (!silent) toast.success("Salvo");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const publishMut = useMutation({
+    mutationFn: () => publish({ data: { id } }),
+    onSuccess: (r) => {
+      toast.success(`Publicado v${r.version}`);
+      qc.invalidateQueries({ queryKey: ["flow", id] });
+      qc.invalidateQueries({ queryKey: ["flows"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Marca dirty quando muda
+  useEffect(() => { if (loaded) dirtyRef.current = true; }, [nodes, edges, flowName, loaded]);
+
+  // Autosave a cada 8s se houver alterações
+  useEffect(() => {
+    if (!loaded) return;
+    const t = setInterval(() => {
+      if (dirtyRef.current && !saveMut.isPending) saveMut.mutate(true);
+    }, 8000);
+    return () => clearInterval(t);
+  }, [loaded, saveMut]);
+
+  // Ctrl+S
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (loaded && !saveMut.isPending) saveMut.mutate(false);
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [loaded, saveMut]);
 
   const selected = useMemo(() => nodes.find((n) => n.id === selectedId) ?? null, [nodes, selectedId]);
+
 
   const onConnect = useCallback((c: Connection) => {
     setEdges((eds) => addEdge({
