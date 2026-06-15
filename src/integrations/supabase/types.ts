@@ -378,11 +378,105 @@ export type Database = {
         }
         Relationships: []
       }
+      warmup_conversations: {
+        Row: {
+          category: Database["public"]["Enums"]["warmup_category"]
+          created_at: string
+          delivered_at: string | null
+          evolution_message_id: string | null
+          from_instance_id: string
+          id: string
+          message: string
+          read_at: string | null
+          replied: boolean
+          reply_due_at: string | null
+          sent_at: string
+          to_instance_id: string
+          user_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["warmup_category"]
+          created_at?: string
+          delivered_at?: string | null
+          evolution_message_id?: string | null
+          from_instance_id: string
+          id?: string
+          message: string
+          read_at?: string | null
+          replied?: boolean
+          reply_due_at?: string | null
+          sent_at?: string
+          to_instance_id: string
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["warmup_category"]
+          created_at?: string
+          delivered_at?: string | null
+          evolution_message_id?: string | null
+          from_instance_id?: string
+          id?: string
+          message?: string
+          read_at?: string | null
+          replied?: boolean
+          reply_due_at?: string | null
+          sent_at?: string
+          to_instance_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_conversations_from_instance_id_fkey"
+            columns: ["from_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_conversations_to_instance_id_fkey"
+            columns: ["to_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warmup_messages: {
+        Row: {
+          active: boolean
+          category: Database["public"]["Enums"]["warmup_category"]
+          content: string
+          created_at: string
+          id: string
+          user_id: string | null
+          weight: number
+        }
+        Insert: {
+          active?: boolean
+          category: Database["public"]["Enums"]["warmup_category"]
+          content: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+          weight?: number
+        }
+        Update: {
+          active?: boolean
+          category?: Database["public"]["Enums"]["warmup_category"]
+          content?: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+          weight?: number
+        }
+        Relationships: []
+      }
       whatsapp_instances: {
         Row: {
           active: boolean
           created_at: string
           daily_limit: number
+          health_score: number
           id: string
           instance_name: string
           last_reset_date: string
@@ -393,11 +487,19 @@ export type Database = {
           status: Database["public"]["Enums"]["instance_status"]
           updated_at: string
           user_id: string
+          warmup_enabled: boolean
+          warmup_intensity: Database["public"]["Enums"]["warmup_intensity"]
+          warmup_last_at: string | null
+          warmup_received_today: number
+          warmup_sent_today: number
+          warmup_started_at: string | null
+          warmup_total_sent: number
         }
         Insert: {
           active?: boolean
           created_at?: string
           daily_limit?: number
+          health_score?: number
           id?: string
           instance_name: string
           last_reset_date?: string
@@ -408,11 +510,19 @@ export type Database = {
           status?: Database["public"]["Enums"]["instance_status"]
           updated_at?: string
           user_id: string
+          warmup_enabled?: boolean
+          warmup_intensity?: Database["public"]["Enums"]["warmup_intensity"]
+          warmup_last_at?: string | null
+          warmup_received_today?: number
+          warmup_sent_today?: number
+          warmup_started_at?: string | null
+          warmup_total_sent?: number
         }
         Update: {
           active?: boolean
           created_at?: string
           daily_limit?: number
+          health_score?: number
           id?: string
           instance_name?: string
           last_reset_date?: string
@@ -423,6 +533,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["instance_status"]
           updated_at?: string
           user_id?: string
+          warmup_enabled?: boolean
+          warmup_intensity?: Database["public"]["Enums"]["warmup_intensity"]
+          warmup_last_at?: string | null
+          warmup_received_today?: number
+          warmup_sent_today?: number
+          warmup_started_at?: string | null
+          warmup_total_sent?: number
         }
         Relationships: [
           {
@@ -470,6 +587,14 @@ export type Database = {
         | "read"
         | "failed"
         | "replied"
+      warmup_category:
+        | "saudacao"
+        | "pergunta"
+        | "resposta"
+        | "casual"
+        | "emoji"
+        | "despedida"
+      warmup_intensity: "leve" | "medio" | "forte"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -622,6 +747,15 @@ export const Constants = {
         "failed",
         "replied",
       ],
+      warmup_category: [
+        "saudacao",
+        "pergunta",
+        "resposta",
+        "casual",
+        "emoji",
+        "despedida",
+      ],
+      warmup_intensity: ["leve", "medio", "forte"],
     },
   },
 } as const

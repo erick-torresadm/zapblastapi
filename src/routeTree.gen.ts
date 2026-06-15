@@ -13,7 +13,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as ApiPublicWarmupWorkerRouteImport } from './routes/api/public/warmup-worker'
 import { Route as ApiPublicDispatchWorkerRouteImport } from './routes/api/public/dispatch-worker'
+import { Route as AuthenticatedAppWarmupRouteImport } from './routes/_authenticated/app.warmup'
 import { Route as AuthenticatedAppServersRouteImport } from './routes/_authenticated/app.servers'
 import { Route as AuthenticatedAppListsRouteImport } from './routes/_authenticated/app.lists'
 import { Route as AuthenticatedAppInstancesRouteImport } from './routes/_authenticated/app.instances'
@@ -43,10 +45,20 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicWarmupWorkerRoute = ApiPublicWarmupWorkerRouteImport.update({
+  id: '/api/public/warmup-worker',
+  path: '/api/public/warmup-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicDispatchWorkerRoute = ApiPublicDispatchWorkerRouteImport.update({
   id: '/api/public/dispatch-worker',
   path: '/api/public/dispatch-worker',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAppWarmupRoute = AuthenticatedAppWarmupRouteImport.update({
+  id: '/app/warmup',
+  path: '/app/warmup',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppServersRoute = AuthenticatedAppServersRouteImport.update({
   id: '/app/servers',
@@ -106,7 +118,9 @@ export interface FileRoutesByFullPath {
   '/app/instances': typeof AuthenticatedAppInstancesRoute
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
   '/app/servers': typeof AuthenticatedAppServersRoute
+  '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
+  '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
@@ -121,7 +135,9 @@ export interface FileRoutesByTo {
   '/app/instances': typeof AuthenticatedAppInstancesRoute
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
   '/app/servers': typeof AuthenticatedAppServersRoute
+  '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
+  '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
@@ -138,7 +154,9 @@ export interface FileRoutesById {
   '/_authenticated/app/instances': typeof AuthenticatedAppInstancesRoute
   '/_authenticated/app/lists': typeof AuthenticatedAppListsRouteWithChildren
   '/_authenticated/app/servers': typeof AuthenticatedAppServersRoute
+  '/_authenticated/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
+  '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/_authenticated/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
@@ -155,7 +173,9 @@ export interface FileRouteTypes {
     | '/app/instances'
     | '/app/lists'
     | '/app/servers'
+    | '/app/warmup'
     | '/api/public/dispatch-worker'
+    | '/api/public/warmup-worker'
     | '/app/'
     | '/app/campaigns/$id'
     | '/app/campaigns/new'
@@ -170,7 +190,9 @@ export interface FileRouteTypes {
     | '/app/instances'
     | '/app/lists'
     | '/app/servers'
+    | '/app/warmup'
     | '/api/public/dispatch-worker'
+    | '/api/public/warmup-worker'
     | '/app'
     | '/app/campaigns/$id'
     | '/app/campaigns/new'
@@ -186,7 +208,9 @@ export interface FileRouteTypes {
     | '/_authenticated/app/instances'
     | '/_authenticated/app/lists'
     | '/_authenticated/app/servers'
+    | '/_authenticated/app/warmup'
     | '/api/public/dispatch-worker'
+    | '/api/public/warmup-worker'
     | '/_authenticated/app/'
     | '/_authenticated/app/campaigns/$id'
     | '/_authenticated/app/campaigns/new'
@@ -200,6 +224,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
+  ApiPublicWarmupWorkerRoute: typeof ApiPublicWarmupWorkerRoute
   ApiPublicEvolutionWebhookTokenRoute: typeof ApiPublicEvolutionWebhookTokenRoute
 }
 
@@ -233,12 +258,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/warmup-worker': {
+      id: '/api/public/warmup-worker'
+      path: '/api/public/warmup-worker'
+      fullPath: '/api/public/warmup-worker'
+      preLoaderRoute: typeof ApiPublicWarmupWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/dispatch-worker': {
       id: '/api/public/dispatch-worker'
       path: '/api/public/dispatch-worker'
       fullPath: '/api/public/dispatch-worker'
       preLoaderRoute: typeof ApiPublicDispatchWorkerRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/app/warmup': {
+      id: '/_authenticated/app/warmup'
+      path: '/app/warmup'
+      fullPath: '/app/warmup'
+      preLoaderRoute: typeof AuthenticatedAppWarmupRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/servers': {
       id: '/_authenticated/app/servers'
@@ -324,6 +363,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppInstancesRoute: typeof AuthenticatedAppInstancesRoute
   AuthenticatedAppListsRoute: typeof AuthenticatedAppListsRouteWithChildren
   AuthenticatedAppServersRoute: typeof AuthenticatedAppServersRoute
+  AuthenticatedAppWarmupRoute: typeof AuthenticatedAppWarmupRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppCampaignsIdRoute: typeof AuthenticatedAppCampaignsIdRoute
   AuthenticatedAppCampaignsNewRoute: typeof AuthenticatedAppCampaignsNewRoute
@@ -335,6 +375,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppInstancesRoute: AuthenticatedAppInstancesRoute,
   AuthenticatedAppListsRoute: AuthenticatedAppListsRouteWithChildren,
   AuthenticatedAppServersRoute: AuthenticatedAppServersRoute,
+  AuthenticatedAppWarmupRoute: AuthenticatedAppWarmupRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppCampaignsIdRoute: AuthenticatedAppCampaignsIdRoute,
   AuthenticatedAppCampaignsNewRoute: AuthenticatedAppCampaignsNewRoute,
@@ -349,6 +390,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
+  ApiPublicWarmupWorkerRoute: ApiPublicWarmupWorkerRoute,
   ApiPublicEvolutionWebhookTokenRoute: ApiPublicEvolutionWebhookTokenRoute,
 }
 export const routeTree = rootRouteImport
