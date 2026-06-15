@@ -27,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import {
-  Play, MessageSquare, Clock, GitBranch, Tag, Webhook, Trash2, Save, Download, Upload, Plus,
+  Play, MessageSquare, Clock, GitBranch, Tag, Webhook, Trash2, Save, Download, Plus,
   ArrowLeft, Rocket, CheckCircle2, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
