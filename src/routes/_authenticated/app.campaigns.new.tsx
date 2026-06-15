@@ -86,6 +86,7 @@ function NewCampaign() {
         media_url: form.media_url,
         media_type: form.media_type,
         media_filename: form.media_filename,
+        flow_id: form.flow_id || null,
         status: "draft",
       }).select().single();
       if (error) throw error;
