@@ -56,7 +56,6 @@ export const buyChipFn = createServerFn({ method: "POST" })
         _amount_cents: item.price_cents,
         _type: "refund",
         _description: `Estorno: ${item.name}`,
-        _stripe_pi: null,
         _chip_purchase_id: purchase.id,
       });
       await supabaseAdmin.from("chip_purchases").update({
