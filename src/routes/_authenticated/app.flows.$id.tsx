@@ -43,7 +43,7 @@ export const Route = createFileRoute("/_authenticated/app/flows/$id")({
 /* =========================================================
    Tipos de nó disponíveis no fluxo
    ========================================================= */
-type StepType = "start" | "message" | "delay" | "condition" | "tag" | "webhook";
+type StepType = "start" | "message" | "delay" | "condition" | "tag" | "webhook" | "ask" | "ai" | "transfer_human";
 
 type StepData = {
   label: string;
@@ -55,21 +55,29 @@ type StepData = {
   conditionEquals?: string;
   tag?: string;
   webhookUrl?: string;
+  variable?: string;
+  systemPrompt?: string;
+  userInput?: string;
   [key: string]: unknown;
 };
+
+import { HelpCircle, Sparkles as SparklesIcon, UserCog } from "lucide-react";
 
 const STEP_META: Record<StepType, {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  color: string; // CSS color
+  color: string;
   description: string;
 }> = {
-  start:     { label: "Início",      icon: Play,           color: "var(--color-primary)",     description: "Ponto de entrada do fluxo" },
-  message:   { label: "Mensagem",    icon: MessageSquare,  color: "#3b82f6",                  description: "Envia uma mensagem WhatsApp" },
-  delay:     { label: "Esperar",     icon: Clock,          color: "#f59e0b",                  description: "Aguarda antes do próximo passo" },
-  condition: { label: "Condição",    icon: GitBranch,      color: "#a855f7",                  description: "Ramifica em sim / não" },
-  tag:       { label: "Tag",         icon: Tag,            color: "#10b981",                  description: "Marca contato com um rótulo" },
-  webhook:   { label: "Webhook",     icon: Webhook,        color: "#ef4444",                  description: "Chama uma URL externa" },
+  start:          { label: "Início",            icon: Play,           color: "var(--color-primary)", description: "Ponto de entrada do fluxo" },
+  message:        { label: "Mensagem",          icon: MessageSquare,  color: "#3b82f6",              description: "Envia uma mensagem WhatsApp" },
+  ask:            { label: "Pergunta",          icon: HelpCircle,     color: "#0ea5e9",              description: "Envia pergunta e guarda a resposta em variável" },
+  delay:          { label: "Esperar",           icon: Clock,          color: "#f59e0b",              description: "Aguarda antes do próximo passo" },
+  condition:      { label: "Condição",          icon: GitBranch,      color: "#a855f7",              description: "Ramifica em sim / não" },
+  tag:            { label: "Tag",               icon: Tag,            color: "#10b981",              description: "Marca contato com um rótulo" },
+  ai:             { label: "IA",                icon: SparklesIcon,   color: "#ec4899",              description: "Resposta gerada por IA" },
+  transfer_human: { label: "Transferir humano", icon: UserCog,        color: "#6366f1",              description: "Encaminha conversa para atendimento humano" },
+  webhook:        { label: "Webhook",           icon: Webhook,        color: "#ef4444",              description: "Chama uma URL externa" },
 };
 
 /* =========================================================
