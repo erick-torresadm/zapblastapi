@@ -66,49 +66,90 @@ function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-      <div className="w-full max-w-md">
-        <Link to="/" className="mb-6 flex items-center justify-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Zap className="h-5 w-5" />
+    <div className="relative grid min-h-screen lg:grid-cols-2">
+      {/* Decorative panel */}
+      <div className="relative hidden overflow-hidden lg:block" style={{ background: "var(--gradient-hero)" }}>
+        <div className="absolute inset-0 opacity-40" style={{
+          backgroundImage:
+            "radial-gradient(circle at 25% 30%, oklch(0.62 0.21 275 / 0.5), transparent 40%), radial-gradient(circle at 75% 70%, oklch(0.72 0.18 300 / 0.4), transparent 40%)",
+        }} />
+        <div className="relative flex h-full flex-col justify-between p-12">
+          <Link to="/" className="flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow shadow-glow">
+              <Zap className="h-5 w-5 fill-white text-white" />
+            </div>
+            <span className="font-display text-xl font-bold">ZapBlast</span>
+          </Link>
+          <div>
+            <h1 className="font-display text-4xl font-bold leading-tight tracking-tight">
+              Dispare no WhatsApp <br />
+              <span className="text-aurora">sem queimar chips.</span>
+            </h1>
+            <p className="mt-4 max-w-md text-muted-foreground">
+              Anti-ban Engine, aquecimento automático, marketplace de chips BR. Tudo no mesmo painel.
+            </p>
+            <div className="mt-8 space-y-2.5 text-sm">
+              {["Evolution API nativa", "Aquecimento bidirecional", "Marketplace de chips BR", "Suporte humano"].map((x) => (
+                <div key={x} className="flex items-center gap-2 text-muted-foreground">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-success/20 text-success">✓</div>
+                  {x}
+                </div>
+              ))}
+            </div>
           </div>
-          <span className="text-xl font-bold">ZapBlast</span>
-        </Link>
+          <div className="text-xs text-muted-foreground">© 2026 ZapBlast · Anti-ban Suite</div>
+        </div>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Acessar plataforma</CardTitle>
-            <CardDescription>Entre ou crie sua conta para começar</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="signin">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Entrar</TabsTrigger>
-                <TabsTrigger value="signup">Criar conta</TabsTrigger>
-              </TabsList>
+      {/* Form */}
+      <div className="flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          <Link to="/" className="mb-6 flex items-center justify-center gap-2 lg:hidden">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow">
+              <Zap className="h-5 w-5 fill-white text-white" />
+            </div>
+            <span className="font-display text-xl font-bold">ZapBlast</span>
+          </Link>
 
-              <TabsContent value="signin">
-                <form onSubmit={signIn} className="space-y-4">
-                  <div><Label htmlFor="si-email">E-mail</Label><Input id="si-email" name="email" type="email" required autoComplete="email" /></div>
-                  <div><Label htmlFor="si-pwd">Senha</Label><Input id="si-pwd" name="password" type="password" required autoComplete="current-password" /></div>
-                  <Button type="submit" className="w-full" disabled={loading}>Entrar</Button>
-                </form>
-              </TabsContent>
+          <Card className="border-border/60 bg-card/60 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="font-display text-2xl">Acessar plataforma</CardTitle>
+              <CardDescription>Entre ou crie sua conta para começar</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="signin">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="signin">Entrar</TabsTrigger>
+                  <TabsTrigger value="signup">Criar conta</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="signup">
-                <form onSubmit={signUp} className="space-y-4">
-                  <div><Label htmlFor="su-name">Nome</Label><Input id="su-name" name="name" required /></div>
-                  <div><Label htmlFor="su-email">E-mail</Label><Input id="su-email" name="email" type="email" required autoComplete="email" /></div>
-                  <div><Label htmlFor="su-pwd">Senha</Label><Input id="su-pwd" name="password" type="password" required minLength={6} autoComplete="new-password" /></div>
-                  <Button type="submit" className="w-full" disabled={loading}>Criar conta</Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+                <TabsContent value="signin" className="mt-5">
+                  <form onSubmit={signIn} className="space-y-4">
+                    <div><Label htmlFor="si-email">E-mail</Label><Input id="si-email" name="email" type="email" required autoComplete="email" className="mt-1.5" /></div>
+                    <div><Label htmlFor="si-pwd">Senha</Label><Input id="si-pwd" name="password" type="password" required autoComplete="current-password" className="mt-1.5" /></div>
+                    <Button type="submit" className="w-full bg-gradient-to-br from-primary to-primary-glow shadow-glow" disabled={loading}>Entrar</Button>
+                  </form>
+                </TabsContent>
 
-            <div className="my-4 flex items-center gap-2"><div className="h-px flex-1 bg-border" /><span className="text-xs text-muted-foreground">OU</span><div className="h-px flex-1 bg-border" /></div>
-            <Button variant="outline" className="w-full" onClick={google} disabled={loading}>Continuar com Google</Button>
-          </CardContent>
-        </Card>
+                <TabsContent value="signup" className="mt-5">
+                  <form onSubmit={signUp} className="space-y-4">
+                    <div><Label htmlFor="su-name">Nome</Label><Input id="su-name" name="name" required className="mt-1.5" /></div>
+                    <div><Label htmlFor="su-email">E-mail</Label><Input id="su-email" name="email" type="email" required autoComplete="email" className="mt-1.5" /></div>
+                    <div><Label htmlFor="su-pwd">Senha</Label><Input id="su-pwd" name="password" type="password" required minLength={6} autoComplete="new-password" className="mt-1.5" /></div>
+                    <Button type="submit" className="w-full bg-gradient-to-br from-primary to-primary-glow shadow-glow" disabled={loading}>Criar conta</Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+
+              <div className="my-5 flex items-center gap-2"><div className="h-px flex-1 bg-border" /><span className="text-xs text-muted-foreground">OU</span><div className="h-px flex-1 bg-border" /></div>
+              <Button variant="outline" className="w-full border-border/60 bg-background/40" onClick={google} disabled={loading}>Continuar com Google</Button>
+            </CardContent>
+          </Card>
+
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            Ao continuar você concorda com nossos Termos e Política de Privacidade.
+          </p>
+        </div>
       </div>
     </div>
   );
