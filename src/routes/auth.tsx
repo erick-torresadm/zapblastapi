@@ -93,19 +93,16 @@ function AuthPage() {
               ))}
             </div>
           </div>
-          <div className="text-xs text-muted-foreground">© 2026 ZapBlast · Anti-ban Suite</div>
+          <div className="text-xs text-muted-foreground">© 2026 Mirazap · Anti-ban Suite</div>
         </div>
       </div>
 
       {/* Form */}
       <div className="flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
-          <Link to="/" className="mb-6 flex items-center justify-center gap-2 lg:hidden">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow">
-              <Zap className="h-5 w-5 fill-white text-white" />
-            </div>
-            <span className="font-display text-xl font-bold">ZapBlast</span>
-          </Link>
+          <div className="mb-6 flex justify-center lg:hidden">
+            <Logo to="/" size="lg" />
+          </div>
 
           <Card className="border-border/60 bg-card/60 backdrop-blur">
             <CardHeader>
