@@ -201,9 +201,14 @@ function InstancesPage() {
                 )}
               </div>
             )}
-            <Button variant="outline" onClick={() => qrData && refreshQr.mutate({ instance_id: qrData.instanceId })} disabled={refreshQr.isPending}>
-              <RefreshCw className="mr-2 h-4 w-4" />Atualizar
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => qrData && refreshQr.mutate({ instance_id: qrData.instanceId })} disabled={refreshQr.isPending}>
+                <RefreshCw className="mr-2 h-4 w-4" />Atualizar
+              </Button>
+              <Button variant="secondary" onClick={() => qrData && refreshQr.mutate({ instance_id: qrData.instanceId, force_restart: true })} disabled={refreshQr.isPending}>
+                Resetar conexão
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
