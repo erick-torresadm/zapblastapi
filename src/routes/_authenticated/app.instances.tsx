@@ -61,12 +61,13 @@ function InstancesPage() {
   });
 
   const refreshQr = useMutation({
-    mutationFn: async (instance_id: string) => qrFn({ data: { instance_id } }),
-    onSuccess: (res, id) => {
+    mutationFn: async (args: { instance_id: string; force_restart?: boolean }) =>
+      qrFn({ data: args }),
+    onSuccess: (res, args) => {
       setQrData((prev) => ({
         qrcode: res.qrcode,
         state: res.state,
-        instanceId: id,
+        instanceId: args.instance_id,
         error: res.error ?? null,
         tries: (prev?.tries ?? 0) + 1,
       }));
@@ -85,7 +86,7 @@ function InstancesPage() {
   // Auto-poll QR a cada 3s enquanto dialog aberto e não conectado
   useEffect(() => {
     if (!qrOpen || !qrData?.instanceId || qrData.state === "open") return;
-    const t = setInterval(() => refreshQr.mutate(qrData.instanceId), 3000);
+    const t = setInterval(() => refreshQr.mutate({ instance_id: qrData.instanceId }), 3000);
     return () => clearInterval(t);
   }, [qrOpen, qrData?.instanceId, qrData?.state]);
 
@@ -159,7 +160,7 @@ function InstancesPage() {
                       <TableCell>{i.sent_today}</TableCell>
                       <TableCell>{i.daily_limit}</TableCell>
                       <TableCell className="space-x-1">
-                        <Button variant="ghost" size="icon" title="Ver QR" onClick={() => { setQrData({ qrcode: null, state: i.status, instanceId: i.id, error: null, tries: 0 }); setQrOpen(true); refreshQr.mutate(i.id); }}>
+                        <Button variant="ghost" size="icon" title="Ver QR" onClick={() => { setQrData({ qrcode: null, state: i.status, instanceId: i.id, error: null, tries: 0 }); setQrOpen(true); refreshQr.mutate({ instance_id: i.id }); }}>
                           <QrCode className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" title="Remover" onClick={() => { if (confirm("Remover este chip?")) remove.mutate(i.id); }}>
@@ -200,9 +201,14 @@ function InstancesPage() {
                 )}
               </div>
             )}
-            <Button variant="outline" onClick={() => qrData && refreshQr.mutate(qrData.instanceId)} disabled={refreshQr.isPending}>
-              <RefreshCw className="mr-2 h-4 w-4" />Atualizar
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => qrData && refreshQr.mutate({ instance_id: qrData.instanceId })} disabled={refreshQr.isPending}>
+                <RefreshCw className="mr-2 h-4 w-4" />Atualizar
+              </Button>
+              <Button variant="secondary" onClick={() => qrData && refreshQr.mutate({ instance_id: qrData.instanceId, force_restart: true })} disabled={refreshQr.isPending}>
+                Resetar conexão
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
