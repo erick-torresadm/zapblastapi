@@ -1237,6 +1237,7 @@ export type Database = {
           created_at: string
           daily_limit: number
           health_score: number
+          hourly_limit: number
           id: string
           instance_name: string
           last_qr_at: string | null
@@ -1244,12 +1245,21 @@ export type Database = {
           last_qr_error: string | null
           last_reset_date: string
           last_sent_at: string | null
+          max_delay_ms: number
+          min_delay_ms: number
           phone_number: string | null
+          quiet_end_hour: number
+          quiet_start_hour: number
+          sent_hour: number
+          sent_hour_at: string | null
           sent_today: number
           server_id: string
           status: Database["public"]["Enums"]["instance_status"]
+          typing_enabled: boolean
+          typing_wpm: number
           updated_at: string
           user_id: string
+          validate_numbers: boolean
           warmup_enabled: boolean
           warmup_intensity: Database["public"]["Enums"]["warmup_intensity"]
           warmup_last_at: string | null
@@ -1263,6 +1273,7 @@ export type Database = {
           created_at?: string
           daily_limit?: number
           health_score?: number
+          hourly_limit?: number
           id?: string
           instance_name: string
           last_qr_at?: string | null
@@ -1270,12 +1281,21 @@ export type Database = {
           last_qr_error?: string | null
           last_reset_date?: string
           last_sent_at?: string | null
+          max_delay_ms?: number
+          min_delay_ms?: number
           phone_number?: string | null
+          quiet_end_hour?: number
+          quiet_start_hour?: number
+          sent_hour?: number
+          sent_hour_at?: string | null
           sent_today?: number
           server_id: string
           status?: Database["public"]["Enums"]["instance_status"]
+          typing_enabled?: boolean
+          typing_wpm?: number
           updated_at?: string
           user_id: string
+          validate_numbers?: boolean
           warmup_enabled?: boolean
           warmup_intensity?: Database["public"]["Enums"]["warmup_intensity"]
           warmup_last_at?: string | null
@@ -1289,6 +1309,7 @@ export type Database = {
           created_at?: string
           daily_limit?: number
           health_score?: number
+          hourly_limit?: number
           id?: string
           instance_name?: string
           last_qr_at?: string | null
@@ -1296,12 +1317,21 @@ export type Database = {
           last_qr_error?: string | null
           last_reset_date?: string
           last_sent_at?: string | null
+          max_delay_ms?: number
+          min_delay_ms?: number
           phone_number?: string | null
+          quiet_end_hour?: number
+          quiet_start_hour?: number
+          sent_hour?: number
+          sent_hour_at?: string | null
           sent_today?: number
           server_id?: string
           status?: Database["public"]["Enums"]["instance_status"]
+          typing_enabled?: boolean
+          typing_wpm?: number
           updated_at?: string
           user_id?: string
+          validate_numbers?: boolean
           warmup_enabled?: boolean
           warmup_intensity?: Database["public"]["Enums"]["warmup_intensity"]
           warmup_last_at?: string | null
