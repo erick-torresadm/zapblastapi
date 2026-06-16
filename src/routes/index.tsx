@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Zap, ShieldCheck, Flame, ShoppingCart, MessageSquare, BarChart3,
@@ -9,6 +10,7 @@ import { GridPattern } from "@/components/magicui/grid-pattern";
 import { BorderBeam } from "@/components/magicui/border-beam";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { Logo } from "@/components/Logo";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -175,13 +177,9 @@ function Landing() {
         <div className="mx-auto max-w-2xl text-center">
           <div className="text-xs font-semibold uppercase tracking-wider text-primary">Planos</div>
           <h2 className="mt-2 font-display text-4xl font-bold tracking-tight md:text-5xl">Escolha sua escala.</h2>
-          <p className="mt-3 text-muted-foreground">Sem fidelidade. Cancele quando quiser.</p>
+          <p className="mt-3 text-muted-foreground">Sem fidelidade. Anual paga no PIX com 30% off.</p>
         </div>
-        <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-3">
-          <PriceCard name="Starter" price="97" features={["5 chips inclusos", "10k msgs/mês", "Anti-ban basic", "Suporte por email"]} />
-          <PriceCard name="Pro" price="297" highlight features={["20 chips inclusos", "50k msgs/mês", "Anti-ban full + Warmup", "Marketplace + saldo R$50 grátis", "Suporte prioritário"]} />
-          <PriceCard name="Scale" price="697" features={["50 chips inclusos", "Msgs ilimitadas", "Multi-server", "API white-label", "Suporte 24/7"]} />
-        </div>
+        <PricingBlock />
       </section>
 
       {/* FAQ */}
@@ -196,7 +194,7 @@ function Landing() {
               { q: "Meu chip vai ser banido?", a: "Nenhuma plataforma garante 100% — quem garante mente. O que fazemos: reduzir drasticamente o risco com aquecimento, spintax, delays humanos e circuit breaker. Histórico de chips bem aquecidos = >90% de sobrevida em 30 dias." },
               { q: "Preciso da Evolution API?", a: "Sim — você pode usar a sua ou contratar uma da nossa lista de provedores recomendados." },
               { q: "Posso comprar chips dentro da plataforma?", a: "Sim, no Marketplace. Chips virtuais BR a partir de R$ 7,90, pagamento via saldo pré-pago." },
-              { q: "Aceita Pix?", a: "Sim. Pix, cartão e boleto via Stripe." },
+              { q: "Aceita Pix?", a: "Sim — PIX e cartão de crédito. No plano anual o PIX é preferencial (à vista com 30% de desconto). Integração via Efí Bank em breve." },
             ].map((f) => (
               <details key={f.q} className="group rounded-xl border border-border/60 bg-card/60 p-5 backdrop-blur">
                 <summary className="flex cursor-pointer list-none items-center justify-between font-medium">
@@ -261,7 +259,62 @@ function CompareRow({ label, a, b }: { label: string; a: string; b: string }) {
   );
 }
 
-function PriceCard({ name, price, features, highlight }: { name: string; price: string; features: string[]; highlight?: boolean }) {
+const PLANS = [
+  { name: "Starter", monthly: 97, features: ["5 chips inclusos", "10k msgs/mês", "Anti-ban basic", "Suporte por email"] },
+  { name: "Pro", monthly: 297, highlight: true, features: ["20 chips inclusos", "50k msgs/mês", "Anti-ban full + Warmup", "Marketplace + saldo R$50 grátis", "Suporte prioritário"] },
+  { name: "Scale", monthly: 697, features: ["50 chips inclusos", "Msgs ilimitadas", "Multi-server", "API white-label", "Suporte 24/7"] },
+];
+
+function PricingBlock() {
+  const [cycle, setCycle] = useState<"annual" | "monthly">("annual");
+  return (
+    <>
+      <div className="mt-10 flex justify-center">
+        <div role="tablist" className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-card/60 p-1 backdrop-blur">
+          <button
+            role="tab"
+            aria-selected={cycle === "annual"}
+            onClick={() => setCycle("annual")}
+            className={cn(
+              "flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-colors",
+              cycle === "annual" ? "bg-primary text-primary-foreground shadow-glow" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Anual
+            <span className="rounded-full bg-success/20 px-2 py-0.5 text-[10px] font-bold text-success">−30% PIX</span>
+          </button>
+          <button
+            role="tab"
+            aria-selected={cycle === "monthly"}
+            onClick={() => setCycle("monthly")}
+            className={cn(
+              "rounded-full px-5 py-2 text-sm font-medium transition-colors",
+              cycle === "monthly" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Mensal
+          </button>
+        </div>
+      </div>
+      <div className="mx-auto mt-8 grid max-w-5xl gap-6 md:grid-cols-3">
+        {PLANS.map((p) => (
+          <PriceCard key={p.name} {...p} cycle={cycle} />
+        ))}
+      </div>
+      <p className="mt-6 text-center text-xs text-muted-foreground">
+        💳 PIX e cartão de crédito · pagamentos via Efí Bank em breve
+      </p>
+    </>
+  );
+}
+
+function PriceCard({
+  name, monthly, features, highlight, cycle,
+}: { name: string; monthly: number; features: string[]; highlight?: boolean; cycle: "annual" | "monthly" }) {
+  const annualMonthlyEquivalent = Math.round(monthly * 0.7);
+  const annualTotal = annualMonthlyEquivalent * 12;
+  const showAnnual = cycle === "annual";
+  const display = showAnnual ? annualMonthlyEquivalent : monthly;
   return (
     <div
       className={`relative overflow-hidden rounded-2xl border p-7 backdrop-blur ${
@@ -277,9 +330,21 @@ function PriceCard({ name, price, features, highlight }: { name: string; price: 
       <h3 className="font-display text-xl font-semibold">{name}</h3>
       <div className="mt-4 flex items-baseline gap-1">
         <span className="text-muted-foreground">R$</span>
-        <span className="font-display text-5xl font-bold">{price}</span>
+        <span className="font-display text-5xl font-bold">{display}</span>
         <span className="text-sm text-muted-foreground">/mês</span>
       </div>
+      {showAnnual ? (
+        <div className="mt-2 space-y-1 text-xs">
+          <div className="text-muted-foreground">
+            <span className="line-through">R$ {monthly}/mês</span> · R$ {annualTotal.toLocaleString("pt-BR")} no PIX/ano
+          </div>
+          <div className="inline-flex items-center gap-1 rounded-full border border-success/40 bg-success/10 px-2 py-0.5 font-medium text-success">
+            Economize R$ {((monthly - annualMonthlyEquivalent) * 12).toLocaleString("pt-BR")}/ano
+          </div>
+        </div>
+      ) : (
+        <div className="mt-2 text-xs text-muted-foreground">cobrança recorrente no cartão</div>
+      )}
       <ul className="mt-6 space-y-2.5 text-sm">
         {features.map((f) => (
           <li key={f} className="flex items-start gap-2">
@@ -292,7 +357,7 @@ function PriceCard({ name, price, features, highlight }: { name: string; price: 
         className={`mt-7 w-full ${highlight ? "bg-gradient-to-br from-primary to-primary-glow shadow-glow" : ""}`}
         variant={highlight ? "default" : "outline"}
       >
-        <Link to="/auth">Assinar {name}</Link>
+        <Link to="/auth">{showAnnual ? `Assinar anual` : `Assinar mensal`}</Link>
       </Button>
     </div>
   );

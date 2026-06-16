@@ -70,7 +70,8 @@ function BillingPage() {
             )}
           >
             Anual
-            <Badge variant="default" className="bg-success text-success-foreground hover:bg-success">−20%</Badge>
+            <Badge variant="default" className="bg-success text-success-foreground hover:bg-success">−30%</Badge>
+            <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">PIX</Badge>
           </button>
         </div>
       </div>
@@ -79,7 +80,7 @@ function BillingPage() {
         {(data?.plans ?? []).map((p) => {
           const Icon = planIcons[p.slug] ?? Sparkles;
           const isCurrent = sub?.plan_id === p.id;
-          const annualTotal = (p as { price_annual_cents?: number | null }).price_annual_cents ?? Math.round(p.price_cents * 12 * 0.8);
+          const annualTotal = (p as { price_annual_cents?: number | null }).price_annual_cents ?? Math.round(p.price_cents * 12 * 0.7);
           const monthlyEquivalent = Math.round(annualTotal / 12);
           const yearlySavings = (p.price_cents * 12) - annualTotal;
           const showAnnual = cycle === "annual";
@@ -101,18 +102,23 @@ function BillingPage() {
                     <div className="space-y-1.5">
                       <div className="text-xs text-muted-foreground">
                         <span className="line-through">{brl(p.price_cents)}/mês</span>
-                        {" · "}cobrado {brlNoDecimals(annualTotal)}/ano
+                        {" · "}cobrado {brlNoDecimals(annualTotal)}/ano no PIX
                       </div>
-                      <Badge variant="outline" className="border-success/40 bg-success/10 text-success">
-                        Economize {brlNoDecimals(yearlySavings)}/ano
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant="outline" className="border-success/40 bg-success/10 text-success">
+                          Economize {brlNoDecimals(yearlySavings)}/ano
+                        </Badge>
+                        <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">
+                          PIX preferencial
+                        </Badge>
+                      </div>
                       {p.featured && (
-                        <div className="text-xs font-medium text-primary">🎁 Ganhe ~2 meses grátis</div>
+                        <div className="text-xs font-medium text-primary">🎁 Ganhe ~3,6 meses grátis</div>
                       )}
                     </div>
                   ) : (
                     <div className="text-xs text-muted-foreground">
-                      ou <button onClick={() => setCycle("annual")} className="text-primary font-medium underline-offset-2 hover:underline">economize 20% no anual ↑</button>
+                      ou <button onClick={() => setCycle("annual")} className="text-primary font-medium underline-offset-2 hover:underline">economize 30% no anual via PIX ↑</button>
                     </div>
                   )}
                 </div>
@@ -139,8 +145,16 @@ function BillingPage() {
       </div>
 
       <Card>
-        <CardContent className="pt-6 text-sm text-muted-foreground">
-          💳 Os pagamentos via Stripe serão ativados em breve. Por enquanto, todos os usuários têm acesso liberado pra testar.
+        <CardContent className="pt-6 text-sm text-muted-foreground space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">PIX</Badge>
+            <Badge variant="outline">Cartão de crédito</Badge>
+            <span>· em breve via Efí Bank</span>
+          </div>
+          <div>
+            💚 <strong>PIX no anual</strong> tem o melhor preço — pagamento à vista com 30% de desconto.
+            Cartão será aceito em mensal e anual (parcelado). Por enquanto, todos os usuários têm acesso liberado pra testar.
+          </div>
         </CardContent>
       </Card>
     </div>
