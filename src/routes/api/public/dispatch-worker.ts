@@ -54,7 +54,7 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
         const instanceCache: Record<string, { server: { base_url: string; api_key: string }; instance_name: string; sent_today: number; daily_limit: number; last_sent_at: string | null; status: string }> = {};
 
         for (const msg of pending ?? []) {
-          const camp = msg.campaigns as { min_delay_s: number; max_delay_s: number; instance_ids: string[]; media_url: string | null; media_type: string | null; media_filename: string | null };
+          const camp = msg.campaigns as { min_delay_s: number; max_delay_s: number; instance_ids: string[]; media_url: string | null; media_type: string | null; media_filename: string | null; flow_id: string | null };
           // Carrega chips elegíveis
           const candidateIds = camp.instance_ids ?? [];
           if (!candidateIds.length) { skipped++; continue; }
