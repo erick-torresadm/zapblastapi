@@ -126,13 +126,13 @@ function KeywordsPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <KeyRound className="h-6 w-6" /> Palavras-chave
+            <Bot className="h-6 w-6" /> Bot — Palavras-chave
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Dispare fluxos automaticamente quando o contato enviar uma mensagem com a palavra-chave configurada.
+            O servidor escuta cada mensagem (recebida ou enviada pelo seu chip). Quando bater com uma palavra-chave, o fluxo dispara automaticamente.
           </p>
         </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Nova palavra-chave</Button>
+        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo gatilho</Button>
       </div>
 
       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
