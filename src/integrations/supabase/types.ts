@@ -27,7 +27,7 @@ export type Database = {
           instance_id: string | null
           phone: string
           read_at: string | null
-          rendered_message: string
+          rendered_message: string | null
           sent_at: string | null
           status: Database["public"]["Enums"]["message_status"]
           updated_at: string
@@ -45,7 +45,7 @@ export type Database = {
           instance_id?: string | null
           phone: string
           read_at?: string | null
-          rendered_message: string
+          rendered_message?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["message_status"]
           updated_at?: string
@@ -63,7 +63,7 @@ export type Database = {
           instance_id?: string | null
           phone?: string
           read_at?: string | null
-          rendered_message?: string
+          rendered_message?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["message_status"]
           updated_at?: string
