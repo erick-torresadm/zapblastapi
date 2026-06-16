@@ -19,6 +19,7 @@ const operationNav = [
   { to: "/app/lists", label: "Contatos", icon: Users },
   { to: "/app/campaigns", label: "Campanhas", icon: Send },
   { to: "/app/flows", label: "Fluxos", icon: Workflow },
+  { to: "/app/keywords", label: "Palavras-chave", icon: KeyRound },
   { to: "/app/inbox", label: "Respostas", icon: Inbox },
   { to: "/app/anti-ban", label: "Anti-ban", icon: ShieldCheck },
   { to: "/app/servers", label: "Servidores", icon: Server },
