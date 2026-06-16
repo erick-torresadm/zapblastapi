@@ -80,7 +80,9 @@ const STEP_META: Record<StepType, {
   description: string;
 }> = {
   start:          { label: "Início",            icon: Play,           color: "var(--color-primary)", description: "Ponto de entrada do fluxo" },
-  message:        { label: "Mensagem",          icon: MessageSquare,  color: "#3b82f6",              description: "Envia uma mensagem WhatsApp" },
+  message:        { label: "Mensagem",          icon: MessageSquare,  color: "#3b82f6",              description: "Envia texto (com digitando…)" },
+  media:          { label: "Mídia",             icon: ImageIcon,      color: "#06b6d4",              description: "Imagem, vídeo, áudio ou documento" },
+  typing:         { label: "Digitando…",        icon: Keyboard,       color: "#64748b",              description: "Mostra digitando/gravando por X seg" },
   ask:            { label: "Pergunta",          icon: HelpCircle,     color: "#0ea5e9",              description: "Envia pergunta e guarda a resposta em variável" },
   delay:          { label: "Esperar",           icon: Clock,          color: "#f59e0b",              description: "Aguarda antes do próximo passo" },
   condition:      { label: "Condição",          icon: GitBranch,      color: "#a855f7",              description: "Ramifica em sim / não" },
@@ -88,6 +90,7 @@ const STEP_META: Record<StepType, {
   ai:             { label: "IA",                icon: SparklesIcon,   color: "#ec4899",              description: "Resposta gerada por IA" },
   transfer_human: { label: "Transferir humano", icon: UserCog,        color: "#6366f1",              description: "Encaminha conversa para atendimento humano" },
   webhook:        { label: "Webhook",           icon: Webhook,        color: "#ef4444",              description: "Chama uma URL externa" },
+
 };
 
 /* =========================================================
