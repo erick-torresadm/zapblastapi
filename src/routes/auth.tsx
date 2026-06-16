@@ -9,9 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Zap } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar — ZapBlast" }, { name: "description", content: "Acesse sua conta ZapBlast" }] }),
+  head: () => ({ meta: [{ title: "Entrar — Mirazap" }, { name: "description", content: "Acesse sua conta Mirazap" }] }),
   component: AuthPage,
 });
 
