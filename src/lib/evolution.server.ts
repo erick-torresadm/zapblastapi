@@ -64,6 +64,10 @@ export async function logoutInstance(server: EvolutionServer, instanceName: stri
   return evoFetch(server, `/instance/logout/${encodeURIComponent(instanceName)}`, { method: "DELETE" });
 }
 
+export async function restartInstance(server: EvolutionServer, instanceName: string) {
+  return evoFetch(server, `/instance/restart/${encodeURIComponent(instanceName)}`, { method: "POST" });
+}
+
 export async function sendText(
   server: EvolutionServer,
   instanceName: string,
