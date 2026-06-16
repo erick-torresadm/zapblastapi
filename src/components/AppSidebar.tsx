@@ -20,7 +20,7 @@ const operationNav = [
   { to: "/app/lists", label: "Contatos", icon: Users },
   { to: "/app/campaigns", label: "Campanhas", icon: Send },
   { to: "/app/flows", label: "Fluxos", icon: Workflow },
-  { to: "/app/keywords", label: "Palavras-chave", icon: KeyRound },
+  { to: "/app/keywords", label: "Bot", icon: Bot },
   { to: "/app/inbox", label: "Conversas (CRM)", icon: Inbox },
   { to: "/app/team", label: "Equipe", icon: UserCog },
 
