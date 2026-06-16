@@ -1,56 +1,66 @@
+**Problema identificado**
 
-# Plano Anual com desconto (boost de faturamento)
+O painel fica em “Carregando…” porque a função que busca o QR está retornando `qrcode: null`. Hoje ela chama a Evolution, mas:
 
-## Objetivo
-Adicionar opção de cobrança **Mensal vs Anual** com desconto chamativo na página `/app/billing`, incentivando o usuário a fechar 12 meses adiantado — aumenta LTV, reduz churn e melhora o caixa.
+- erros da Evolution são engolidos com `.catch(() => null)`, então o painel nunca mostra o motivo real;
+- o webhook atual só trata conexão e mensagens, mas ignora o evento `qrcode.updated`, que é um dos formatos oficiais onde a Evolution envia o QR;
+- a criação da instância tem suporte a webhook no helper, mas o fluxo atual não passa a URL do webhook ao criar a instância;
+- o painel só depende da resposta direta de `/instance/connect/:instanceName`, então se a Evolution gera o QR via evento/webhook, o app não tem de onde puxar;
+- falta salvar o último QR recebido para o painel reutilizar enquanto o QR ainda é válido.
 
-## Estrutura de preços proposta
+**Plano de correção**
 
-| Plano | Mensal | Anual (à vista) | Anual equivalente/mês | Desconto | Você economiza |
-|---|---|---|---|---|---|
-| Starter | R$ 49 | R$ 470 | R$ 39,17/mês | **20% OFF** | R$ 118/ano |
-| Pro ⭐ | R$ 149 | R$ 1.430 | R$ 119,17/mês | **20% OFF** + 1 mês grátis | R$ 358/ano |
-| Enterprise | R$ 399 | R$ 3.830 | R$ 319,17/mês | **20% OFF** | R$ 958/ano |
+1. **Parar de esconder erro da Evolution**
+   - Remover o `.catch(() => null)` silencioso no fluxo de QR.
+   - Retornar uma mensagem útil para o painel quando a Evolution responder erro, sem expor API key.
+   - Adicionar logs sanitizados com o “formato” da resposta, não o base64 inteiro.
 
-- **Âncora visual**: card Pro com badge "Economize 2 meses" — gatilho psicológico forte.
-- **Toggle Mensal/Anual** no topo (com badge "−20%" no Anual, pré-selecionado em Anual pra empurrar a conversão).
-- **Preço riscado** mostrando o mensal equivalente vs o desconto.
+2. **Persistir o último QR da instância**
+   - Adicionar campos na tabela de chips para armazenar temporariamente:
+     - último QR em base64/data URL;
+     - data/hora em que foi recebido;
+     - último erro de QR, se houver.
+   - O QR será sobrescrito a cada atualização e usado apenas para exibição no painel.
 
-## Mudanças
+3. **Tratar o evento `qrcode.updated` no webhook**
+   - Atualizar `/api/public/evolution-webhook/$token` para reconhecer eventos como:
+     - `qrcode.updated`
+     - `QRCODE_UPDATED`
+   - Extrair `qrcode.base64`, `base64`, `qrcode.code` ou `code`.
+   - Salvar o QR normalizado na instância correta.
 
-### 1. Banco (`subscription_plans`)
-Adicionar colunas pra preço anual:
-- `price_annual_cents` (int, nullable) — preço total do ano à vista
-- `stripe_price_id_annual` (text, nullable) — pro futuro checkout
-- Atualizar os 3 planos existentes com os valores acima
+4. **Configurar webhook automaticamente ao criar chip**
+   - Ao criar uma instância, montar a URL pública do webhook do servidor cadastrado.
+   - Passar essa URL no payload de criação da Evolution.
+   - Incluir eventos de QR e conexão no webhook, especialmente `QRCODE_UPDATED` e `CONNECTION_UPDATE`.
 
-Migration única + UPDATE dos planos.
+5. **Melhorar busca ativa do QR**
+   - Quando o usuário abrir “Ver QR”, o app vai:
+     - chamar `/instance/connect/:instanceName`;
+     - tentar extrair QR da resposta direta;
+     - se não vier QR direto, buscar o último QR salvo pelo webhook;
+     - continuar fazendo polling por alguns segundos.
 
-### 2. UI `src/routes/_authenticated/app.billing.tsx`
-- **Toggle `Mensal / Anual`** (componente `Tabs` ou `Switch` com badge "−20%") no topo da grade.
-- Estado local `billingCycle: "monthly" | "annual"`, default `"annual"`.
-- Em cada card:
-  - Mostrar preço dinâmico baseado no toggle
-  - Quando Anual: exibir `R$ X/mês` grande + `cobrado R$ Y/ano` pequeno + badge verde `Economize R$ Z` + preço mensal riscado
-  - Quando Mensal: exibir `R$ X/mês` + texto "ou economize 20% no plano anual ↑"
-- **Pro** ganha um selo extra "Mais escolhido" quando Anual está ativo.
-- Manter botão "Em breve (Stripe)" — sem mexer no checkout agora.
+6. **Melhorar o painel**
+   - Trocar “Carregando…” infinito por estados claros:
+     - “Gerando QR…” enquanto tenta;
+     - “QR recebido, escaneie agora” quando houver imagem;
+     - “Não recebi o QR da Evolution ainda” se não vier após algumas tentativas;
+     - botão “Tentar novamente”.
 
-### 3. Server fn `getBillingStateFn`
-Já retorna `subscription_plans` — só precisa incluir os novos campos no select (automático com `*`). Sem mudança de lógica.
+7. **Validar o fluxo**
+   - Verificar logs do servidor após uma tentativa real.
+   - Confirmar que o painel recebe um `data:image/png;base64,...` válido.
+   - Confirmar que o QR aparece tanto quando vem na resposta direta quanto quando vem por webhook.
 
-## Fora do escopo (deixar pra próxima)
-- Integração de checkout Stripe/Paddle (já marcado "em breve" no app)
-- Migração de assinatura ativa entre ciclos
-- Cupons promocionais customizados
+**Arquivos envolvidos**
 
-## Detalhes técnicos
-- Toggle persistido só em estado local (não precisa salvar)
-- Cálculo do "economize" feito no client: `(price_cents * 12) - price_annual_cents`
-- Acessibilidade: toggle como `role="tablist"` com labels claros
-- Mobile: toggle vira full-width acima dos cards
+- `src/lib/instances.functions.ts`
+- `src/lib/evolution.server.ts`
+- `src/routes/api/public/evolution-webhook.$token.ts`
+- `src/routes/_authenticated/app.instances.tsx`
+- nova migração de banco para os campos do último QR
 
-## Resultado esperado
-- **+15–25% no ticket médio inicial** (referência de mercado SaaS)
-- Caixa antecipado de 12 meses por cliente anual
-- Página com vibe "premium SaaS" (toggle + economia destacada = padrão Linear/Vercel/Notion)
+**Resultado esperado**
+
+O QR code deve aparecer no painel assim que a Evolution retornar o base64 direto ou enviar o evento de QR pelo webhook, e o usuário deixa de ficar preso em “Carregando…” sem diagnóstico.
