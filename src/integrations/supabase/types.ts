@@ -106,7 +106,7 @@ export type Database = {
           media_filename: string | null
           media_type: string | null
           media_url: string | null
-          message_template: string
+          message_template: string | null
           min_delay_s: number
           name: string
           scheduled_for: string | null
@@ -129,7 +129,7 @@ export type Database = {
           media_filename?: string | null
           media_type?: string | null
           media_url?: string | null
-          message_template: string
+          message_template?: string | null
           min_delay_s?: number
           name: string
           scheduled_for?: string | null
@@ -152,7 +152,7 @@ export type Database = {
           media_filename?: string | null
           media_type?: string | null
           media_url?: string | null
-          message_template?: string
+          message_template?: string | null
           min_delay_s?: number
           name?: string
           scheduled_for?: string | null
