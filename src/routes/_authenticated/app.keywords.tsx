@@ -150,6 +150,15 @@ function KeywordsPage() {
                   ) : (
                     <Badge variant="secondary">Qualquer chip</Badge>
                   )}
+                  {t.allow_from_me && (
+                    <Badge variant="outline" className="gap-1"><User className="h-3 w-3" /> Eu também disparo</Badge>
+                  )}
+                  {t.delay_seconds > 0 && (
+                    <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" /> Atraso {t.delay_seconds}s</Badge>
+                  )}
+                  {t.cooldown_seconds > 0 && (
+                    <Badge variant="outline" className="gap-1">Cooldown {t.cooldown_seconds}s</Badge>
+                  )}
                   {t.created_by_admin && <Badge>admin</Badge>}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1">
