@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
-  Zap, ShieldCheck, Flame, ShoppingCart, MessageSquare, BarChart3, Clock, Shuffle,
-  ArrowRight, Check, Sparkles,
+  Zap, ShieldCheck, Flame, ShoppingCart, MessageSquare, BarChart3,
+  ArrowRight, Check, Sparkles, Workflow, Inbox, Bot, Users,
 } from "lucide-react";
 import { Meteors } from "@/components/magicui/meteors";
 import { GridPattern } from "@/components/magicui/grid-pattern";
@@ -13,10 +13,10 @@ import { Logo } from "@/components/Logo";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Perseidas — Dispare no WhatsApp sem ser banido" },
-      { name: "description", content: "Plataforma anti-ban com Evolution API, aquecimento automático de chips e marketplace de números BR. Spintax, rotação inteligente e relatórios em tempo real." },
-      { property: "og:title", content: "Perseidas — Dispare no WhatsApp sem ser banido" },
-      { property: "og:description", content: "Anti-ban Suite com Evolution API, aquecimento e marketplace de chips." },
+      { title: "Perseidas — Disparos, Chatbot e CRM no WhatsApp sem ban" },
+      { name: "description", content: "Plataforma all-in-one: disparos em massa anti-ban, fluxos automáticos com palavra-chave, CRM com múltiplos atendentes e aquecimento de chips. Tudo num só painel." },
+      { property: "og:title", content: "Perseidas — Disparos, Chatbot e CRM no WhatsApp sem ban" },
+      { property: "og:description", content: "Disparo + fluxos por palavra-chave + CRM multi-atendente + anti-ban. Tudo num só painel." },
     ],
   }),
   component: Landing,
@@ -58,15 +58,16 @@ function Landing() {
         <div className="container relative mx-auto px-4 pb-24 pt-20 text-center md:pt-32">
           <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary backdrop-blur">
             <Sparkles className="h-3 w-3" />
-            Powered by Evolution API · Anti-ban Engine v2
+            Disparos · Fluxos · CRM · Anti-ban
           </div>
           <h1 className="mx-auto max-w-4xl font-display text-5xl font-bold leading-[1.05] tracking-tight md:text-7xl">
-            Dispare no WhatsApp <br />
-            <span className="text-aurora">sem queimar seus chips</span>
+            WhatsApp em escala, <br />
+            <span className="text-aurora">do disparo ao atendimento</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
-            A única plataforma com <strong className="text-foreground">aquecimento automático bidirecional</strong>,
-            rotação inteligente, marketplace de chips BR e engine anti-ban de última geração.
+            Dispare campanhas <strong className="text-foreground">anti-ban</strong>, automatize respostas com
+            fluxos por palavra-chave e atenda no <strong className="text-foreground">CRM</strong> com sua equipe —
+            tudo no mesmo painel, com aquecimento automático dos chips.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Button asChild size="lg" className="bg-gradient-to-br from-primary to-primary-glow shadow-glow">
@@ -75,7 +76,7 @@ function Landing() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-border/60 bg-card/40 backdrop-blur">
-              <a href="#anti-ban">Como evitamos bans</a>
+              <a href="#features">Ver recursos</a>
             </Button>
           </div>
 
@@ -85,7 +86,7 @@ function Landing() {
               { v: 99.4, suf: "%", l: "Uptime entrega" },
               { v: 12, suf: "M+", l: "Msgs enviadas" },
               { v: 87, suf: "%", l: "Menos bans" },
-              { v: 4200, suf: "+", l: "Chips ativos" },
+              { v: 4200, suf: "+", l: "Fluxos rodando" },
             ].map((m) => (
               <div key={m.l} className="bg-card/60 p-6 backdrop-blur">
                 <div className="font-display text-3xl font-bold text-foreground">
@@ -101,9 +102,9 @@ function Landing() {
       {/* FEATURES BENTO */}
       <section id="features" className="container mx-auto px-4 py-24">
         <div className="mx-auto max-w-2xl text-center">
-          <div className="text-xs font-semibold uppercase tracking-wider text-primary">Recursos</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-primary">Plataforma completa</div>
           <h2 className="mt-2 font-display text-4xl font-bold tracking-tight md:text-5xl">
-            Tudo que disparo sério precisa.
+            Disparo, bot e atendimento. Um painel só.
           </h2>
         </div>
 
@@ -114,7 +115,8 @@ function Landing() {
             <ShieldCheck className="h-7 w-7 text-primary" />
             <h3 className="mt-4 font-display text-2xl font-semibold">Anti-ban Engine</h3>
             <p className="mt-2 text-muted-foreground">
-              Delays randômicos, spintax obrigatório, presença/digitação simulada, circuit breaker e limite diário por chip — tudo automático.
+              Delays randômicos, spintax obrigatório, presença/digitação simulada, rotação inteligente entre chips,
+              janela de horário comercial e limite diário — tudo automático.
             </p>
             <ul className="mt-6 grid gap-2 text-sm">
               {[
@@ -122,6 +124,7 @@ function Landing() {
                 "Health score por chip em tempo real",
                 "Pausa automática se taxa de erro >5%",
                 "Warmup escalonado de 20 → 300+ msgs/dia",
+                "Agendamento com fuso e retomada automática",
               ].map((x) => (
                 <li key={x} className="flex items-start gap-2">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> {x}
@@ -130,11 +133,13 @@ function Landing() {
             </ul>
           </div>
 
+          <FeatureCard icon={Workflow} title="Fluxos por palavra-chave" desc="Cliente manda 'preço', bot dispara fluxo. Envia texto, imagem, áudio e vídeo, com 'digitando…' simulado." />
+          <FeatureCard icon={Inbox} title="CRM multi-atendente" desc="Inbox estilo WhatsApp Web. Transfira conversas, atribua filas, cada atendente vê só o que é dele." />
+          <FeatureCard icon={Bot} title="Bot 24/7" desc="Responde fora do horário, qualifica o lead e entrega pronto pra venda no CRM." />
+          <FeatureCard icon={Users} title="Equipe e permissões" desc="Convide atendentes já cadastrados, controle quem vê o quê. Dono mantém a fila." />
           <FeatureCard icon={Flame} title="Aquecimento bidirecional" desc="Seus chips conversam entre si automaticamente, simulando uso humano antes do disparo." />
           <FeatureCard icon={ShoppingCart} title="Marketplace de chips BR" desc="Compre chips virtuais brasileiros direto no painel, com saldo pré-pago." />
-          <FeatureCard icon={Shuffle} title="Rotação inteligente" desc="Round-robin entre dezenas de chips com balanceamento por health score." />
           <FeatureCard icon={MessageSquare} title="Spintax + variáveis" desc="{Oi|Olá|E aí} {{nome}} — cada envio é único, ninguém repete mensagem." />
-          <FeatureCard icon={Clock} title="Agendamento" desc="Janela de horário comercial, fuso configurável, retomada automática." />
           <FeatureCard icon={BarChart3} title="Relatórios em tempo real" desc="Entregues, lidas, respondidas — por chip, por campanha, por contato." />
         </div>
       </section>
@@ -210,9 +215,9 @@ function Landing() {
         <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/20 via-card to-card p-12 text-center shadow-glow">
           <BorderBeam size={400} duration={12} />
           <Meteors number={15} />
-          <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl">Pronto pra disparar de verdade?</h2>
+          <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl">Pronto pra rodar tudo num lugar só?</h2>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Crie sua conta, conecte a Evolution e mande a primeira campanha em 5 minutos.
+            Crie sua conta, conecte seu chip e tenha disparo, fluxo e CRM ativos em 5 minutos. 7 dias grátis no plano Pro.
           </p>
           <Button asChild size="lg" className="mt-8 bg-gradient-to-br from-primary to-primary-glow shadow-glow">
             <Link to="/auth">
@@ -225,7 +230,7 @@ function Landing() {
       <footer className="border-t border-border/60 py-10">
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" /> © 2026 Perseidas · Anti-ban Suite
+            <Zap className="h-4 w-4 text-primary" /> © 2026 Perseidas · Disparos + Fluxos + CRM no WhatsApp
           </div>
           <div className="text-xs">*Resultados variam conforme uso. Anti-ban reduz risco, não elimina.</div>
         </div>
