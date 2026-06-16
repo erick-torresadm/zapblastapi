@@ -149,13 +149,25 @@ function AuthPage() {
                 </TabsContent>
 
                 <TabsContent value="signup" className="mt-5">
+                  <div className="mb-4 flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs">
+                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <div>
+                      <div className="font-semibold text-foreground">7 dias grátis no plano Pro</div>
+                      <div className="text-muted-foreground">20 chips, 5.000 mensagens/dia, aquecimento ilimitado. Sem cartão.</div>
+                    </div>
+                  </div>
                   <form onSubmit={signUp} className="space-y-4">
                     <div><Label htmlFor="su-name">Nome</Label><Input id="su-name" name="name" required className="mt-1.5" /></div>
                     <div><Label htmlFor="su-email">E-mail</Label><Input id="su-email" name="email" type="email" required autoComplete="email" className="mt-1.5" /></div>
-                    <div><Label htmlFor="su-pwd">Senha</Label><Input id="su-pwd" name="password" type="password" required minLength={6} autoComplete="new-password" className="mt-1.5" /></div>
-                    <Button type="submit" className="w-full bg-gradient-to-br from-primary to-primary-glow shadow-glow" disabled={loading}>Criar conta</Button>
+                    <div>
+                      <Label htmlFor="su-pwd">Senha</Label>
+                      <Input id="su-pwd" name="password" type="password" required autoComplete="new-password" className="mt-1.5" />
+                      <p className="mt-1 text-[11px] text-muted-foreground">Mínimo 4 caracteres. Use o que for fácil de lembrar.</p>
+                    </div>
+                    <Button type="submit" className="w-full bg-gradient-to-br from-primary to-primary-glow shadow-glow" disabled={loading}>Começar 7 dias grátis</Button>
                   </form>
                 </TabsContent>
+
               </Tabs>
 
               <div className="my-5 flex items-center gap-2"><div className="h-px flex-1 bg-border" /><span className="text-xs text-muted-foreground">OU</span><div className="h-px flex-1 bg-border" /></div>
