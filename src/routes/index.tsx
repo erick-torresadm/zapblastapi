@@ -175,13 +175,9 @@ function Landing() {
         <div className="mx-auto max-w-2xl text-center">
           <div className="text-xs font-semibold uppercase tracking-wider text-primary">Planos</div>
           <h2 className="mt-2 font-display text-4xl font-bold tracking-tight md:text-5xl">Escolha sua escala.</h2>
-          <p className="mt-3 text-muted-foreground">Sem fidelidade. Cancele quando quiser.</p>
+          <p className="mt-3 text-muted-foreground">Sem fidelidade. Anual paga no PIX com 30% off.</p>
         </div>
-        <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-3">
-          <PriceCard name="Starter" price="97" features={["5 chips inclusos", "10k msgs/mês", "Anti-ban basic", "Suporte por email"]} />
-          <PriceCard name="Pro" price="297" highlight features={["20 chips inclusos", "50k msgs/mês", "Anti-ban full + Warmup", "Marketplace + saldo R$50 grátis", "Suporte prioritário"]} />
-          <PriceCard name="Scale" price="697" features={["50 chips inclusos", "Msgs ilimitadas", "Multi-server", "API white-label", "Suporte 24/7"]} />
-        </div>
+        <PricingBlock />
       </section>
 
       {/* FAQ */}
