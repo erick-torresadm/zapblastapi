@@ -6,7 +6,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Server, Smartphone, Users, Send, Inbox,
-  LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow,
+  LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, KeyRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -19,6 +19,7 @@ const operationNav = [
   { to: "/app/lists", label: "Contatos", icon: Users },
   { to: "/app/campaigns", label: "Campanhas", icon: Send },
   { to: "/app/flows", label: "Fluxos", icon: Workflow },
+  { to: "/app/keywords", label: "Palavras-chave", icon: KeyRound },
   { to: "/app/inbox", label: "Respostas", icon: Inbox },
   { to: "/app/anti-ban", label: "Anti-ban", icon: ShieldCheck },
   { to: "/app/servers", label: "Servidores", icon: Server },

@@ -207,3 +207,74 @@ export async function resumeFlowRunsForReply(
     }).eq("id", r.id);
   }
 }
+
+// Verifica triggers por keyword e dispara o fluxo (chamado pelo webhook MESSAGES_UPSERT).
+export async function triggerKeywordFlows(
+  supabaseAdmin: any,
+  args: { user_id: string; instance_id: string | null; phone: string; text: string | null },
+): Promise<void> {
+  const text = (args.text ?? "").trim();
+  if (!text) return;
+  const lower = text.toLowerCase();
+
+  // Carrega triggers ativos do usuário, do chip ou globais (instance_id null)
+  let q = supabaseAdmin.from("flow_keyword_triggers")
+    .select("id, flow_id, instance_id, keywords, match_mode")
+    .eq("user_id", args.user_id).eq("active", true);
+  const { data: triggers } = await q;
+  if (!triggers?.length) return;
+
+  const matched = (triggers as Array<{ id: string; flow_id: string; instance_id: string | null; keywords: string[]; match_mode: string }>).filter((t) => {
+    if (t.instance_id && args.instance_id && t.instance_id !== args.instance_id) return false;
+    const kws = (t.keywords ?? []).map((k) => k.toLowerCase());
+    if (t.match_mode === "exact") return kws.some((k) => k === lower);
+    if (t.match_mode === "starts_with") return kws.some((k) => lower.startsWith(k));
+    return kws.some((k) => lower.includes(k)); // contains
+  });
+  if (!matched.length) return;
+
+  // Resolve chip alvo
+  let targetInstanceId = args.instance_id;
+  if (!targetInstanceId) {
+    const { data: inst } = await supabaseAdmin.from("whatsapp_instances")
+      .select("id").eq("user_id", args.user_id).eq("status", "connected").limit(1).maybeSingle();
+    targetInstanceId = inst?.id ?? null;
+  }
+  if (!targetInstanceId) return;
+
+  // Resolve/cria contato
+  let { data: contact } = await supabaseAdmin.from("contacts")
+    .select("id").eq("user_id", args.user_id).eq("phone", args.phone).maybeSingle();
+  if (!contact) {
+    const { data: created } = await supabaseAdmin.from("contacts").insert({
+      user_id: args.user_id, phone: args.phone, name: null,
+    }).select("id").single();
+    contact = created;
+  }
+  if (!contact?.id) return;
+
+  for (const t of matched) {
+    // Evita disparo duplicado se já há run ativo para esse contato neste flow
+    const { data: existing } = await supabaseAdmin.from("flow_runs")
+      .select("id").eq("flow_id", t.flow_id).eq("contact_phone", args.phone)
+      .in("status", ["pending", "waiting"]).limit(1).maybeSingle();
+    if (existing) continue;
+
+    const runId = await createFlowRun(supabaseAdmin, {
+      flow_id: t.flow_id,
+      user_id: args.user_id,
+      contact_id: contact.id,
+      contact_phone: args.phone,
+      instance_id: targetInstanceId,
+      initial_vars: { trigger_text: text },
+    });
+    if (runId) {
+      // Avança até o primeiro estado que pausa (ask/delay) ou termina
+      for (let i = 0; i < 20; i++) {
+        const { data: r } = await supabaseAdmin.from("flow_runs").select("status").eq("id", runId).maybeSingle();
+        if (!r || r.status !== "pending") break;
+        await advanceFlowRun(supabaseAdmin, runId);
+      }
+    }
+  }
+}
