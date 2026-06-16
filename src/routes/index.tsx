@@ -102,9 +102,9 @@ function Landing() {
       {/* FEATURES BENTO */}
       <section id="features" className="container mx-auto px-4 py-24">
         <div className="mx-auto max-w-2xl text-center">
-          <div className="text-xs font-semibold uppercase tracking-wider text-primary">Recursos</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-primary">Plataforma completa</div>
           <h2 className="mt-2 font-display text-4xl font-bold tracking-tight md:text-5xl">
-            Tudo que disparo sério precisa.
+            Disparo, bot e atendimento. Um painel só.
           </h2>
         </div>
 
@@ -115,7 +115,8 @@ function Landing() {
             <ShieldCheck className="h-7 w-7 text-primary" />
             <h3 className="mt-4 font-display text-2xl font-semibold">Anti-ban Engine</h3>
             <p className="mt-2 text-muted-foreground">
-              Delays randômicos, spintax obrigatório, presença/digitação simulada, circuit breaker e limite diário por chip — tudo automático.
+              Delays randômicos, spintax obrigatório, presença/digitação simulada, rotação inteligente entre chips,
+              janela de horário comercial e limite diário — tudo automático.
             </p>
             <ul className="mt-6 grid gap-2 text-sm">
               {[
@@ -123,6 +124,7 @@ function Landing() {
                 "Health score por chip em tempo real",
                 "Pausa automática se taxa de erro >5%",
                 "Warmup escalonado de 20 → 300+ msgs/dia",
+                "Agendamento com fuso e retomada automática",
               ].map((x) => (
                 <li key={x} className="flex items-start gap-2">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> {x}
@@ -131,11 +133,13 @@ function Landing() {
             </ul>
           </div>
 
+          <FeatureCard icon={Workflow} title="Fluxos por palavra-chave" desc="Cliente manda 'preço', bot dispara fluxo. Envia texto, imagem, áudio e vídeo, com 'digitando…' simulado." />
+          <FeatureCard icon={Inbox} title="CRM multi-atendente" desc="Inbox estilo WhatsApp Web. Transfira conversas, atribua filas, cada atendente vê só o que é dele." />
+          <FeatureCard icon={Bot} title="Bot 24/7" desc="Responde fora do horário, qualifica o lead e entrega pronto pra venda no CRM." />
+          <FeatureCard icon={Users} title="Equipe e permissões" desc="Convide atendentes já cadastrados, controle quem vê o quê. Dono mantém a fila." />
           <FeatureCard icon={Flame} title="Aquecimento bidirecional" desc="Seus chips conversam entre si automaticamente, simulando uso humano antes do disparo." />
           <FeatureCard icon={ShoppingCart} title="Marketplace de chips BR" desc="Compre chips virtuais brasileiros direto no painel, com saldo pré-pago." />
-          <FeatureCard icon={Shuffle} title="Rotação inteligente" desc="Round-robin entre dezenas de chips com balanceamento por health score." />
           <FeatureCard icon={MessageSquare} title="Spintax + variáveis" desc="{Oi|Olá|E aí} {{nome}} — cada envio é único, ninguém repete mensagem." />
-          <FeatureCard icon={Clock} title="Agendamento" desc="Janela de horário comercial, fuso configurável, retomada automática." />
           <FeatureCard icon={BarChart3} title="Relatórios em tempo real" desc="Entregues, lidas, respondidas — por chip, por campanha, por contato." />
         </div>
       </section>
