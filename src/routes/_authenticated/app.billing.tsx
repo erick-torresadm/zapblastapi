@@ -145,8 +145,16 @@ function BillingPage() {
       </div>
 
       <Card>
-        <CardContent className="pt-6 text-sm text-muted-foreground">
-          💳 Os pagamentos via Stripe serão ativados em breve. Por enquanto, todos os usuários têm acesso liberado pra testar.
+        <CardContent className="pt-6 text-sm text-muted-foreground space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">PIX</Badge>
+            <Badge variant="outline">Cartão de crédito</Badge>
+            <span>· em breve via Efí Bank</span>
+          </div>
+          <div>
+            💚 <strong>PIX no anual</strong> tem o melhor preço — pagamento à vista com 30% de desconto.
+            Cartão será aceito em mensal e anual (parcelado). Por enquanto, todos os usuários têm acesso liberado pra testar.
+          </div>
         </CardContent>
       </Card>
     </div>
