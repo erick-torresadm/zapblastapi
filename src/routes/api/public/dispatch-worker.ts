@@ -65,7 +65,7 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
           if (toFetch.length) {
             const { data: insts } = await supabaseAdmin
               .from("whatsapp_instances")
-              .select("id, instance_name, sent_today, daily_limit, last_sent_at, status, evolution_servers(base_url, api_key)")
+              .select("id, instance_name, sent_today, daily_limit, last_sent_at, status, quiet_start_hour, quiet_end_hour, typing_enabled, typing_wpm, hourly_limit, sent_hour, sent_hour_at, evolution_servers(base_url, api_key)")
               .in("id", toFetch);
             for (const i of insts ?? []) {
               const srv = i.evolution_servers as { base_url: string; api_key: string } | null;
@@ -77,9 +77,17 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
                 daily_limit: i.daily_limit,
                 last_sent_at: i.last_sent_at,
                 status: i.status,
+                quiet_start_hour: i.quiet_start_hour,
+                quiet_end_hour: i.quiet_end_hour,
+                typing_enabled: i.typing_enabled,
+                typing_wpm: i.typing_wpm,
+                hourly_limit: i.hourly_limit,
+                sent_hour: i.sent_hour,
+                sent_hour_at: i.sent_hour_at,
               };
             }
           }
+
 
           // Escolhe chip: connected + sent<limit + delay passado, ordenado pelo last_sent_at mais antigo
           const now = Date.now();
