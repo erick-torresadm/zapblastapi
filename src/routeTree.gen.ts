@@ -21,6 +21,7 @@ import { Route as AuthenticatedAppWalletRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAppServersRouteImport } from './routes/_authenticated/app.servers'
 import { Route as AuthenticatedAppMarketplaceRouteImport } from './routes/_authenticated/app.marketplace'
 import { Route as AuthenticatedAppListsRouteImport } from './routes/_authenticated/app.lists'
+import { Route as AuthenticatedAppKeywordsRouteImport } from './routes/_authenticated/app.keywords'
 import { Route as AuthenticatedAppInstancesRouteImport } from './routes/_authenticated/app.instances'
 import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
 import { Route as AuthenticatedAppFlowsRouteImport } from './routes/_authenticated/app.flows'
@@ -95,6 +96,12 @@ const AuthenticatedAppListsRoute = AuthenticatedAppListsRouteImport.update({
   path: '/app/lists',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppKeywordsRoute =
+  AuthenticatedAppKeywordsRouteImport.update({
+    id: '/app/keywords',
+    path: '/app/keywords',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppInstancesRoute =
   AuthenticatedAppInstancesRouteImport.update({
     id: '/app/instances',
@@ -176,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/app/flows': typeof AuthenticatedAppFlowsRouteWithChildren
   '/app/inbox': typeof AuthenticatedAppInboxRoute
   '/app/instances': typeof AuthenticatedAppInstancesRoute
+  '/app/keywords': typeof AuthenticatedAppKeywordsRoute
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
   '/app/marketplace': typeof AuthenticatedAppMarketplaceRoute
   '/app/servers': typeof AuthenticatedAppServersRoute
@@ -201,6 +209,7 @@ export interface FileRoutesByTo {
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
   '/app/instances': typeof AuthenticatedAppInstancesRoute
+  '/app/keywords': typeof AuthenticatedAppKeywordsRoute
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
   '/app/marketplace': typeof AuthenticatedAppMarketplaceRoute
   '/app/servers': typeof AuthenticatedAppServersRoute
@@ -229,6 +238,7 @@ export interface FileRoutesById {
   '/_authenticated/app/flows': typeof AuthenticatedAppFlowsRouteWithChildren
   '/_authenticated/app/inbox': typeof AuthenticatedAppInboxRoute
   '/_authenticated/app/instances': typeof AuthenticatedAppInstancesRoute
+  '/_authenticated/app/keywords': typeof AuthenticatedAppKeywordsRoute
   '/_authenticated/app/lists': typeof AuthenticatedAppListsRouteWithChildren
   '/_authenticated/app/marketplace': typeof AuthenticatedAppMarketplaceRoute
   '/_authenticated/app/servers': typeof AuthenticatedAppServersRoute
@@ -257,6 +267,7 @@ export interface FileRouteTypes {
     | '/app/flows'
     | '/app/inbox'
     | '/app/instances'
+    | '/app/keywords'
     | '/app/lists'
     | '/app/marketplace'
     | '/app/servers'
@@ -282,6 +293,7 @@ export interface FileRouteTypes {
     | '/app/billing'
     | '/app/inbox'
     | '/app/instances'
+    | '/app/keywords'
     | '/app/lists'
     | '/app/marketplace'
     | '/app/servers'
@@ -309,6 +321,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/flows'
     | '/_authenticated/app/inbox'
     | '/_authenticated/app/instances'
+    | '/_authenticated/app/keywords'
     | '/_authenticated/app/lists'
     | '/_authenticated/app/marketplace'
     | '/_authenticated/app/servers'
@@ -422,6 +435,13 @@ declare module '@tanstack/react-router' {
       path: '/app/lists'
       fullPath: '/app/lists'
       preLoaderRoute: typeof AuthenticatedAppListsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/keywords': {
+      id: '/_authenticated/app/keywords'
+      path: '/app/keywords'
+      fullPath: '/app/keywords'
+      preLoaderRoute: typeof AuthenticatedAppKeywordsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/instances': {
@@ -552,6 +572,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppFlowsRoute: typeof AuthenticatedAppFlowsRouteWithChildren
   AuthenticatedAppInboxRoute: typeof AuthenticatedAppInboxRoute
   AuthenticatedAppInstancesRoute: typeof AuthenticatedAppInstancesRoute
+  AuthenticatedAppKeywordsRoute: typeof AuthenticatedAppKeywordsRoute
   AuthenticatedAppListsRoute: typeof AuthenticatedAppListsRouteWithChildren
   AuthenticatedAppMarketplaceRoute: typeof AuthenticatedAppMarketplaceRoute
   AuthenticatedAppServersRoute: typeof AuthenticatedAppServersRoute
@@ -570,6 +591,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppFlowsRoute: AuthenticatedAppFlowsRouteWithChildren,
   AuthenticatedAppInboxRoute: AuthenticatedAppInboxRoute,
   AuthenticatedAppInstancesRoute: AuthenticatedAppInstancesRoute,
+  AuthenticatedAppKeywordsRoute: AuthenticatedAppKeywordsRoute,
   AuthenticatedAppListsRoute: AuthenticatedAppListsRouteWithChildren,
   AuthenticatedAppMarketplaceRoute: AuthenticatedAppMarketplaceRoute,
   AuthenticatedAppServersRoute: AuthenticatedAppServersRoute,
