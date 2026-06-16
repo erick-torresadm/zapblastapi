@@ -163,8 +163,10 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
         }
       }
       if (!base64) {
-        const msg = lastError
-          ?? "Evolution não devolveu QR (instância pode estar em loop de reconexão). Clique em \"Resetar conexão\".";
+        const looksLikeServerBug = qr && typeof qr === "object" && "count" in qr && Object.keys(qr).length <= 2;
+        const msg = looksLikeServerBug
+          ? "Evolution não está gerando QR. No docker do servidor, ajuste: QRCODE_LIMIT=30, CONFIG_SESSION_PHONE_CLIENT=Chrome, CONFIG_SESSION_PHONE_VERSION=2.3000.1030831524 — depois reinicie o container."
+          : (lastError ?? "Evolution não devolveu QR. Apague esse chip e crie de novo.");
         await supabase.from("whatsapp_instances").update({ last_qr_error: msg }).eq("id", inst.id);
         lastError = msg;
       }
