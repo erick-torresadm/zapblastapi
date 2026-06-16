@@ -52,7 +52,7 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
 
 
         let sent = 0, failed = 0, skipped = 0;
-        const instanceCache: Record<string, { server: { base_url: string; api_key: string }; instance_name: string; sent_today: number; daily_limit: number; last_sent_at: string | null; status: string }> = {};
+        const instanceCache: Record<string, { server: { base_url: string; api_key: string }; instance_name: string; sent_today: number; daily_limit: number; last_sent_at: string | null; status: string; quiet_start_hour: number; quiet_end_hour: number; typing_enabled: boolean; typing_wpm: number; hourly_limit: number; sent_hour: number; sent_hour_at: string | null }> = {};
 
         for (const msg of pending ?? []) {
           const camp = msg.campaigns as { min_delay_s: number; max_delay_s: number; instance_ids: string[]; media_url: string | null; media_type: string | null; media_filename: string | null; flow_id: string | null };
