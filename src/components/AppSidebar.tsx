@@ -5,9 +5,10 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
-  LayoutDashboard, Server, Smartphone, Users, Send, Inbox,
+  LayoutDashboard, Server, Smartphone, Users, Send, Inbox, UserCog,
   LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, KeyRound,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Logo } from "@/components/Logo";
@@ -21,6 +22,8 @@ const operationNav = [
   { to: "/app/flows", label: "Fluxos", icon: Workflow },
   { to: "/app/keywords", label: "Palavras-chave", icon: KeyRound },
   { to: "/app/inbox", label: "Conversas (CRM)", icon: Inbox },
+  { to: "/app/team", label: "Equipe", icon: UserCog },
+
   { to: "/app/anti-ban", label: "Anti-ban", icon: ShieldCheck },
   { to: "/app/servers", label: "Servidores", icon: Server },
 ];
