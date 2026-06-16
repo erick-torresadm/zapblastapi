@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { Logo } from "@/components/Logo";
 
 const operationNav = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -95,15 +96,9 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r border-sidebar-border/60">
       <SidebarHeader className="border-b border-sidebar-border/60">
-        <Link to="/app" className="flex items-center gap-2.5 px-2 py-3">
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow shadow-[0_0_20px_-2px_var(--color-primary)]">
-            <Zap className="h-4.5 w-4.5 fill-white text-white" />
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="font-display text-base font-bold tracking-tight">ZapBlast</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Anti-ban Suite</span>
-          </div>
-        </Link>
+        <div className="px-2 py-3">
+          <Logo to="/app" size="md" showSubtitle />
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="px-1">

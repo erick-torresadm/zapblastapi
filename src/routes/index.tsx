@@ -8,13 +8,14 @@ import { Meteors } from "@/components/magicui/meteors";
 import { GridPattern } from "@/components/magicui/grid-pattern";
 import { BorderBeam } from "@/components/magicui/border-beam";
 import { NumberTicker } from "@/components/magicui/number-ticker";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ZapBlast — Dispare no WhatsApp sem ser banido" },
+      { title: "Mirazap — Dispare no WhatsApp sem ser banido" },
       { name: "description", content: "Plataforma anti-ban com Evolution API, aquecimento automático de chips e marketplace de números BR. Spintax, rotação inteligente e relatórios em tempo real." },
-      { property: "og:title", content: "ZapBlast — Dispare no WhatsApp sem ser banido" },
+      { property: "og:title", content: "Mirazap — Dispare no WhatsApp sem ser banido" },
       { property: "og:description", content: "Anti-ban Suite com Evolution API, aquecimento e marketplace de chips." },
     ],
   }),
@@ -27,12 +28,8 @@ function Landing() {
       {/* HEADER */}
       <header className="sticky top-0 z-30 border-b border-border/40 bg-background/70 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow shadow-[0_0_20px_-2px_var(--color-primary)]">
-              <Zap className="h-5 w-5 fill-white text-white" />
-            </div>
-            <span className="font-display text-lg font-bold tracking-tight">ZapBlast</span>
-          </Link>
+          <Logo to="/" size="md" />
+
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
             <a href="#features" className="transition-colors hover:text-foreground">Recursos</a>
             <a href="#anti-ban" className="transition-colors hover:text-foreground">Anti-ban</a>
@@ -223,7 +220,7 @@ function Landing() {
       <footer className="border-t border-border/60 py-10">
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" /> © 2026 ZapBlast · Anti-ban Suite
+            <Zap className="h-4 w-4 text-primary" /> © 2026 Mirazap · Anti-ban Suite
           </div>
           <div className="text-xs">*Resultados variam conforme uso. Anti-ban reduz risco, não elimina.</div>
         </div>

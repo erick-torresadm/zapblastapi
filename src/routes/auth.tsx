@@ -9,9 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Zap } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar — ZapBlast" }, { name: "description", content: "Acesse sua conta ZapBlast" }] }),
+  head: () => ({ meta: [{ title: "Entrar — Mirazap" }, { name: "description", content: "Acesse sua conta Mirazap" }] }),
   component: AuthPage,
 });
 
@@ -74,12 +75,7 @@ function AuthPage() {
             "radial-gradient(circle at 25% 30%, oklch(0.62 0.21 275 / 0.5), transparent 40%), radial-gradient(circle at 75% 70%, oklch(0.72 0.18 300 / 0.4), transparent 40%)",
         }} />
         <div className="relative flex h-full flex-col justify-between p-12">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow shadow-glow">
-              <Zap className="h-5 w-5 fill-white text-white" />
-            </div>
-            <span className="font-display text-xl font-bold">ZapBlast</span>
-          </Link>
+          <Logo to="/" size="lg" />
           <div>
             <h1 className="font-display text-4xl font-bold leading-tight tracking-tight">
               Dispare no WhatsApp <br />
@@ -97,19 +93,16 @@ function AuthPage() {
               ))}
             </div>
           </div>
-          <div className="text-xs text-muted-foreground">© 2026 ZapBlast · Anti-ban Suite</div>
+          <div className="text-xs text-muted-foreground">© 2026 Mirazap · Anti-ban Suite</div>
         </div>
       </div>
 
       {/* Form */}
       <div className="flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
-          <Link to="/" className="mb-6 flex items-center justify-center gap-2 lg:hidden">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow">
-              <Zap className="h-5 w-5 fill-white text-white" />
-            </div>
-            <span className="font-display text-xl font-bold">ZapBlast</span>
-          </Link>
+          <div className="mb-6 flex justify-center lg:hidden">
+            <Logo to="/" size="lg" />
+          </div>
 
           <Card className="border-border/60 bg-card/60 backdrop-blur">
             <CardHeader>
