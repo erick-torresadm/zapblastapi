@@ -200,9 +200,9 @@ function KeywordsPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar palavra-chave" : "Nova palavra-chave"}</DialogTitle>
+            <DialogTitle>{editing ? "Editar gatilho do Bot" : "Novo gatilho do Bot"}</DialogTitle>
             <DialogDescription>
-              Quando o contato enviar uma mensagem que combine, o fluxo é disparado para ele.
+              Quando a mensagem combinar com uma das palavras, o fluxo escolhido será disparado.
             </DialogDescription>
           </DialogHeader>
 
