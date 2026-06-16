@@ -61,6 +61,8 @@ export async function setWebhook(server: EvolutionServer, instanceName: string, 
       },
     }),
   });
+}
+
 
 export async function connectInstance(server: EvolutionServer, instanceName: string) {
   return evoFetch(server, `/instance/connect/${encodeURIComponent(instanceName)}`, { method: "GET" });
