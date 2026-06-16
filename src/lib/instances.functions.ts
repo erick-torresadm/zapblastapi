@@ -91,9 +91,10 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { inst, srv } = await getInstanceWithServer(data.instance_id, supabase);
-    const { connectInstance, instanceState, restartInstance, logoutInstance } = await import("@/lib/evolution.server");
+    const { connectInstance, instanceState, restartInstance, logoutInstance, createInstance } = await import("@/lib/evolution.server");
     const { normalizeQr, extractEvolutionState, describePayload } = await import("@/lib/evolution-qr.server");
     const evoServer = { base_url: srv.base_url, api_key: srv.api_key };
+    const webhookUrl = buildWebhookUrl(srv.webhook_token);
 
     let qr: Record<string, unknown> | null = null;
     let state: Record<string, unknown> | null = null;
@@ -116,6 +117,20 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
     }
 
     await tryConnect();
+
+    // Instância sumiu na Evolution → recria automaticamente e tenta de novo.
+    if (lastError && /does not exist|404/i.test(lastError)) {
+      console.warn(`[evolution] instância ${inst.instance_name} não existe, recriando…`);
+      try {
+        const created = await createInstance(evoServer, inst.instance_name, webhookUrl);
+        qr = created;
+        lastError = null;
+      } catch (e) {
+        lastError = `Falha ao recriar instância: ${(e as Error).message}`;
+        console.warn(`[evolution] ${lastError}`);
+      }
+    }
+
     try {
       state = await instanceState(evoServer, inst.instance_name);
     } catch (e) {
