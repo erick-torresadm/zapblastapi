@@ -34,7 +34,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           };
           const newStatus = statusMap[state];
           if (newStatus && instanceId) {
-            const patch: Record<string, unknown> = { status: newStatus };
+            const patch: { status: typeof newStatus; last_qr_base64?: null; last_qr_error?: null } = { status: newStatus };
             if (newStatus === "connected") { patch.last_qr_base64 = null; patch.last_qr_error = null; }
             await supabaseAdmin.from("whatsapp_instances").update(patch).eq("id", instanceId);
           }
@@ -42,8 +42,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
 
         if (ev.includes("qrcode.updated") || ev === "qrcode_updated") {
           if (instanceId) {
-            const { normalizeQr } = await import("@/lib/instances.functions");
-            // Aceita tanto payload.data quanto payload.qrcode.
+            const { normalizeQr } = await import("@/lib/evolution-qr.server");
             const qrPayload = (payload as { qrcode?: unknown }).qrcode ?? data;
             const base64 = await normalizeQr(qrPayload);
             if (base64) {
