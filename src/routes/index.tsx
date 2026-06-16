@@ -215,9 +215,9 @@ function Landing() {
         <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/20 via-card to-card p-12 text-center shadow-glow">
           <BorderBeam size={400} duration={12} />
           <Meteors number={15} />
-          <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl">Pronto pra disparar de verdade?</h2>
+          <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl">Pronto pra rodar tudo num lugar só?</h2>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Crie sua conta, conecte a Evolution e mande a primeira campanha em 5 minutos.
+            Crie sua conta, conecte seu chip e tenha disparo, fluxo e CRM ativos em 5 minutos. 7 dias grátis no plano Pro.
           </p>
           <Button asChild size="lg" className="mt-8 bg-gradient-to-br from-primary to-primary-glow shadow-glow">
             <Link to="/auth">
