@@ -34,7 +34,14 @@ export async function createInstance(server: EvolutionServer, instanceName: stri
       ...(webhookUrl ? {
         webhook: {
           url: webhookUrl,
-          events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "MESSAGES_UPDATE"],
+          byEvents: false,
+          base64: true,
+          events: [
+            "QRCODE_UPDATED",
+            "CONNECTION_UPDATE",
+            "MESSAGES_UPSERT",
+            "MESSAGES_UPDATE",
+          ],
         },
       } : {}),
     }),

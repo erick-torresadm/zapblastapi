@@ -25,15 +25,35 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
         }
 
         const data = (payload.data ?? payload) as Record<string, unknown>;
+        const ev = event.toLowerCase();
 
-        if (event.includes("connection.update") || event === "CONNECTION_UPDATE") {
+        if (ev.includes("connection.update") || ev === "connection_update") {
           const state = String((data as { state?: string }).state ?? "");
           const statusMap: Record<string, "connected" | "disconnected" | "connecting"> = {
             open: "connected", close: "disconnected", connecting: "connecting",
           };
           const newStatus = statusMap[state];
           if (newStatus && instanceId) {
-            await supabaseAdmin.from("whatsapp_instances").update({ status: newStatus }).eq("id", instanceId);
+            const patch: Record<string, unknown> = { status: newStatus };
+            if (newStatus === "connected") { patch.last_qr_base64 = null; patch.last_qr_error = null; }
+            await supabaseAdmin.from("whatsapp_instances").update(patch).eq("id", instanceId);
+          }
+        }
+
+        if (ev.includes("qrcode.updated") || ev === "qrcode_updated") {
+          if (instanceId) {
+            const { normalizeQr } = await import("@/lib/instances.functions");
+            // Aceita tanto payload.data quanto payload.qrcode.
+            const qrPayload = (payload as { qrcode?: unknown }).qrcode ?? data;
+            const base64 = await normalizeQr(qrPayload);
+            if (base64) {
+              await supabaseAdmin.from("whatsapp_instances").update({
+                last_qr_base64: base64,
+                last_qr_at: new Date().toISOString(),
+                last_qr_error: null,
+                status: "connecting",
+              }).eq("id", instanceId);
+            }
           }
         }
 
