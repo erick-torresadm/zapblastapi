@@ -189,6 +189,7 @@ export type Database = {
           id: string
           instance_id: string | null
           read_at: string | null
+          sent_by_agent_id: string | null
           status: string
           text: string | null
           user_id: string
@@ -201,6 +202,7 @@ export type Database = {
           id?: string
           instance_id?: string | null
           read_at?: string | null
+          sent_by_agent_id?: string | null
           status?: string
           text?: string | null
           user_id: string
@@ -213,6 +215,7 @@ export type Database = {
           id?: string
           instance_id?: string | null
           read_at?: string | null
+          sent_by_agent_id?: string | null
           status?: string
           text?: string | null
           user_id?: string
@@ -405,6 +408,127 @@ export type Database = {
             columns: ["list_id"]
             isOneToOne: false
             referencedRelation: "contact_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_agents: {
+        Row: {
+          active: boolean
+          agent_user_id: string
+          created_at: string
+          display_name: string | null
+          id: string
+          owner_user_id: string
+          role: string
+        }
+        Insert: {
+          active?: boolean
+          agent_user_id: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          owner_user_id: string
+          role?: string
+        }
+        Update: {
+          active?: boolean
+          agent_user_id?: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          owner_user_id?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      crm_conversations: {
+        Row: {
+          assigned_agent_id: string | null
+          contact_name: string | null
+          contact_phone: string
+          created_at: string
+          id: string
+          instance_id: string | null
+          last_message_at: string
+          last_message_direction: string | null
+          last_message_text: string | null
+          owner_user_id: string
+          status: string
+          unread_count: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_agent_id?: string | null
+          contact_name?: string | null
+          contact_phone: string
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          last_message_at?: string
+          last_message_direction?: string | null
+          last_message_text?: string | null
+          owner_user_id: string
+          status?: string
+          unread_count?: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_agent_id?: string | null
+          contact_name?: string | null
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          last_message_at?: string
+          last_message_direction?: string | null
+          last_message_text?: string | null
+          owner_user_id?: string
+          status?: string
+          unread_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_conversations_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_notes: {
+        Row: {
+          author_user_id: string
+          conversation_id: string
+          created_at: string
+          id: string
+          owner_user_id: string
+          text: string
+        }
+        Insert: {
+          author_user_id: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          owner_user_id: string
+          text: string
+        }
+        Update: {
+          author_user_id?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          owner_user_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_notes_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "crm_conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -1212,6 +1336,8 @@ export type Database = {
         }
         Returns: number
       }
+      crm_is_workspace_admin: { Args: { _owner: string }; Returns: boolean }
+      crm_is_workspace_member: { Args: { _owner: string }; Returns: boolean }
       debit_wallet: {
         Args: {
           _amount_cents: number
