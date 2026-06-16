@@ -26,12 +26,14 @@ export const listAvailableServersFn = createServerFn({ method: "GET" })
   });
 
 // Monta a URL do webhook que vamos passar para a Evolution API.
+// Prioriza env vars, mas tem fallback para a URL estável do projeto (sempre disponível
+// no Cloudflare Workers do TanStack Start), pra não depender de configuração manual.
+const STABLE_PROJECT_URL = "https://project--54478801-c0b5-4fb0-9ac8-01416bfad841.lovable.app";
 function buildWebhookUrl(webhook_token: string) {
   const base = process.env.PUBLIC_APP_URL
     ?? process.env.APP_URL
     ?? process.env.LOVABLE_PUBLISHED_URL
-    ?? "";
-  if (!base) return undefined;
+    ?? STABLE_PROJECT_URL;
   return `${base.replace(/\/$/, "")}/api/public/evolution-webhook/${webhook_token}`;
 }
 
@@ -91,10 +93,16 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { inst, srv } = await getInstanceWithServer(data.instance_id, supabase);
-    const { connectInstance, instanceState, restartInstance, logoutInstance, createInstance } = await import("@/lib/evolution.server");
+    const { connectInstance, instanceState, restartInstance, logoutInstance, createInstance, setWebhook } = await import("@/lib/evolution.server");
     const { normalizeQr, extractEvolutionState, describePayload } = await import("@/lib/evolution-qr.server");
     const evoServer = { base_url: srv.base_url, api_key: srv.api_key };
     const webhookUrl = buildWebhookUrl(srv.webhook_token);
+
+    // Garante que o webhook está aplicado (instâncias antigas podem ter sido criadas sem ele).
+    if (webhookUrl) {
+      try { await setWebhook(evoServer, inst.instance_name, webhookUrl); }
+      catch (e) { console.warn(`[evolution] setWebhook falhou: ${(e as Error).message}`); }
+    }
 
     let qr: Record<string, unknown> | null = null;
     let state: Record<string, unknown> | null = null;

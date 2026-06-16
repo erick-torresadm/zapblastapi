@@ -48,6 +48,22 @@ export async function createInstance(server: EvolutionServer, instanceName: stri
   });
 }
 
+export async function setWebhook(server: EvolutionServer, instanceName: string, webhookUrl: string) {
+  return evoFetch(server, `/webhook/set/${encodeURIComponent(instanceName)}`, {
+    method: "POST",
+    body: JSON.stringify({
+      webhook: {
+        enabled: true,
+        url: webhookUrl,
+        byEvents: false,
+        base64: true,
+        events: ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT", "MESSAGES_UPDATE"],
+      },
+    }),
+  });
+}
+
+
 export async function connectInstance(server: EvolutionServer, instanceName: string) {
   return evoFetch(server, `/instance/connect/${encodeURIComponent(instanceName)}`, { method: "GET" });
 }
