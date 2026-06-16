@@ -8,13 +8,14 @@ import { Meteors } from "@/components/magicui/meteors";
 import { GridPattern } from "@/components/magicui/grid-pattern";
 import { BorderBeam } from "@/components/magicui/border-beam";
 import { NumberTicker } from "@/components/magicui/number-ticker";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ZapBlast — Dispare no WhatsApp sem ser banido" },
+      { title: "Mirazap — Dispare no WhatsApp sem ser banido" },
       { name: "description", content: "Plataforma anti-ban com Evolution API, aquecimento automático de chips e marketplace de números BR. Spintax, rotação inteligente e relatórios em tempo real." },
-      { property: "og:title", content: "ZapBlast — Dispare no WhatsApp sem ser banido" },
+      { property: "og:title", content: "Mirazap — Dispare no WhatsApp sem ser banido" },
       { property: "og:description", content: "Anti-ban Suite com Evolution API, aquecimento e marketplace de chips." },
     ],
   }),
