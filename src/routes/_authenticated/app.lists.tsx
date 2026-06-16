@@ -74,6 +74,16 @@ function ListsPage() {
     setPreview({ name: listName, contacts });
   }
 
+  function downloadTemplate() {
+    const csv = "phone,nome,empresa\n5511999999999,João Silva,Acme\n5511988888888,Maria Souza,Beta\n";
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "modelo-contatos.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
