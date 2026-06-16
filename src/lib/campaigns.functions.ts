@@ -24,6 +24,25 @@ export const startCampaignFn = createServerFn({ method: "POST" })
 
     // Se ainda em rascunho, enfileira mensagens
     if (campaign.status === "draft") {
+      if (!campaign.message_template && !campaign.flow_id) {
+        throw new Error("Defina uma mensagem ou selecione um fluxo");
+      }
+
+      // Resolve template: mensagem própria OU primeira mensagem do fluxo
+      let template = campaign.message_template as string | null;
+      if (!template && campaign.flow_id) {
+        const { data: flow } = await supabase.from("flows").select("current_version_id, draft_nodes").eq("id", campaign.flow_id).maybeSingle();
+        let nodes: Array<{ type?: string; data?: { message?: string } }> = [];
+        if (flow?.current_version_id) {
+          const { data: ver } = await supabase.from("flow_versions").select("nodes").eq("id", flow.current_version_id).maybeSingle();
+          nodes = (ver?.nodes as typeof nodes) ?? [];
+        }
+        if (!nodes.length) nodes = (flow?.draft_nodes as typeof nodes) ?? [];
+        const first = nodes.find((n) => n?.data?.message);
+        template = first?.data?.message ?? null;
+        if (!template) throw new Error("O fluxo selecionado não tem mensagem inicial");
+      }
+
       const { data: contacts } = await supabase.from("contacts")
         .select("id, phone, variables")
         .eq("list_id", campaign.list_id)
@@ -39,9 +58,10 @@ export const startCampaignFn = createServerFn({ method: "POST" })
         campaign_id: campaign.id,
         contact_id: c.id,
         phone: c.phone,
-        rendered_message: renderSpintax(campaign.message_template, (c.variables ?? {}) as Record<string, string>),
+        rendered_message: renderSpintax(template!, (c.variables ?? {}) as Record<string, string>),
         status: "pending" as const,
       }));
+
       if (!rows.length) throw new Error("Todos contatos estão na lista de bloqueio");
 
       // Insere em chunks
