@@ -86,7 +86,7 @@ function Landing() {
               { v: 99.4, suf: "%", l: "Uptime entrega" },
               { v: 12, suf: "M+", l: "Msgs enviadas" },
               { v: 87, suf: "%", l: "Menos bans" },
-              { v: 4200, suf: "+", l: "Chips ativos" },
+              { v: 4200, suf: "+", l: "Fluxos rodando" },
             ].map((m) => (
               <div key={m.l} className="bg-card/60 p-6 backdrop-blur">
                 <div className="font-display text-3xl font-bold text-foreground">
