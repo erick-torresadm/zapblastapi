@@ -104,6 +104,8 @@ function StepNode({ data, selected, type }: NodeProps) {
 
   const preview =
     stepType === "message"        ? (d.message || "Clique para editar a mensagem…")
+  : stepType === "media"          ? (d.mediaUrl ? `${(d.mediatype ?? "image").toUpperCase()}: ${d.mediaUrl.slice(0, 40)}…` : "Configure a mídia…")
+  : stepType === "typing"         ? `${d.presence === "recording" ? "Gravando" : "Digitando"} por ${d.seconds ?? 3}s`
   : stepType === "ask"            ? (d.message ? `Pergunta: ${d.message}` : "Configure a pergunta…")
   : stepType === "ai"             ? (d.systemPrompt || "Configure o prompt da IA…")
   : stepType === "transfer_human" ? "Encaminha a conversa para um humano"
@@ -112,6 +114,7 @@ function StepNode({ data, selected, type }: NodeProps) {
   : stepType === "tag"            ? `Adicionar tag: ${d.tag || "—"}`
   : stepType === "webhook"        ? (d.webhookUrl || "Configure a URL")
   : "Ponto de entrada — o fluxo começa aqui";
+
 
   return (
     <div
