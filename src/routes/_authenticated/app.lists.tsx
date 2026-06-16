@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Eye } from "lucide-react";
+import { Plus, Trash2, Eye, Download } from "lucide-react";
 import { toast } from "sonner";
 import { normalizePhone, parseCSV } from "@/lib/phone";
 
