@@ -1011,6 +1011,9 @@ export type Database = {
           health_score: number
           id: string
           instance_name: string
+          last_qr_at: string | null
+          last_qr_base64: string | null
+          last_qr_error: string | null
           last_reset_date: string
           last_sent_at: string | null
           phone_number: string | null
@@ -1034,6 +1037,9 @@ export type Database = {
           health_score?: number
           id?: string
           instance_name: string
+          last_qr_at?: string | null
+          last_qr_base64?: string | null
+          last_qr_error?: string | null
           last_reset_date?: string
           last_sent_at?: string | null
           phone_number?: string | null
@@ -1057,6 +1063,9 @@ export type Database = {
           health_score?: number
           id?: string
           instance_name?: string
+          last_qr_at?: string | null
+          last_qr_base64?: string | null
+          last_qr_error?: string | null
           last_reset_date?: string
           last_sent_at?: string | null
           phone_number?: string | null
