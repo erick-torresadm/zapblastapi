@@ -82,7 +82,7 @@ function NewCampaign() {
         user_id: user.id,
         name: form.name,
         list_id: form.list_id,
-        message_template: form.message_template,
+        message_template: form.message_template || null,
         min_delay_s: form.min_delay_s,
         max_delay_s: form.max_delay_s,
         instance_ids: form.instance_ids,
