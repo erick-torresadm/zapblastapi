@@ -50,19 +50,20 @@ function Inbox() {
 
   const { data: convs = [] } = useQuery<Conv[]>({
     queryKey: ["chat-convs"],
-    queryFn: () => convFn() as Promise<Conv[]>,
+    queryFn: () => convFn() as unknown as Promise<Conv[]>,
     refetchInterval: 5000,
   });
   const { data: instances = [] } = useQuery<Array<{ id: string; instance_name: string; status: string }>>({
     queryKey: ["chat-instances"],
-    queryFn: () => instFn() as Promise<Array<{ id: string; instance_name: string; status: string }>>,
+    queryFn: () => instFn() as unknown as Promise<Array<{ id: string; instance_name: string; status: string }>>,
   });
   const { data: messages = [] } = useQuery<Msg[]>({
     queryKey: ["chat-msgs", selected],
-    queryFn: () => selected ? (msgFn({ data: { phone: selected } }) as Promise<Msg[]>) : Promise.resolve([]),
+    queryFn: () => selected ? (msgFn({ data: { phone: selected } }) as unknown as Promise<Msg[]>) : Promise.resolve([]),
     enabled: !!selected,
     refetchInterval: selected ? 3000 : false,
   });
+
 
   useEffect(() => {
     if (instances.length && !instanceId) {
