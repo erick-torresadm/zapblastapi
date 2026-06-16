@@ -182,6 +182,8 @@ export type Database = {
       }
       chat_messages: {
         Row: {
+          chat_type: string
+          contact_jid: string | null
           contact_phone: string
           created_at: string
           direction: string
@@ -195,6 +197,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          chat_type?: string
+          contact_jid?: string | null
           contact_phone: string
           created_at?: string
           direction: string
@@ -208,6 +212,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          chat_type?: string
+          contact_jid?: string | null
           contact_phone?: string
           created_at?: string
           direction?: string
@@ -445,6 +451,8 @@ export type Database = {
       crm_conversations: {
         Row: {
           assigned_agent_id: string | null
+          chat_type: string
+          contact_jid: string | null
           contact_name: string | null
           contact_phone: string
           created_at: string
@@ -460,6 +468,8 @@ export type Database = {
         }
         Insert: {
           assigned_agent_id?: string | null
+          chat_type?: string
+          contact_jid?: string | null
           contact_name?: string | null
           contact_phone: string
           created_at?: string
@@ -475,6 +485,8 @@ export type Database = {
         }
         Update: {
           assigned_agent_id?: string | null
+          chat_type?: string
+          contact_jid?: string | null
           contact_name?: string | null
           contact_phone?: string
           created_at?: string
