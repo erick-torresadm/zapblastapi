@@ -109,8 +109,8 @@ export async function checkWhatsappNumbers(
   const res = await evoFetch(server, `/chat/whatsappNumbers/${encodeURIComponent(instanceName)}`, {
     method: "POST",
     body: JSON.stringify({ numbers }),
-  });
-  // Evolution retorna um array
+  }) as unknown;
   return (Array.isArray(res) ? res : []) as Array<{ jid: string; exists: boolean; number: string }>;
+
 }
 
