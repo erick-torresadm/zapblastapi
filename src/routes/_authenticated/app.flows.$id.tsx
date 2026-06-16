@@ -28,8 +28,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Badge } from "@/components/ui/badge";
 import {
   Play, MessageSquare, Clock, GitBranch, Tag, Webhook, Trash2, Save, Download, Plus,
-  ArrowLeft, Rocket, CheckCircle2, Loader2,
+  ArrowLeft, Rocket, CheckCircle2, Loader2, Image as ImageIcon, Keyboard,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
