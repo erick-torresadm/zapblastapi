@@ -90,6 +90,9 @@ export const upsertKeywordTriggerFn = createServerFn({ method: "POST" })
         keywords,
         match_mode: data.match_mode,
         active: data.active,
+        allow_from_me: data.allow_from_me,
+        delay_seconds: data.delay_seconds,
+        cooldown_seconds: data.cooldown_seconds,
       }).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
@@ -102,6 +105,9 @@ export const upsertKeywordTriggerFn = createServerFn({ method: "POST" })
       keywords,
       match_mode: data.match_mode,
       active: data.active,
+      allow_from_me: data.allow_from_me,
+      delay_seconds: data.delay_seconds,
+      cooldown_seconds: data.cooldown_seconds,
       created_by_admin: admin && targetUserId !== userId,
     }).select("id").single() as any);
     if (error) throw new Error(error.message);
