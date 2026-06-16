@@ -483,6 +483,71 @@ function FlowsInner() {
                     </div>
                   )}
 
+                  {t === "message" && (
+                    <div>
+                      <Label htmlFor="message">Mensagem</Label>
+                      <Textarea
+                        id="message" rows={6}
+                        value={d.message ?? ""}
+                        onChange={(e) => updateSelected({ message: e.target.value })}
+                        placeholder="Olá {{nome}}, tudo bem?"
+                      />
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        Use <code className="rounded bg-muted px-1">{"{{nome}}"}</code>, <code className="rounded bg-muted px-1">{"{{telefone}}"}</code> ou outras variáveis. O "digitando…" aparece automaticamente.
+                      </p>
+                    </div>
+                  )}
+
+                  {t === "media" && (
+                    <>
+                      <div>
+                        <Label>Tipo de mídia</Label>
+                        <div className="mt-1 grid grid-cols-4 gap-1">
+                          {(["image","video","audio","document"] as const).map((mt) => (
+                            <Button key={mt} type="button" size="sm"
+                              variant={(d.mediatype ?? "image") === mt ? "default" : "outline"}
+                              onClick={() => updateSelected({ mediatype: mt })}
+                              className="capitalize">{mt}</Button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="media-url">URL ou base64 da mídia</Label>
+                        <Input id="media-url" value={d.mediaUrl ?? ""} onChange={(e) => updateSelected({ mediaUrl: e.target.value })} placeholder="https://… ou data:image/png;base64,…" />
+                        <p className="mt-1 text-[11px] text-muted-foreground">URL pública (faça upload no menu Campanhas → Mídia) ou data URI.</p>
+                      </div>
+                      {(d.mediatype === "document") && (
+                        <div>
+                          <Label htmlFor="filename">Nome do arquivo</Label>
+                          <Input id="filename" value={d.fileName ?? ""} onChange={(e) => updateSelected({ fileName: e.target.value })} placeholder="contrato.pdf" />
+                        </div>
+                      )}
+                      {d.mediatype !== "audio" && (
+                        <div>
+                          <Label htmlFor="caption">Legenda (opcional)</Label>
+                          <Textarea id="caption" rows={3} value={d.caption ?? ""} onChange={(e) => updateSelected({ caption: e.target.value })} placeholder="Olha só {{nome}}!" />
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {t === "typing" && (
+                    <>
+                      <div>
+                        <Label>Mostrar</Label>
+                        <div className="mt-1 grid grid-cols-2 gap-1">
+                          <Button type="button" size="sm" variant={(d.presence ?? "composing") === "composing" ? "default" : "outline"} onClick={() => updateSelected({ presence: "composing" })}>Digitando…</Button>
+                          <Button type="button" size="sm" variant={d.presence === "recording" ? "default" : "outline"} onClick={() => updateSelected({ presence: "recording" })}>Gravando áudio</Button>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="typing-secs">Duração (segundos)</Label>
+                        <Input id="typing-secs" type="number" min={1} max={15} value={d.seconds ?? 3} onChange={(e) => updateSelected({ seconds: Number(e.target.value) })} />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">Não envia mensagem — só mostra o indicador no WhatsApp do contato.</p>
+                    </>
+                  )}
+
                   {t === "ask" && (
                     <>
                       <div>
@@ -496,6 +561,7 @@ function FlowsInner() {
                       </div>
                     </>
                   )}
+
 
                   {t === "ai" && (
                     <>
