@@ -468,20 +468,6 @@ function FlowsInner() {
                     <Input id="label" value={d.label} onChange={(e) => updateSelected({ label: e.target.value })} />
                   </div>
 
-                  {t === "message" && (
-                    <div>
-                      <Label htmlFor="message">Mensagem</Label>
-                      <Textarea
-                        id="message" rows={6}
-                        value={d.message ?? ""}
-                        onChange={(e) => updateSelected({ message: e.target.value })}
-                        placeholder="Olá {{nome}}, tudo bem?"
-                      />
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        Use <code className="rounded bg-muted px-1">{"{{nome}}"}</code>, <code className="rounded bg-muted px-1">{"{{telefone}}"}</code> ou outras variáveis.
-                      </p>
-                    </div>
-                  )}
 
                   {t === "message" && (
                     <div>
