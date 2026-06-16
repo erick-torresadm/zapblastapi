@@ -11,6 +11,9 @@ const upsertSchema = z.object({
   keywords: z.array(z.string().min(1)).min(1),
   match_mode: matchModeSchema.default("contains"),
   active: z.boolean().default(true),
+  allow_from_me: z.boolean().default(false),
+  delay_seconds: z.number().int().min(0).max(86400).default(0),
+  cooldown_seconds: z.number().int().min(0).max(86400).default(0),
   user_id: z.string().uuid().optional(), // admin pode definir para outro usuário
 });
 
