@@ -36,6 +36,8 @@ function Landing() {
 
           <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
             <a href="#features" className="transition-colors hover:text-foreground">Recursos</a>
+            <a href="#features" className="transition-colors hover:text-foreground">Fluxos</a>
+            <a href="#features" className="transition-colors hover:text-foreground">CRM</a>
             <a href="#anti-ban" className="transition-colors hover:text-foreground">Anti-ban</a>
             <a href="#pricing" className="transition-colors hover:text-foreground">Planos</a>
             <a href="#faq" className="transition-colors hover:text-foreground">FAQ</a>
