@@ -28,7 +28,7 @@ function InstancesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
-  const [qrData, setQrData] = useState<{ qrcode: string | null; state: string | null; instanceId: string } | null>(null);
+  const [qrData, setQrData] = useState<{ qrcode: string | null; state: string | null; instanceId: string; error?: string | null; tries?: number } | null>(null);
 
   const createFn = useServerFn(createInstanceFn);
   const qrFn = useServerFn(getInstanceQrFn);
@@ -54,7 +54,7 @@ function InstancesPage() {
       toast.success("Chip criado — escaneie o QR code");
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["instances"] });
-      setQrData({ qrcode: res.qrcode, state: "connecting", instanceId: res.instance.id });
+      setQrData({ qrcode: res.qrcode, state: "connecting", instanceId: res.instance.id, error: null, tries: 0 });
       setQrOpen(true);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -63,7 +63,13 @@ function InstancesPage() {
   const refreshQr = useMutation({
     mutationFn: async (instance_id: string) => qrFn({ data: { instance_id } }),
     onSuccess: (res, id) => {
-      setQrData({ qrcode: res.qrcode, state: res.state, instanceId: id });
+      setQrData((prev) => ({
+        qrcode: res.qrcode,
+        state: res.state,
+        instanceId: id,
+        error: res.error ?? null,
+        tries: (prev?.tries ?? 0) + 1,
+      }));
       qc.invalidateQueries({ queryKey: ["instances"] });
       if (res.state === "open") toast.success("Conectado!");
     },
@@ -153,7 +159,7 @@ function InstancesPage() {
                       <TableCell>{i.sent_today}</TableCell>
                       <TableCell>{i.daily_limit}</TableCell>
                       <TableCell className="space-x-1">
-                        <Button variant="ghost" size="icon" title="Ver QR" onClick={() => { setQrData({ qrcode: null, state: i.status, instanceId: i.id }); setQrOpen(true); refreshQr.mutate(i.id); }}>
+                        <Button variant="ghost" size="icon" title="Ver QR" onClick={() => { setQrData({ qrcode: null, state: i.status, instanceId: i.id, error: null, tries: 0 }); setQrOpen(true); refreshQr.mutate(i.id); }}>
                           <QrCode className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" title="Remover" onClick={() => { if (confirm("Remover este chip?")) remove.mutate(i.id); }}>
@@ -179,8 +185,19 @@ function InstancesPage() {
             {qrData?.qrcode ? (
               <img src={qrData.qrcode} alt="QR code" className="h-64 w-64" />
             ) : (
-              <div className="flex h-64 w-64 items-center justify-center rounded border bg-muted text-sm text-muted-foreground">
-                {qrData?.state === "open" ? "Conectado ✓" : "Carregando…"}
+              <div className="flex h-64 w-64 flex-col items-center justify-center gap-2 rounded border bg-muted px-4 text-center text-sm text-muted-foreground">
+                {qrData?.state === "open" ? (
+                  <span>Conectado ✓</span>
+                ) : qrData?.error ? (
+                  <>
+                    <span className="font-medium text-destructive">Não consegui gerar o QR</span>
+                    <span className="text-xs">{qrData.error}</span>
+                  </>
+                ) : (qrData?.tries ?? 0) >= 4 ? (
+                  <span>Evolution ainda não devolveu o QR. Tente novamente em alguns segundos.</span>
+                ) : (
+                  <span>Gerando QR…</span>
+                )}
               </div>
             )}
             <Button variant="outline" onClick={() => qrData && refreshQr.mutate(qrData.instanceId)} disabled={refreshQr.isPending}>
