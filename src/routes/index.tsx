@@ -58,15 +58,16 @@ function Landing() {
         <div className="container relative mx-auto px-4 pb-24 pt-20 text-center md:pt-32">
           <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary backdrop-blur">
             <Sparkles className="h-3 w-3" />
-            Powered by Evolution API · Anti-ban Engine v2
+            Disparos · Fluxos · CRM · Anti-ban
           </div>
           <h1 className="mx-auto max-w-4xl font-display text-5xl font-bold leading-[1.05] tracking-tight md:text-7xl">
-            Dispare no WhatsApp <br />
-            <span className="text-aurora">sem queimar seus chips</span>
+            WhatsApp em escala, <br />
+            <span className="text-aurora">do disparo ao atendimento</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
-            A única plataforma com <strong className="text-foreground">aquecimento automático bidirecional</strong>,
-            rotação inteligente, marketplace de chips BR e engine anti-ban de última geração.
+            Dispare campanhas <strong className="text-foreground">anti-ban</strong>, automatize respostas com
+            fluxos por palavra-chave e atenda no <strong className="text-foreground">CRM</strong> com sua equipe —
+            tudo no mesmo painel, com aquecimento automático dos chips.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Button asChild size="lg" className="bg-gradient-to-br from-primary to-primary-glow shadow-glow">
@@ -75,7 +76,7 @@ function Landing() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-border/60 bg-card/40 backdrop-blur">
-              <a href="#anti-ban">Como evitamos bans</a>
+              <a href="#features">Ver recursos</a>
             </Button>
           </div>
 
