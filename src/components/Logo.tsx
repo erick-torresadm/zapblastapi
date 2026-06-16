@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import logoMark from "@/assets/mirazap-logo.png";
+import logoMark from "@/assets/perseidas-logo.png";
 
 type LogoProps = {
   size?: "sm" | "md" | "lg";
@@ -20,7 +20,7 @@ const sizes = {
 export function Logo({
   size = "md",
   showSubtitle = false,
-  subtitle = "Anti-ban Suite",
+  subtitle = "WhatsApp Suite",
   to,
   className,
   titleClassName,
@@ -30,14 +30,14 @@ export function Logo({
     <>
       <img
         src={logoMark}
-        alt="Mirazap"
+        alt="Perseidas"
         width={40}
         height={40}
         className={cn("shrink-0 object-contain drop-shadow-[0_0_12px_rgba(34,197,94,0.35)]", s.mark)}
       />
       <div className="flex flex-col leading-tight">
         <span className={cn("font-display font-bold tracking-tight", s.title, titleClassName)}>
-          Mirazap
+          Perseidas
         </span>
         {showSubtitle && (
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">

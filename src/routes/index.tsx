@@ -13,9 +13,9 @@ import { Logo } from "@/components/Logo";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Mirazap — Dispare no WhatsApp sem ser banido" },
+      { title: "Perseidas — Dispare no WhatsApp sem ser banido" },
       { name: "description", content: "Plataforma anti-ban com Evolution API, aquecimento automático de chips e marketplace de números BR. Spintax, rotação inteligente e relatórios em tempo real." },
-      { property: "og:title", content: "Mirazap — Dispare no WhatsApp sem ser banido" },
+      { property: "og:title", content: "Perseidas — Dispare no WhatsApp sem ser banido" },
       { property: "og:description", content: "Anti-ban Suite com Evolution API, aquecimento e marketplace de chips." },
     ],
   }),
@@ -220,7 +220,7 @@ function Landing() {
       <footer className="border-t border-border/60 py-10">
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" /> © 2026 Mirazap · Anti-ban Suite
+            <Zap className="h-4 w-4 text-primary" /> © 2026 Perseidas · Anti-ban Suite
           </div>
           <div className="text-xs">*Resultados variam conforme uso. Anti-ban reduz risco, não elimina.</div>
         </div>

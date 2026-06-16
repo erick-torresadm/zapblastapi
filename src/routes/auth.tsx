@@ -12,7 +12,7 @@ import { Zap } from "lucide-react";
 import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar — Mirazap" }, { name: "description", content: "Acesse sua conta Mirazap" }] }),
+  head: () => ({ meta: [{ title: "Entrar — Perseidas" }, { name: "description", content: "Acesse sua conta Perseidas" }] }),
   component: AuthPage,
 });
 
@@ -93,7 +93,7 @@ function AuthPage() {
               ))}
             </div>
           </div>
-          <div className="text-xs text-muted-foreground">© 2026 Mirazap · Anti-ban Suite</div>
+          <div className="text-xs text-muted-foreground">© 2026 Perseidas · Anti-ban Suite</div>
         </div>
       </div>
 
