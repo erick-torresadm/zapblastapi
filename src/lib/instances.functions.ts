@@ -57,9 +57,7 @@ export const createInstanceFn = createServerFn({ method: "POST" })
     }).select().single();
     if (error) throw new Error(error.message);
 
-    const qrcode = (result?.qrcode as { base64?: string })?.base64
-      ?? (result as { base64?: string })?.base64
-      ?? null;
+    const qrcode = await normalizeQr(result);
     return { instance: inst, qrcode };
   });
 
@@ -70,6 +68,20 @@ async function getInstanceWithServer(instanceId: string, userClient: any) {
   const { data: srv } = await supabaseAdmin.from("evolution_servers").select("base_url,api_key,is_shared,name").eq("id", inst.server_id).maybeSingle();
   if (!srv) throw new Error("Servidor não encontrado");
   return { inst, srv };
+}
+
+async function normalizeQr(qr: unknown): Promise<string | null> {
+  if (!qr || typeof qr !== "object") return null;
+  const r = qr as Record<string, any>;
+  // tentativas em ordem: r.base64 → r.qrcode.base64 → r.qrcode (string) → r.code → r.qrcode.code
+  const base64 = r.base64 ?? r.qrcode?.base64 ?? null;
+  if (base64) return base64.startsWith("data:") ? base64 : `data:image/png;base64,${base64}`;
+  const code = typeof r.qrcode === "string" ? r.qrcode : (r.code ?? r.qrcode?.code ?? null);
+  if (!code) return null;
+  try {
+    const QRCode = (await import("qrcode")).default;
+    return await QRCode.toDataURL(String(code), { width: 320, margin: 1 });
+  } catch { return null; }
 }
 
 export const getInstanceQrFn = createServerFn({ method: "POST" })
@@ -87,8 +99,7 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
     if (stateVal === "open") {
       await supabase.from("whatsapp_instances").update({ status: "connected" }).eq("id", inst.id);
     }
-    const base64 = (qr as { base64?: string } | null)?.base64
-      ?? ((qr as { qrcode?: { base64?: string } } | null)?.qrcode?.base64) ?? null;
+    const base64 = await normalizeQr(qr);
     return { qrcode: base64, state: stateVal };
   });
 

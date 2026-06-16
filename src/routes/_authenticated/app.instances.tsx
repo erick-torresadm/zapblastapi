@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,13 @@ function InstancesPage() {
     onSuccess: () => { toast.success("Chip removido"); qc.invalidateQueries({ queryKey: ["instances"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  // Auto-poll QR a cada 3s enquanto dialog aberto e não conectado
+  useEffect(() => {
+    if (!qrOpen || !qrData?.instanceId || qrData.state === "open") return;
+    const t = setInterval(() => refreshQr.mutate(qrData.instanceId), 3000);
+    return () => clearInterval(t);
+  }, [qrOpen, qrData?.instanceId, qrData?.state]);
 
   return (
     <div className="space-y-6">
