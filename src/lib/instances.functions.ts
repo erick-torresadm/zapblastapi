@@ -93,10 +93,16 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { inst, srv } = await getInstanceWithServer(data.instance_id, supabase);
-    const { connectInstance, instanceState, restartInstance, logoutInstance, createInstance } = await import("@/lib/evolution.server");
+    const { connectInstance, instanceState, restartInstance, logoutInstance, createInstance, setWebhook } = await import("@/lib/evolution.server");
     const { normalizeQr, extractEvolutionState, describePayload } = await import("@/lib/evolution-qr.server");
     const evoServer = { base_url: srv.base_url, api_key: srv.api_key };
     const webhookUrl = buildWebhookUrl(srv.webhook_token);
+
+    // Garante que o webhook está aplicado (instâncias antigas podem ter sido criadas sem ele).
+    if (webhookUrl) {
+      try { await setWebhook(evoServer, inst.instance_name, webhookUrl); }
+      catch (e) { console.warn(`[evolution] setWebhook falhou: ${(e as Error).message}`); }
+    }
 
     let qr: Record<string, unknown> | null = null;
     let state: Record<string, unknown> | null = null;
