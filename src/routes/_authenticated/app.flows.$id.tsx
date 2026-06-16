@@ -43,7 +43,7 @@ export const Route = createFileRoute("/_authenticated/app/flows/$id")({
 /* =========================================================
    Tipos de nó disponíveis no fluxo
    ========================================================= */
-type StepType = "start" | "message" | "delay" | "condition" | "tag" | "webhook" | "ask" | "ai" | "transfer_human";
+type StepType = "start" | "message" | "media" | "typing" | "delay" | "condition" | "tag" | "webhook" | "ask" | "ai" | "transfer_human";
 
 type StepData = {
   label: string;
@@ -58,8 +58,17 @@ type StepData = {
   variable?: string;
   systemPrompt?: string;
   userInput?: string;
+  // media
+  mediatype?: "image" | "video" | "audio" | "document";
+  mediaUrl?: string;
+  caption?: string;
+  fileName?: string;
+  // typing/recording
+  presence?: "composing" | "recording";
+  seconds?: number;
   [key: string]: unknown;
 };
+
 
 import { HelpCircle, Sparkles as SparklesIcon, UserCog } from "lucide-react";
 
