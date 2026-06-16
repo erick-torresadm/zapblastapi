@@ -395,6 +395,60 @@ export type Database = {
         }
         Relationships: []
       }
+      flow_keyword_triggers: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by_admin: boolean
+          flow_id: string
+          id: string
+          instance_id: string | null
+          keywords: string[]
+          match_mode: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by_admin?: boolean
+          flow_id: string
+          id?: string
+          instance_id?: string | null
+          keywords?: string[]
+          match_mode?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by_admin?: boolean
+          flow_id?: string
+          id?: string
+          instance_id?: string | null
+          keywords?: string[]
+          match_mode?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_keyword_triggers_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_keyword_triggers_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flow_run_steps: {
         Row: {
           created_at: string
