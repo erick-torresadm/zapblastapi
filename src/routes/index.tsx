@@ -192,7 +192,7 @@ function Landing() {
               { q: "Meu chip vai ser banido?", a: "Nenhuma plataforma garante 100% — quem garante mente. O que fazemos: reduzir drasticamente o risco com aquecimento, spintax, delays humanos e circuit breaker. Histórico de chips bem aquecidos = >90% de sobrevida em 30 dias." },
               { q: "Preciso da Evolution API?", a: "Sim — você pode usar a sua ou contratar uma da nossa lista de provedores recomendados." },
               { q: "Posso comprar chips dentro da plataforma?", a: "Sim, no Marketplace. Chips virtuais BR a partir de R$ 7,90, pagamento via saldo pré-pago." },
-              { q: "Aceita Pix?", a: "Sim. Pix, cartão e boleto via Stripe." },
+              { q: "Aceita Pix?", a: "Sim — PIX e cartão de crédito. No plano anual o PIX é preferencial (à vista com 30% de desconto). Integração via Efí Bank em breve." },
             ].map((f) => (
               <details key={f.q} className="group rounded-xl border border-border/60 bg-card/60 p-5 backdrop-blur">
                 <summary className="flex cursor-pointer list-none items-center justify-between font-medium">
