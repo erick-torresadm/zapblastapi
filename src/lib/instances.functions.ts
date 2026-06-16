@@ -50,6 +50,7 @@ export const createInstanceFn = createServerFn({ method: "POST" })
     const { server } = resolved;
 
     const { createInstance } = await import("@/lib/evolution.server");
+    const { normalizeQr } = await import("@/lib/evolution-qr.server");
     const webhookUrl = buildWebhookUrl(server.webhook_token);
     let result: Record<string, unknown>;
     try {
@@ -146,68 +147,6 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
     };
   });
 
-export const getInstanceQrFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: { instance_id: string }) => z.object({ instance_id: z.string().uuid() }).parse(i))
-  .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { inst, srv } = await getInstanceWithServer(data.instance_id, supabase);
-    const { connectInstance, instanceState } = await import("@/lib/evolution.server");
-
-    let qr: Record<string, unknown> | null = null;
-    let state: Record<string, unknown> | null = null;
-    let lastError: string | null = null;
-
-    try {
-      qr = await connectInstance({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name);
-    } catch (e) {
-      lastError = (e as Error).message;
-      console.warn(`[evolution] connect falhou para ${inst.instance_name}: ${lastError}`);
-    }
-    try {
-      state = await instanceState({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name);
-    } catch (e) {
-      console.warn(`[evolution] connectionState falhou para ${inst.instance_name}: ${(e as Error).message}`);
-    }
-
-    const stateVal = extractEvolutionState(state) ?? extractEvolutionState(qr) ?? null;
-    if (stateVal === "open") {
-      await supabase.from("whatsapp_instances").update({ status: "connected", last_qr_base64: null, last_qr_error: null }).eq("id", inst.id);
-      return { qrcode: null, state: stateVal, error: null, source: "connected" as const };
-    }
-
-    let base64 = await normalizeQr(qr);
-    let source: "direct" | "stored" | "none" = "none";
-
-    if (base64) {
-      source = "direct";
-      await supabase.from("whatsapp_instances").update({
-        last_qr_base64: base64,
-        last_qr_at: new Date().toISOString(),
-        last_qr_error: null,
-      }).eq("id", inst.id);
-    } else {
-      // Sem QR direto. Tenta o último QR salvo pelo webhook (válido por ~60s).
-      console.warn(`[evolution] sem QR direto para ${inst.instance_name}. Resposta: ${describePayload(qr)}`);
-      if (inst.last_qr_base64 && inst.last_qr_at) {
-        const ageMs = Date.now() - new Date(inst.last_qr_at).getTime();
-        if (ageMs < 55_000) {
-          base64 = inst.last_qr_base64;
-          source = "stored";
-        }
-      }
-      if (!base64 && lastError) {
-        await supabase.from("whatsapp_instances").update({ last_qr_error: lastError }).eq("id", inst.id);
-      }
-    }
-
-    return {
-      qrcode: base64,
-      state: stateVal,
-      error: base64 ? null : (lastError ?? inst.last_qr_error ?? null),
-      source,
-    };
-  });
 
 export const deleteInstanceFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
