@@ -136,9 +136,21 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
 
             await supabaseAdmin.from("campaigns")
               .update({ sent_count: (await supabaseAdmin.from("campaigns").select("sent_count").eq("id", msg.campaign_id).single()).data!.sent_count + 1 })
-
               .eq("id", msg.campaign_id);
+
+            // Se a campanha tem fluxo, dispara o flow_run para este contato
+            if (camp.flow_id) {
+              const { createFlowRun } = await import("@/lib/flow-engine.server");
+              await createFlowRun(supabaseAdmin, {
+                flow_id: camp.flow_id,
+                user_id: msg.user_id,
+                contact_id: msg.contact_id,
+                contact_phone: msg.phone,
+                instance_id: chip.id,
+              });
+            }
             sent++;
+
           } catch (e) {
             const errMsg = (e as Error).message;
             await supabaseAdmin.from("campaign_messages").update({
