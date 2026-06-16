@@ -123,11 +123,12 @@ function NewCampaign() {
 
       <Card>
         <CardHeader>
-          <CardTitle>2. Mensagem</CardTitle>
+          <CardTitle>2. Mensagem (opcional se houver fluxo)</CardTitle>
           <CardDescription>
-            Use spintax: <code>{`{Oi|Olá|E aí}`}</code> e variáveis: <code>{`{{nome}}`}</code>
+            Deixe vazio para usar a 1ª mensagem do fluxo. Spintax: <code>{`{Oi|Olá|E aí}`}</code> • variáveis: <code>{`{{nome}}`}</code>
           </CardDescription>
         </CardHeader>
+
         <CardContent className="space-y-4">
           <Textarea
             rows={6}
