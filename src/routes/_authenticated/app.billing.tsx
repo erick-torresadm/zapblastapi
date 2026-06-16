@@ -70,7 +70,8 @@ function BillingPage() {
             )}
           >
             Anual
-            <Badge variant="default" className="bg-success text-success-foreground hover:bg-success">−20%</Badge>
+            <Badge variant="default" className="bg-success text-success-foreground hover:bg-success">−30%</Badge>
+            <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">PIX</Badge>
           </button>
         </div>
       </div>
