@@ -128,7 +128,9 @@ function ListsPage() {
             )}
           </DialogContent>
         </Dialog>
+        </div>
       </div>
+
 
       <Card>
         <CardHeader><CardTitle>Minhas listas</CardTitle></CardHeader>
