@@ -11,7 +11,8 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
           return new Response("Unauthorized", { status: 401 });
         }
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { sendText, sendMedia } = await import("@/lib/evolution.server");
+        const { sendText, sendMedia, sendPresence, typingDurationMs, isInQuietHours } = await import("@/lib/evolution.server");
+
 
         // 1) Reset diário de sent_today
         await supabaseAdmin.from("whatsapp_instances")
