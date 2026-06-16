@@ -94,6 +94,12 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
           const eligible = candidateIds
             .map((id) => ({ id, ...instanceCache[id] }))
             .filter((i) => i && i.status === "connected" && i.sent_today < i.daily_limit)
+            .filter((i) => !isInQuietHours(i.quiet_start_hour, i.quiet_end_hour))
+            .filter((i) => {
+              // reset horário se hora passou
+              if (!i.sent_hour_at || now - new Date(i.sent_hour_at).getTime() >= 3600 * 1000) return true;
+              return i.sent_hour < i.hourly_limit;
+            })
             .filter((i) => {
               if (!i.last_sent_at) return true;
               const delay = (camp.min_delay_s + Math.random() * (camp.max_delay_s - camp.min_delay_s)) * 1000;
@@ -103,6 +109,7 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
 
           if (!eligible.length) { skipped++; continue; }
           const chip = eligible[0];
+
 
           // Marca sending
           await supabaseAdmin.from("campaign_messages").update({ status: "sending", instance_id: chip.id, attempts: msg.attempts + 1 }).eq("id", msg.id);
