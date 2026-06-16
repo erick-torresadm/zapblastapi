@@ -102,18 +102,23 @@ function BillingPage() {
                     <div className="space-y-1.5">
                       <div className="text-xs text-muted-foreground">
                         <span className="line-through">{brl(p.price_cents)}/mês</span>
-                        {" · "}cobrado {brlNoDecimals(annualTotal)}/ano
+                        {" · "}cobrado {brlNoDecimals(annualTotal)}/ano no PIX
                       </div>
-                      <Badge variant="outline" className="border-success/40 bg-success/10 text-success">
-                        Economize {brlNoDecimals(yearlySavings)}/ano
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant="outline" className="border-success/40 bg-success/10 text-success">
+                          Economize {brlNoDecimals(yearlySavings)}/ano
+                        </Badge>
+                        <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">
+                          PIX preferencial
+                        </Badge>
+                      </div>
                       {p.featured && (
-                        <div className="text-xs font-medium text-primary">🎁 Ganhe ~2 meses grátis</div>
+                        <div className="text-xs font-medium text-primary">🎁 Ganhe ~3,6 meses grátis</div>
                       )}
                     </div>
                   ) : (
                     <div className="text-xs text-muted-foreground">
-                      ou <button onClick={() => setCycle("annual")} className="text-primary font-medium underline-offset-2 hover:underline">economize 20% no anual ↑</button>
+                      ou <button onClick={() => setCycle("annual")} className="text-primary font-medium underline-offset-2 hover:underline">economize 30% no anual via PIX ↑</button>
                     </div>
                   )}
                 </div>
