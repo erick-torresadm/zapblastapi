@@ -230,7 +230,7 @@ function Landing() {
       <footer className="border-t border-border/60 py-10">
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" /> © 2026 Perseidas · Anti-ban Suite
+            <Zap className="h-4 w-4 text-primary" /> © 2026 Perseidas · Disparos + Fluxos + CRM no WhatsApp
           </div>
           <div className="text-xs">*Resultados variam conforme uso. Anti-ban reduz risco, não elimina.</div>
         </div>
