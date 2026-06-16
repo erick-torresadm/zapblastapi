@@ -22,6 +22,8 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const nav = useNavigate();
   const [loading, setLoading] = useState(false);
+  const checkIp = useServerFn(checkSignupIpFn);
+  const recordIp = useServerFn(recordSignupIpFn);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -46,20 +48,39 @@ function AuthPage() {
   async function signUp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const email = String(fd.get("email"));
+    const password = String(fd.get("password"));
+    const name = String(fd.get("name") ?? "");
+    if (password.length < 4) return toast.error("A senha precisa ter ao menos 4 caracteres.");
+
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: String(fd.get("email")),
-      password: String(fd.get("password")),
-      options: {
-        emailRedirectTo: window.location.origin + "/app",
-        data: { full_name: String(fd.get("name") ?? "") },
-      },
-    });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Conta criada! Você já está logado.");
-    nav({ to: "/app", replace: true });
+    try {
+      // 1) Bloqueia múltiplos cadastros do mesmo IP
+      const ipCheck = await checkIp();
+      if (!ipCheck.ok) { setLoading(false); return toast.error(ipCheck.reason); }
+
+      // 2) Cria conta (sem confirmação de e-mail — auto-login)
+      const { error } = await supabase.auth.signUp({
+        email, password,
+        options: { data: { full_name: name } },
+      });
+      if (error) { setLoading(false); return toast.error(error.message); }
+
+      // 3) Registra IP do novo usuário
+      try { await recordIp(); } catch (e) { console.warn("[signup] recordIp falhou", e); }
+
+      setLoading(false);
+      toast.success("🎉 Conta criada! Seu teste Pro de 7 dias começou agora.", {
+        description: "Você ganhou acesso completo: 20 chips, 5.000 mensagens/dia e aquecimento ilimitado.",
+        duration: 6000,
+      });
+      nav({ to: "/app", replace: true });
+    } catch (e) {
+      setLoading(false);
+      toast.error((e as Error).message);
+    }
   }
+
 
   async function google() {
     setLoading(true);
