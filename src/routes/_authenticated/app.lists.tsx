@@ -81,8 +81,12 @@ function ListsPage() {
           <h1 className="text-2xl font-bold">Listas de contatos</h1>
           <p className="text-sm text-muted-foreground">Importe CSVs com seus contatos</p>
         </div>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setPreview(null); }}>
-          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Nova lista</Button></DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={downloadTemplate}>
+            <Download className="mr-2 h-4 w-4" />Baixar modelo CSV
+          </Button>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setPreview(null); }}>
+            <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Nova lista</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Importar lista CSV</DialogTitle>
