@@ -71,14 +71,18 @@ function NewCampaign() {
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      if (!form.name || !form.list_id || !form.message_template || form.instance_ids.length === 0) {
-        throw new Error("Preencha todos os campos obrigatórios");
+      if (!form.name || !form.list_id || form.instance_ids.length === 0) {
+        throw new Error("Preencha nome, lista e chips");
       }
+      if (!form.message_template && !form.flow_id) {
+        throw new Error("Defina uma mensagem OU selecione um fluxo");
+      }
+
       const { data, error } = await supabase.from("campaigns").insert({
         user_id: user.id,
         name: form.name,
         list_id: form.list_id,
-        message_template: form.message_template,
+        message_template: form.message_template || null,
         min_delay_s: form.min_delay_s,
         max_delay_s: form.max_delay_s,
         instance_ids: form.instance_ids,
@@ -119,11 +123,12 @@ function NewCampaign() {
 
       <Card>
         <CardHeader>
-          <CardTitle>2. Mensagem</CardTitle>
+          <CardTitle>2. Mensagem (opcional se houver fluxo)</CardTitle>
           <CardDescription>
-            Use spintax: <code>{`{Oi|Olá|E aí}`}</code> e variáveis: <code>{`{{nome}}`}</code>
+            Deixe vazio para usar a 1ª mensagem do fluxo. Spintax: <code>{`{Oi|Olá|E aí}`}</code> • variáveis: <code>{`{{nome}}`}</code>
           </CardDescription>
         </CardHeader>
+
         <CardContent className="space-y-4">
           <Textarea
             rows={6}
