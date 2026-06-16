@@ -84,6 +84,12 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
               .eq("phone", fromPhone)
               .in("status", ["sent", "delivered", "read"]);
 
+            // Resume flow_runs aguardando resposta deste contato
+            const { resumeFlowRunsForReply } = await import("@/lib/flow-engine.server");
+            await resumeFlowRunsForReply(supabaseAdmin, {
+              user_id: server.user_id, phone: fromPhone, text: messageText,
+            });
+
             // Opt-out automático
             const txt = (messageText ?? "").trim().toUpperCase();
             if (["PARAR", "SAIR", "STOP", "CANCELAR", "REMOVER"].includes(txt)) {
@@ -94,6 +100,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
                 .eq("user_id", server.user_id).eq("phone", fromPhone);
             }
           }
+
         }
 
         if (event.includes("messages.update") || event === "MESSAGES_UPDATE") {

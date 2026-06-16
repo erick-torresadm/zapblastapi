@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as ApiPublicWarmupWorkerRouteImport } from './routes/api/public/warmup-worker'
+import { Route as ApiPublicFlowWorkerRouteImport } from './routes/api/public/flow-worker'
 import { Route as ApiPublicDispatchWorkerRouteImport } from './routes/api/public/dispatch-worker'
 import { Route as AuthenticatedAppWarmupRouteImport } from './routes/_authenticated/app.warmup'
 import { Route as AuthenticatedAppWalletRouteImport } from './routes/_authenticated/app.wallet'
@@ -56,6 +57,11 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
 const ApiPublicWarmupWorkerRoute = ApiPublicWarmupWorkerRouteImport.update({
   id: '/api/public/warmup-worker',
   path: '/api/public/warmup-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicFlowWorkerRoute = ApiPublicFlowWorkerRouteImport.update({
+  id: '/api/public/flow-worker',
+  path: '/api/public/flow-worker',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicDispatchWorkerRoute = ApiPublicDispatchWorkerRouteImport.update({
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/app/wallet': typeof AuthenticatedAppWalletRoute
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
+  '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/admin/catalog': typeof AuthenticatedAppAdminCatalogRoute
@@ -200,6 +207,7 @@ export interface FileRoutesByTo {
   '/app/wallet': typeof AuthenticatedAppWalletRoute
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
+  '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/admin/catalog': typeof AuthenticatedAppAdminCatalogRoute
@@ -227,6 +235,7 @@ export interface FileRoutesById {
   '/_authenticated/app/wallet': typeof AuthenticatedAppWalletRoute
   '/_authenticated/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
+  '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/admin/catalog': typeof AuthenticatedAppAdminCatalogRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/app/wallet'
     | '/app/warmup'
     | '/api/public/dispatch-worker'
+    | '/api/public/flow-worker'
     | '/api/public/warmup-worker'
     | '/app/'
     | '/app/admin/catalog'
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/app/wallet'
     | '/app/warmup'
     | '/api/public/dispatch-worker'
+    | '/api/public/flow-worker'
     | '/api/public/warmup-worker'
     | '/app'
     | '/app/admin/catalog'
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/wallet'
     | '/_authenticated/app/warmup'
     | '/api/public/dispatch-worker'
+    | '/api/public/flow-worker'
     | '/api/public/warmup-worker'
     | '/_authenticated/app/'
     | '/_authenticated/app/admin/catalog'
@@ -321,6 +333,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
+  ApiPublicFlowWorkerRoute: typeof ApiPublicFlowWorkerRoute
   ApiPublicWarmupWorkerRoute: typeof ApiPublicWarmupWorkerRoute
   ApiPublicEvolutionWebhookTokenRoute: typeof ApiPublicEvolutionWebhookTokenRoute
 }
@@ -360,6 +373,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/warmup-worker'
       fullPath: '/api/public/warmup-worker'
       preLoaderRoute: typeof ApiPublicWarmupWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/flow-worker': {
+      id: '/api/public/flow-worker'
+      path: '/api/public/flow-worker'
+      fullPath: '/api/public/flow-worker'
+      preLoaderRoute: typeof ApiPublicFlowWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/dispatch-worker': {
@@ -570,6 +590,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
+  ApiPublicFlowWorkerRoute: ApiPublicFlowWorkerRoute,
   ApiPublicWarmupWorkerRoute: ApiPublicWarmupWorkerRoute,
   ApiPublicEvolutionWebhookTokenRoute: ApiPublicEvolutionWebhookTokenRoute,
 }

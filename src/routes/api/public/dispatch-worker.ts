@@ -43,17 +43,18 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
         // 4) Pega até 30 mensagens pending de campanhas em execução
         const { data: pending } = await supabaseAdmin
           .from("campaign_messages")
-          .select("*, campaigns!inner(status, min_delay_s, max_delay_s, instance_ids, media_url, media_type, media_filename)")
+          .select("*, campaigns!inner(status, min_delay_s, max_delay_s, instance_ids, media_url, media_type, media_filename, flow_id)")
           .eq("status", "pending")
           .eq("campaigns.status", "running")
           .order("created_at", { ascending: true })
           .limit(30);
 
+
         let sent = 0, failed = 0, skipped = 0;
         const instanceCache: Record<string, { server: { base_url: string; api_key: string }; instance_name: string; sent_today: number; daily_limit: number; last_sent_at: string | null; status: string }> = {};
 
         for (const msg of pending ?? []) {
-          const camp = msg.campaigns as { min_delay_s: number; max_delay_s: number; instance_ids: string[]; media_url: string | null; media_type: string | null; media_filename: string | null };
+          const camp = msg.campaigns as { min_delay_s: number; max_delay_s: number; instance_ids: string[]; media_url: string | null; media_type: string | null; media_filename: string | null; flow_id: string | null };
           // Carrega chips elegíveis
           const candidateIds = camp.instance_ids ?? [];
           if (!candidateIds.length) { skipped++; continue; }
@@ -98,20 +99,25 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
           await supabaseAdmin.from("campaign_messages").update({ status: "sending", instance_id: chip.id, attempts: msg.attempts + 1 }).eq("id", msg.id);
 
           try {
-            let evoRes: Record<string, unknown>;
-            if (camp.media_url && camp.media_type) {
-              const mt = camp.media_type as "image" | "video" | "audio" | "document";
-              evoRes = await sendMedia(chip.server, chip.instance_name, msg.phone, {
-                mediatype: mt,
-                media: camp.media_url,
-                caption: msg.rendered_message,
-                fileName: camp.media_filename ?? undefined,
-              });
-            } else {
-              evoRes = await sendText(chip.server, chip.instance_name, msg.phone, msg.rendered_message);
+            let evoId: string | null = null;
+            const hasText = !!msg.rendered_message;
+            const shouldSend = hasText || !camp.flow_id; // se só tem flow e nenhum texto, pula envio
+            if (shouldSend) {
+              let evoRes: Record<string, unknown>;
+              if (camp.media_url && camp.media_type) {
+                const mt = camp.media_type as "image" | "video" | "audio" | "document";
+                evoRes = await sendMedia(chip.server, chip.instance_name, msg.phone, {
+                  mediatype: mt,
+                  media: camp.media_url,
+                  caption: msg.rendered_message ?? undefined,
+                  fileName: camp.media_filename ?? undefined,
+                });
+              } else {
+                evoRes = await sendText(chip.server, chip.instance_name, msg.phone, msg.rendered_message ?? "");
+              }
+              evoId = (evoRes as { key?: { id?: string } })?.key?.id
+                ?? (evoRes as { messageId?: string })?.messageId ?? null;
             }
-            const evoId = (evoRes as { key?: { id?: string } })?.key?.id
-              ?? (evoRes as { messageId?: string })?.messageId ?? null;
 
             await supabaseAdmin.from("campaign_messages").update({
               status: "sent",
@@ -119,17 +125,32 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
               sent_at: new Date().toISOString(),
             }).eq("id", msg.id);
 
-            const newSent = chip.sent_today + 1;
-            await supabaseAdmin.from("whatsapp_instances").update({
-              sent_today: newSent, last_sent_at: new Date().toISOString(),
-            }).eq("id", chip.id);
-            instanceCache[chip.id].sent_today = newSent;
-            instanceCache[chip.id].last_sent_at = new Date().toISOString();
+            if (shouldSend) {
+              const newSent = chip.sent_today + 1;
+              await supabaseAdmin.from("whatsapp_instances").update({
+                sent_today: newSent, last_sent_at: new Date().toISOString(),
+              }).eq("id", chip.id);
+              instanceCache[chip.id].sent_today = newSent;
+              instanceCache[chip.id].last_sent_at = new Date().toISOString();
+            }
 
             await supabaseAdmin.from("campaigns")
               .update({ sent_count: (await supabaseAdmin.from("campaigns").select("sent_count").eq("id", msg.campaign_id).single()).data!.sent_count + 1 })
               .eq("id", msg.campaign_id);
+
+            // Se a campanha tem fluxo, dispara o flow_run para este contato
+            if (camp.flow_id) {
+              const { createFlowRun } = await import("@/lib/flow-engine.server");
+              await createFlowRun(supabaseAdmin, {
+                flow_id: camp.flow_id,
+                user_id: msg.user_id,
+                contact_id: msg.contact_id,
+                contact_phone: msg.phone,
+                instance_id: chip.id,
+              });
+            }
             sent++;
+
           } catch (e) {
             const errMsg = (e as Error).message;
             await supabaseAdmin.from("campaign_messages").update({

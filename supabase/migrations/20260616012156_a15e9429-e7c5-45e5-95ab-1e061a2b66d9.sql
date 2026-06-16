@@ -1,0 +1,1 @@
+ALTER TABLE public.campaign_messages ALTER COLUMN rendered_message DROP NOT NULL;
