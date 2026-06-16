@@ -92,7 +92,7 @@ export const upsertKeywordTriggerFn = createServerFn({ method: "POST" })
       return { ok: true, id: data.id };
     }
 
-    const { data: ins, error } = await supabase.from("flow_keyword_triggers" as any).insert({
+    const { data: ins, error } = await (supabase.from("flow_keyword_triggers" as any).insert({
       user_id: targetUserId,
       flow_id: data.flow_id,
       instance_id: data.instance_id ?? null,
@@ -100,9 +100,9 @@ export const upsertKeywordTriggerFn = createServerFn({ method: "POST" })
       match_mode: data.match_mode,
       active: data.active,
       created_by_admin: admin && targetUserId !== userId,
-    }).select("id").single();
+    }).select("id").single() as any);
     if (error) throw new Error(error.message);
-    return { ok: true, id: ins.id };
+    return { ok: true, id: (ins as { id: string }).id };
   });
 
 export const toggleKeywordTriggerFn = createServerFn({ method: "POST" })
