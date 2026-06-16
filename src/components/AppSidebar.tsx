@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { Logo } from "@/components/Logo";
 
 const operationNav = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard, exact: true },
