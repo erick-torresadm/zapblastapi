@@ -25,25 +25,30 @@ export const Route = createFileRoute("/")({
 function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* HEADER */}
-      <header className="sticky top-0 z-30 border-b border-border/40 bg-background/70 backdrop-blur-xl">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Logo to="/" size="md" />
+      {/* HEADER — floating pill */}
+      <header className="fixed inset-x-0 top-4 z-50 flex justify-center px-4">
+        <div className="flex w-full max-w-5xl items-center justify-between gap-4 rounded-full border border-border/60 bg-background/70 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-xl supports-[backdrop-filter]:bg-background/50">
+          <div className="pl-2">
+            <Logo to="/" size="sm" />
+          </div>
 
-          <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
+          <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
             <a href="#features" className="transition-colors hover:text-foreground">Recursos</a>
             <a href="#anti-ban" className="transition-colors hover:text-foreground">Anti-ban</a>
             <a href="#pricing" className="transition-colors hover:text-foreground">Planos</a>
             <a href="#faq" className="transition-colors hover:text-foreground">FAQ</a>
           </nav>
+
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm"><Link to="/auth">Entrar</Link></Button>
-            <Button asChild size="sm" className="bg-gradient-to-br from-primary to-primary-glow shadow-glow">
+            <Button asChild variant="ghost" size="sm" className="rounded-full"><Link to="/auth">Entrar</Link></Button>
+            <Button asChild size="sm" className="rounded-full bg-gradient-to-br from-primary to-primary-glow shadow-glow">
               <Link to="/auth">Começar grátis</Link>
             </Button>
           </div>
         </div>
       </header>
+      {/* spacer for floating header */}
+      <div aria-hidden className="h-20" />
 
       {/* HERO */}
       <section className="relative overflow-hidden">
