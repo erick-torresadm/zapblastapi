@@ -71,9 +71,13 @@ function NewCampaign() {
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      if (!form.name || !form.list_id || !form.message_template || form.instance_ids.length === 0) {
-        throw new Error("Preencha todos os campos obrigatórios");
+      if (!form.name || !form.list_id || form.instance_ids.length === 0) {
+        throw new Error("Preencha nome, lista e chips");
       }
+      if (!form.message_template && !form.flow_id) {
+        throw new Error("Defina uma mensagem OU selecione um fluxo");
+      }
+
       const { data, error } = await supabase.from("campaigns").insert({
         user_id: user.id,
         name: form.name,
