@@ -57,73 +57,92 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
         }
 
         if (event.includes("messages.upsert") || event === "MESSAGES_UPSERT") {
-          const key = (data as { key?: { id?: string; remoteJid?: string; fromMe?: boolean } }).key;
+          const key = (data as { key?: { id?: string; remoteJid?: string; fromMe?: boolean; participant?: string } }).key;
           const fromMe = !!key?.fromMe;
           const remoteJid = key?.remoteJid ?? "";
-          const fromPhone = remoteJid.replace(/@.*/, "");
+
+          // Classifica o tipo de chat. CRM só processa 1:1 (@s.whatsapp.net).
+          // Ignora: grupos (@g.us), broadcasts (status@broadcast / @broadcast), LIDs (@lid),
+          // newsletters (@newsletter) e qualquer outra coisa exótica.
+          const jidDomain = remoteJid.includes("@") ? remoteJid.split("@")[1] : "";
+          const jidUser = remoteJid.includes("@") ? remoteJid.split("@")[0] : remoteJid;
+          let chatType: "user" | "group" | "lid" | "broadcast" | "other" = "other";
+          if (jidDomain === "s.whatsapp.net" || jidDomain === "c.us") chatType = "user";
+          else if (jidDomain === "g.us") chatType = "group";
+          else if (jidDomain === "lid") chatType = "lid";
+          else if (jidDomain === "broadcast" || jidUser === "status") chatType = "broadcast";
+
+          // Só 1:1 entra no CRM e dispara fluxos/opt-out
+          if (chatType !== "user") {
+            return Response.json({ ok: true, skipped: chatType });
+          }
+
+          const fromPhone = jidUser.replace(/[^0-9]/g, "");
+          if (!fromPhone || fromPhone.length < 8 || fromPhone.length > 15) {
+            return Response.json({ ok: true, skipped: "invalid_phone" });
+          }
+
           const messageText =
             ((data as { message?: { conversation?: string; extendedTextMessage?: { text?: string } } }).message?.conversation)
             ?? ((data as { message?: { extendedTextMessage?: { text?: string } } }).message?.extendedTextMessage?.text)
             ?? null;
 
-          if (fromPhone) {
-            // Grava em chat_messages (CRM/Inbox)
-            await supabaseAdmin.from("chat_messages").insert({
+          // Grava em chat_messages (CRM/Inbox)
+          await supabaseAdmin.from("chat_messages").insert({
+            user_id: server.user_id,
+            instance_id: instanceId,
+            contact_phone: fromPhone,
+            contact_jid: remoteJid,
+            chat_type: chatType,
+            direction: fromMe ? "out" : "in",
+            text: messageText,
+            evolution_message_id: key?.id ?? null,
+            status: "delivered",
+          });
+
+          if (!fromMe) {
+            await supabaseAdmin.from("incoming_messages").insert({
               user_id: server.user_id,
               instance_id: instanceId,
-              contact_phone: fromPhone,
-              direction: fromMe ? "out" : "in",
-              text: messageText,
+              from_phone: fromPhone,
+              message_text: messageText,
               evolution_message_id: key?.id ?? null,
-              status: "delivered",
+              raw_payload: payload as never,
             });
 
-            if (!fromMe) {
-              await supabaseAdmin.from("incoming_messages").insert({
-                user_id: server.user_id,
-                instance_id: instanceId,
-                from_phone: fromPhone,
-                message_text: messageText,
-                evolution_message_id: key?.id ?? null,
-                raw_payload: payload as never,
-              });
+            await supabaseAdmin.from("campaign_messages")
+              .update({ status: "replied" })
+              .eq("user_id", server.user_id)
+              .eq("phone", fromPhone)
+              .in("status", ["sent", "delivered", "read"]);
 
-              await supabaseAdmin.from("campaign_messages")
-                .update({ status: "replied" })
-                .eq("user_id", server.user_id)
-                .eq("phone", fromPhone)
-                .in("status", ["sent", "delivered", "read"]);
+            const { resumeFlowRunsForReply } = await import("@/lib/flow-engine.server");
+            await resumeFlowRunsForReply(supabaseAdmin, {
+              user_id: server.user_id, phone: fromPhone, text: messageText,
+            });
 
-              const { resumeFlowRunsForReply } = await import("@/lib/flow-engine.server");
-              await resumeFlowRunsForReply(supabaseAdmin, {
-                user_id: server.user_id, phone: fromPhone, text: messageText,
-              });
-
-              const txt = (messageText ?? "").trim().toUpperCase();
-              if (["PARAR", "SAIR", "STOP", "CANCELAR", "REMOVER"].includes(txt)) {
-                await supabaseAdmin.from("opt_outs").insert({
-                  user_id: server.user_id, phone: fromPhone, reason: "auto: " + txt,
-                }).select().maybeSingle();
-                await supabaseAdmin.from("contacts").update({ opted_out: true })
-                  .eq("user_id", server.user_id).eq("phone", fromPhone);
-              }
+            const txt = (messageText ?? "").trim().toUpperCase();
+            if (["PARAR", "SAIR", "STOP", "CANCELAR", "REMOVER"].includes(txt)) {
+              await supabaseAdmin.from("opt_outs").insert({
+                user_id: server.user_id, phone: fromPhone, reason: "auto: " + txt,
+              }).select().maybeSingle();
+              await supabaseAdmin.from("contacts").update({ opted_out: true })
+                .eq("user_id", server.user_id).eq("phone", fromPhone);
             }
+          }
 
-            // Dispara fluxo por palavra-chave para qualquer mensagem (in OU out)
-            // fromMe=true permite que o próprio admin/usuário "comande" o disparo enviando a palavra-chave
-            // pelo WhatsApp dele ao contato.
-            try {
-              const { triggerKeywordFlows } = await import("@/lib/flow-engine.server");
-              await triggerKeywordFlows(supabaseAdmin, {
-                user_id: server.user_id,
-                instance_id: instanceId,
-                phone: fromPhone,
-                text: messageText,
-                from_me: fromMe,
-              });
-            } catch (e) {
-              console.error("triggerKeywordFlows failed", e);
-            }
+          // Dispara fluxo por palavra-chave (entrada OU saída, conforme allow_from_me do gatilho)
+          try {
+            const { triggerKeywordFlows } = await import("@/lib/flow-engine.server");
+            await triggerKeywordFlows(supabaseAdmin, {
+              user_id: server.user_id,
+              instance_id: instanceId,
+              phone: fromPhone,
+              text: messageText,
+              from_me: fromMe,
+            });
+          } catch (e) {
+            console.error("triggerKeywordFlows failed", e);
           }
         }
 
