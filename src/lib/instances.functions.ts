@@ -83,68 +83,68 @@ async function getInstanceWithServer(instanceId: string, userClient: any) {
   return { inst, srv };
 }
 
-function asImageDataUrl(value: string, fromBase64Field = false) {
-  const trimmed = value.trim();
-  const embedded = trimmed.match(/data:image\/[a-zA-Z+.-]+;base64,([A-Za-z0-9+/=_-][A-Za-z0-9+/=\s_-]*)/);
-  if (embedded) return `data:image/png;base64,${embedded[1].replace(/\s/g, "")}`;
+export const getInstanceQrFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: { instance_id: string }) => z.object({ instance_id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { inst, srv } = await getInstanceWithServer(data.instance_id, supabase);
+    const { connectInstance, instanceState } = await import("@/lib/evolution.server");
+    const { normalizeQr, extractEvolutionState, describePayload } = await import("@/lib/evolution-qr.server");
 
-  const raw = trimmed.replace(/^base64,?/i, "").replace(/\s/g, "");
-  const looksLikeBase64 = raw.length > 80 && /^[A-Za-z0-9+/=_-]+$/.test(raw);
-  if (fromBase64Field || looksLikeBase64) return `data:image/png;base64,${raw}`;
-  return null;
-}
+    let qr: Record<string, unknown> | null = null;
+    let state: Record<string, unknown> | null = null;
+    let lastError: string | null = null;
 
-function walkQrPayload(payload: unknown, visitor: (key: string, value: unknown) => string | null) {
-  const seen = new Set<unknown>();
-  const stack: Array<{ key: string; value: unknown }> = [{ key: "", value: payload }];
-  while (stack.length) {
-    const item = stack.shift()!;
-    const found = visitor(item.key, item.value);
-    if (found) return found;
-    if (!item.value || typeof item.value !== "object" || seen.has(item.value)) continue;
-    seen.add(item.value);
-    Object.entries(item.value as Record<string, unknown>).forEach(([key, value]) => stack.push({ key, value }));
-  }
-  return null;
-}
+    try {
+      qr = await connectInstance({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name);
+    } catch (e) {
+      lastError = (e as Error).message;
+      console.warn(`[evolution] connect falhou para ${inst.instance_name}: ${lastError}`);
+    }
+    try {
+      state = await instanceState({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name);
+    } catch (e) {
+      console.warn(`[evolution] connectionState falhou para ${inst.instance_name}: ${(e as Error).message}`);
+    }
 
-export async function normalizeQr(qr: unknown): Promise<string | null> {
-  const base64 = walkQrPayload(qr, (key, value) => {
-    if (typeof value !== "string") return null;
-    return asImageDataUrl(value, key.toLowerCase().includes("base64"));
+    const stateVal = extractEvolutionState(state) ?? extractEvolutionState(qr) ?? null;
+    if (stateVal === "open") {
+      await supabase.from("whatsapp_instances").update({ status: "connected", last_qr_base64: null, last_qr_error: null }).eq("id", inst.id);
+      return { qrcode: null, state: stateVal, error: null, source: "connected" as const };
+    }
+
+    let base64 = await normalizeQr(qr);
+    let source: "direct" | "stored" | "none" | "connected" = "none";
+
+    if (base64) {
+      source = "direct";
+      await supabase.from("whatsapp_instances").update({
+        last_qr_base64: base64,
+        last_qr_at: new Date().toISOString(),
+        last_qr_error: null,
+      }).eq("id", inst.id);
+    } else {
+      console.warn(`[evolution] sem QR direto para ${inst.instance_name}. Resposta: ${describePayload(qr)}`);
+      if (inst.last_qr_base64 && inst.last_qr_at) {
+        const ageMs = Date.now() - new Date(inst.last_qr_at).getTime();
+        if (ageMs < 55_000) {
+          base64 = inst.last_qr_base64;
+          source = "stored";
+        }
+      }
+      if (!base64 && lastError) {
+        await supabase.from("whatsapp_instances").update({ last_qr_error: lastError }).eq("id", inst.id);
+      }
+    }
+
+    return {
+      qrcode: base64,
+      state: stateVal,
+      error: base64 ? null : (lastError ?? inst.last_qr_error ?? null),
+      source,
+    };
   });
-  if (base64) return base64;
-
-  const code = walkQrPayload(qr, (key, value) => {
-    if (typeof value !== "string") return null;
-    const k = key.toLowerCase();
-    if (!["code", "qrcode", "qr", "qr_code", "pairingcode", "pairing_code"].includes(k)) return null;
-    if (asImageDataUrl(value)) return null;
-    return value.trim() || null;
-  });
-  if (!code) return null;
-  try {
-    const QRCode = (await import("qrcode")).default;
-    return await QRCode.toDataURL(String(code), { width: 320, margin: 1 });
-  } catch { return null; }
-}
-
-function extractEvolutionState(payload: unknown) {
-  return walkQrPayload(payload, (key, value) => {
-    if (key.toLowerCase() !== "state" || typeof value !== "string") return null;
-    return value;
-  });
-}
-
-// Diagnóstico sanitizado: só estrutura, sem base64.
-function describePayload(p: unknown, depth = 0): string {
-  if (p === null) return "null";
-  if (typeof p !== "object") return typeof p;
-  if (depth > 2) return "…";
-  const obj = p as Record<string, unknown>;
-  const keys = Object.keys(obj).slice(0, 8);
-  return `{ ${keys.map((k) => `${k}: ${describePayload(obj[k], depth + 1)}`).join(", ")} }`;
-}
 
 export const getInstanceQrFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
