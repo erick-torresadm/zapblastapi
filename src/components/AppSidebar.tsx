@@ -5,9 +5,10 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
-  LayoutDashboard, Server, Smartphone, Users, Send, Inbox,
+  LayoutDashboard, Server, Smartphone, Users, Send, Inbox, UserCog,
   LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, KeyRound,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Logo } from "@/components/Logo";

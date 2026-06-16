@@ -18,6 +18,7 @@ import { Route as ApiPublicFlowWorkerRouteImport } from './routes/api/public/flo
 import { Route as ApiPublicDispatchWorkerRouteImport } from './routes/api/public/dispatch-worker'
 import { Route as AuthenticatedAppWarmupRouteImport } from './routes/_authenticated/app.warmup'
 import { Route as AuthenticatedAppWalletRouteImport } from './routes/_authenticated/app.wallet'
+import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/app.team'
 import { Route as AuthenticatedAppServersRouteImport } from './routes/_authenticated/app.servers'
 import { Route as AuthenticatedAppMarketplaceRouteImport } from './routes/_authenticated/app.marketplace'
 import { Route as AuthenticatedAppListsRouteImport } from './routes/_authenticated/app.lists'
@@ -78,6 +79,11 @@ const AuthenticatedAppWarmupRoute = AuthenticatedAppWarmupRouteImport.update({
 const AuthenticatedAppWalletRoute = AuthenticatedAppWalletRouteImport.update({
   id: '/app/wallet',
   path: '/app/wallet',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppTeamRoute = AuthenticatedAppTeamRouteImport.update({
+  id: '/app/team',
+  path: '/app/team',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppServersRoute = AuthenticatedAppServersRouteImport.update({
@@ -187,6 +193,7 @@ export interface FileRoutesByFullPath {
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
   '/app/marketplace': typeof AuthenticatedAppMarketplaceRoute
   '/app/servers': typeof AuthenticatedAppServersRoute
+  '/app/team': typeof AuthenticatedAppTeamRoute
   '/app/wallet': typeof AuthenticatedAppWalletRoute
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
@@ -213,6 +220,7 @@ export interface FileRoutesByTo {
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
   '/app/marketplace': typeof AuthenticatedAppMarketplaceRoute
   '/app/servers': typeof AuthenticatedAppServersRoute
+  '/app/team': typeof AuthenticatedAppTeamRoute
   '/app/wallet': typeof AuthenticatedAppWalletRoute
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
@@ -242,6 +250,7 @@ export interface FileRoutesById {
   '/_authenticated/app/lists': typeof AuthenticatedAppListsRouteWithChildren
   '/_authenticated/app/marketplace': typeof AuthenticatedAppMarketplaceRoute
   '/_authenticated/app/servers': typeof AuthenticatedAppServersRoute
+  '/_authenticated/app/team': typeof AuthenticatedAppTeamRoute
   '/_authenticated/app/wallet': typeof AuthenticatedAppWalletRoute
   '/_authenticated/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
@@ -271,6 +280,7 @@ export interface FileRouteTypes {
     | '/app/lists'
     | '/app/marketplace'
     | '/app/servers'
+    | '/app/team'
     | '/app/wallet'
     | '/app/warmup'
     | '/api/public/dispatch-worker'
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/app/lists'
     | '/app/marketplace'
     | '/app/servers'
+    | '/app/team'
     | '/app/wallet'
     | '/app/warmup'
     | '/api/public/dispatch-worker'
@@ -325,6 +336,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/lists'
     | '/_authenticated/app/marketplace'
     | '/_authenticated/app/servers'
+    | '/_authenticated/app/team'
     | '/_authenticated/app/wallet'
     | '/_authenticated/app/warmup'
     | '/api/public/dispatch-worker'
@@ -414,6 +426,13 @@ declare module '@tanstack/react-router' {
       path: '/app/wallet'
       fullPath: '/app/wallet'
       preLoaderRoute: typeof AuthenticatedAppWalletRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/team': {
+      id: '/_authenticated/app/team'
+      path: '/app/team'
+      fullPath: '/app/team'
+      preLoaderRoute: typeof AuthenticatedAppTeamRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/servers': {
@@ -576,6 +595,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppListsRoute: typeof AuthenticatedAppListsRouteWithChildren
   AuthenticatedAppMarketplaceRoute: typeof AuthenticatedAppMarketplaceRoute
   AuthenticatedAppServersRoute: typeof AuthenticatedAppServersRoute
+  AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
   AuthenticatedAppWalletRoute: typeof AuthenticatedAppWalletRoute
   AuthenticatedAppWarmupRoute: typeof AuthenticatedAppWarmupRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
@@ -595,6 +615,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppListsRoute: AuthenticatedAppListsRouteWithChildren,
   AuthenticatedAppMarketplaceRoute: AuthenticatedAppMarketplaceRoute,
   AuthenticatedAppServersRoute: AuthenticatedAppServersRoute,
+  AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,
   AuthenticatedAppWalletRoute: AuthenticatedAppWalletRoute,
   AuthenticatedAppWarmupRoute: AuthenticatedAppWarmupRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
