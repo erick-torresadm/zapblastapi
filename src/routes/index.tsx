@@ -13,10 +13,10 @@ import { Logo } from "@/components/Logo";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Perseidas — Dispare no WhatsApp sem ser banido" },
-      { name: "description", content: "Plataforma anti-ban com Evolution API, aquecimento automático de chips e marketplace de números BR. Spintax, rotação inteligente e relatórios em tempo real." },
-      { property: "og:title", content: "Perseidas — Dispare no WhatsApp sem ser banido" },
-      { property: "og:description", content: "Anti-ban Suite com Evolution API, aquecimento e marketplace de chips." },
+      { title: "Perseidas — Disparos, Chatbot e CRM no WhatsApp sem ban" },
+      { name: "description", content: "Plataforma all-in-one: disparos em massa anti-ban, fluxos automáticos com palavra-chave, CRM com múltiplos atendentes e aquecimento de chips. Tudo num só painel." },
+      { property: "og:title", content: "Perseidas — Disparos, Chatbot e CRM no WhatsApp sem ban" },
+      { property: "og:description", content: "Disparo + fluxos por palavra-chave + CRM multi-atendente + anti-ban. Tudo num só painel." },
     ],
   }),
   component: Landing,
