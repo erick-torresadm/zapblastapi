@@ -145,7 +145,6 @@ export const publishFlowFn = createServerFn({ method: "POST" })
 
     // Validações mínimas
     if (!f.draft_nodes?.length) throw new Error("Adicione ao menos um passo");
-    if (!f.instance_id) throw new Error("Selecione um chip antes de publicar");
     if (f.trigger_type === "keyword" && !(f.trigger_config?.keywords?.length)) throw new Error("Defina pelo menos uma palavra-chave");
 
     const { data: maxV } = await supabase
