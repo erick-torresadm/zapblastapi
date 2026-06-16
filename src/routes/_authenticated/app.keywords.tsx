@@ -273,6 +273,37 @@ function KeywordsPage() {
               </Select>
             </div>
 
+            <div className="rounded-md border p-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label htmlFor="afm" className="text-sm">Eu também disparo (fromMe)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Quando ligado, mensagens enviadas pelo seu chip também acionam o fluxo (útil para o admin "comandar" o bot).
+                  </p>
+                </div>
+                <Switch id="afm" checked={form.allow_from_me} onCheckedChange={(v) => setForm({ ...form, allow_from_me: v })} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="delay" className="text-sm">Atraso (segundos)</Label>
+                  <Input id="delay" type="number" min={0} max={86400}
+                    value={form.delay_seconds}
+                    onChange={(e) => setForm({ ...form, delay_seconds: Math.max(0, Number(e.target.value) || 0) })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Espera antes de iniciar o fluxo.</p>
+                </div>
+                <div>
+                  <Label htmlFor="cool" className="text-sm">Cooldown (segundos)</Label>
+                  <Input id="cool" type="number" min={0} max={86400}
+                    value={form.cooldown_seconds}
+                    onChange={(e) => setForm({ ...form, cooldown_seconds: Math.max(0, Number(e.target.value) || 0) })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Tempo mínimo entre disparos do mesmo gatilho.</p>
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between">
               <Label htmlFor="active">Ativo</Label>
               <Switch id="active" checked={form.active} onCheckedChange={(v) => setForm({ ...form, active: v })} />
