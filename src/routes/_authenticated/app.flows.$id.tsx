@@ -160,6 +160,8 @@ function StepNode({ data, selected, type }: NodeProps) {
 const nodeTypes = {
   start: StepNode,
   message: StepNode,
+  media: StepNode,
+  typing: StepNode,
   ask: StepNode,
   delay: StepNode,
   condition: StepNode,
@@ -168,6 +170,7 @@ const nodeTypes = {
   transfer_human: StepNode,
   webhook: StepNode,
 };
+
 
 /* =========================================================
    Estado inicial
