@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Eye } from "lucide-react";
+import { Plus, Trash2, Eye, Download } from "lucide-react";
 import { toast } from "sonner";
 import { normalizePhone, parseCSV } from "@/lib/phone";
 
@@ -74,6 +74,16 @@ function ListsPage() {
     setPreview({ name: listName, contacts });
   }
 
+  function downloadTemplate() {
+    const csv = "phone,nome,empresa\n5511999999999,João Silva,Acme\n5511988888888,Maria Souza,Beta\n";
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "modelo-contatos.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -81,8 +91,12 @@ function ListsPage() {
           <h1 className="text-2xl font-bold">Listas de contatos</h1>
           <p className="text-sm text-muted-foreground">Importe CSVs com seus contatos</p>
         </div>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setPreview(null); }}>
-          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Nova lista</Button></DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={downloadTemplate}>
+            <Download className="mr-2 h-4 w-4" />Baixar modelo CSV
+          </Button>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setPreview(null); }}>
+            <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Nova lista</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Importar lista CSV</DialogTitle>
@@ -124,7 +138,9 @@ function ListsPage() {
             )}
           </DialogContent>
         </Dialog>
+        </div>
       </div>
+
 
       <Card>
         <CardHeader><CardTitle>Minhas listas</CardTitle></CardHeader>
