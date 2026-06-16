@@ -114,3 +114,47 @@ export async function checkWhatsappNumbers(
 
 }
 
+/**
+ * Envia presence (digitando / gravando) para o contato.
+ * presence: "composing" = digitando, "recording" = gravando áudio, "paused" = parou
+ * delayMs: por quanto tempo manter a presença (a Evolution mantém composing até o delay expirar)
+ */
+export async function sendPresence(
+  server: EvolutionServer,
+  instanceName: string,
+  phone: string,
+  presence: "composing" | "recording" | "paused",
+  delayMs: number = 1200,
+) {
+  return evoFetch(server, `/chat/sendPresence/${encodeURIComponent(instanceName)}`, {
+    method: "POST",
+    body: JSON.stringify({ number: phone, presence, delay: delayMs }),
+  });
+}
+
+/** Calcula duração humana de digitação baseada no tamanho do texto. WPM padrão = 180. */
+export function typingDurationMs(text: string, wpm = 180): number {
+  const words = Math.max(1, text.trim().split(/\s+/).length);
+  const ms = (words / wpm) * 60 * 1000;
+  // mínimo 800ms, máximo 8s pra não trancar o fluxo
+  return Math.max(800, Math.min(8000, Math.round(ms)));
+}
+
+/** Sorteia delay entre envios respeitando jitter humano. */
+export function pickHumanDelayMs(minMs: number, maxMs: number): number {
+  const lo = Math.max(0, Math.min(minMs, maxMs));
+  const hi = Math.max(lo, Math.max(minMs, maxMs));
+  return Math.floor(lo + Math.random() * (hi - lo));
+}
+
+/** Retorna true se hora local de Brasília (UTC-3) está dentro da janela silenciosa. */
+export function isInQuietHours(startHour: number, endHour: number, now: Date = new Date()): boolean {
+  // -3h pra horário de Brasília (sem DST agora)
+  const h = (now.getUTCHours() - 3 + 24) % 24;
+  if (startHour === endHour) return false;
+  if (startHour < endHour) return h >= startHour && h < endHour;
+  // janela atravessa meia-noite (ex.: 22 -> 8)
+  return h >= startHour || h < endHour;
+}
+
+
