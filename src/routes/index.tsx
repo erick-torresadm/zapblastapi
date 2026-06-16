@@ -27,12 +27,8 @@ function Landing() {
       {/* HEADER */}
       <header className="sticky top-0 z-30 border-b border-border/40 bg-background/70 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow shadow-[0_0_20px_-2px_var(--color-primary)]">
-              <Zap className="h-5 w-5 fill-white text-white" />
-            </div>
-            <span className="font-display text-lg font-bold tracking-tight">ZapBlast</span>
-          </Link>
+          <Logo to="/" size="md" />
+
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
             <a href="#features" className="transition-colors hover:text-foreground">Recursos</a>
             <a href="#anti-ban" className="transition-colors hover:text-foreground">Anti-ban</a>
