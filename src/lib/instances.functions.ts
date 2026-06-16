@@ -70,18 +70,58 @@ async function getInstanceWithServer(instanceId: string, userClient: any) {
   return { inst, srv };
 }
 
+function asImageDataUrl(value: string, fromBase64Field = false) {
+  const trimmed = value.trim();
+  const embedded = trimmed.match(/data:image\/[a-zA-Z+.-]+;base64,([A-Za-z0-9+/=_-][A-Za-z0-9+/=\s_-]*)/);
+  if (embedded) return `data:image/png;base64,${embedded[1].replace(/\s/g, "")}`;
+
+  const raw = trimmed.replace(/^base64,?/i, "").replace(/\s/g, "");
+  const looksLikeBase64 = raw.length > 80 && /^[A-Za-z0-9+/=_-]+$/.test(raw);
+  if (fromBase64Field || looksLikeBase64) return `data:image/png;base64,${raw}`;
+  return null;
+}
+
+function walkQrPayload(payload: unknown, visitor: (key: string, value: unknown) => string | null) {
+  const seen = new Set<unknown>();
+  const stack: Array<{ key: string; value: unknown }> = [{ key: "", value: payload }];
+  while (stack.length) {
+    const item = stack.shift()!;
+    const found = visitor(item.key, item.value);
+    if (found) return found;
+    if (!item.value || typeof item.value !== "object" || seen.has(item.value)) continue;
+    seen.add(item.value);
+    Object.entries(item.value as Record<string, unknown>).forEach(([key, value]) => stack.push({ key, value }));
+  }
+  return null;
+}
+
 async function normalizeQr(qr: unknown): Promise<string | null> {
-  if (!qr || typeof qr !== "object") return null;
-  const r = qr as Record<string, any>;
-  // tentativas em ordem: r.base64 → r.qrcode.base64 → r.qrcode (string) → r.code → r.qrcode.code
-  const base64 = r.base64 ?? r.qrcode?.base64 ?? null;
-  if (base64) return base64.startsWith("data:") ? base64 : `data:image/png;base64,${base64}`;
-  const code = typeof r.qrcode === "string" ? r.qrcode : (r.code ?? r.qrcode?.code ?? null);
+  const base64 = walkQrPayload(qr, (key, value) => {
+    if (typeof value !== "string") return null;
+    const image = asImageDataUrl(value, key.toLowerCase().includes("base64"));
+    return image;
+  });
+  if (base64) return base64;
+
+  const code = walkQrPayload(qr, (key, value) => {
+    if (typeof value !== "string") return null;
+    const k = key.toLowerCase();
+    if (!["code", "qrcode", "qr", "qr_code", "pairingcode", "pairing_code"].includes(k)) return null;
+    if (asImageDataUrl(value)) return null;
+    return value.trim() || null;
+  });
   if (!code) return null;
   try {
     const QRCode = (await import("qrcode")).default;
     return await QRCode.toDataURL(String(code), { width: 320, margin: 1 });
   } catch { return null; }
+}
+
+function extractEvolutionState(payload: unknown) {
+  return walkQrPayload(payload, (key, value) => {
+    if (key.toLowerCase() !== "state" || typeof value !== "string") return null;
+    return value;
+  });
 }
 
 export const getInstanceQrFn = createServerFn({ method: "POST" })
@@ -95,7 +135,7 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
       connectInstance({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name).catch(() => null),
       instanceState({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name).catch(() => null),
     ]);
-    const stateVal = ((state as { instance?: { state?: string } } | null)?.instance?.state) ?? null;
+    const stateVal = extractEvolutionState(state) ?? extractEvolutionState(qr);
     if (stateVal === "open") {
       await supabase.from("whatsapp_instances").update({ status: "connected" }).eq("id", inst.id);
     }
