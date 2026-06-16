@@ -28,8 +28,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Badge } from "@/components/ui/badge";
 import {
   Play, MessageSquare, Clock, GitBranch, Tag, Webhook, Trash2, Save, Download, Plus,
-  ArrowLeft, Rocket, CheckCircle2, Loader2,
+  ArrowLeft, Rocket, CheckCircle2, Loader2, Image as ImageIcon, Keyboard,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -43,7 +44,7 @@ export const Route = createFileRoute("/_authenticated/app/flows/$id")({
 /* =========================================================
    Tipos de nó disponíveis no fluxo
    ========================================================= */
-type StepType = "start" | "message" | "delay" | "condition" | "tag" | "webhook" | "ask" | "ai" | "transfer_human";
+type StepType = "start" | "message" | "media" | "typing" | "delay" | "condition" | "tag" | "webhook" | "ask" | "ai" | "transfer_human";
 
 type StepData = {
   label: string;
@@ -58,8 +59,17 @@ type StepData = {
   variable?: string;
   systemPrompt?: string;
   userInput?: string;
+  // media
+  mediatype?: "image" | "video" | "audio" | "document";
+  mediaUrl?: string;
+  caption?: string;
+  fileName?: string;
+  // typing/recording
+  presence?: "composing" | "recording";
+  seconds?: number;
   [key: string]: unknown;
 };
+
 
 import { HelpCircle, Sparkles as SparklesIcon, UserCog } from "lucide-react";
 
@@ -70,7 +80,9 @@ const STEP_META: Record<StepType, {
   description: string;
 }> = {
   start:          { label: "Início",            icon: Play,           color: "var(--color-primary)", description: "Ponto de entrada do fluxo" },
-  message:        { label: "Mensagem",          icon: MessageSquare,  color: "#3b82f6",              description: "Envia uma mensagem WhatsApp" },
+  message:        { label: "Mensagem",          icon: MessageSquare,  color: "#3b82f6",              description: "Envia texto (com digitando…)" },
+  media:          { label: "Mídia",             icon: ImageIcon,      color: "#06b6d4",              description: "Imagem, vídeo, áudio ou documento" },
+  typing:         { label: "Digitando…",        icon: Keyboard,       color: "#64748b",              description: "Mostra digitando/gravando por X seg" },
   ask:            { label: "Pergunta",          icon: HelpCircle,     color: "#0ea5e9",              description: "Envia pergunta e guarda a resposta em variável" },
   delay:          { label: "Esperar",           icon: Clock,          color: "#f59e0b",              description: "Aguarda antes do próximo passo" },
   condition:      { label: "Condição",          icon: GitBranch,      color: "#a855f7",              description: "Ramifica em sim / não" },
@@ -78,6 +90,7 @@ const STEP_META: Record<StepType, {
   ai:             { label: "IA",                icon: SparklesIcon,   color: "#ec4899",              description: "Resposta gerada por IA" },
   transfer_human: { label: "Transferir humano", icon: UserCog,        color: "#6366f1",              description: "Encaminha conversa para atendimento humano" },
   webhook:        { label: "Webhook",           icon: Webhook,        color: "#ef4444",              description: "Chama uma URL externa" },
+
 };
 
 /* =========================================================
@@ -91,6 +104,8 @@ function StepNode({ data, selected, type }: NodeProps) {
 
   const preview =
     stepType === "message"        ? (d.message || "Clique para editar a mensagem…")
+  : stepType === "media"          ? (d.mediaUrl ? `${(d.mediatype ?? "image").toUpperCase()}: ${d.mediaUrl.slice(0, 40)}…` : "Configure a mídia…")
+  : stepType === "typing"         ? `${d.presence === "recording" ? "Gravando" : "Digitando"} por ${d.seconds ?? 3}s`
   : stepType === "ask"            ? (d.message ? `Pergunta: ${d.message}` : "Configure a pergunta…")
   : stepType === "ai"             ? (d.systemPrompt || "Configure o prompt da IA…")
   : stepType === "transfer_human" ? "Encaminha a conversa para um humano"
@@ -99,6 +114,7 @@ function StepNode({ data, selected, type }: NodeProps) {
   : stepType === "tag"            ? `Adicionar tag: ${d.tag || "—"}`
   : stepType === "webhook"        ? (d.webhookUrl || "Configure a URL")
   : "Ponto de entrada — o fluxo começa aqui";
+
 
   return (
     <div
@@ -144,6 +160,8 @@ function StepNode({ data, selected, type }: NodeProps) {
 const nodeTypes = {
   start: StepNode,
   message: StepNode,
+  media: StepNode,
+  typing: StepNode,
   ask: StepNode,
   delay: StepNode,
   condition: StepNode,
@@ -152,6 +170,7 @@ const nodeTypes = {
   transfer_human: StepNode,
   webhook: StepNode,
 };
+
 
 /* =========================================================
    Estado inicial
@@ -449,6 +468,7 @@ function FlowsInner() {
                     <Input id="label" value={d.label} onChange={(e) => updateSelected({ label: e.target.value })} />
                   </div>
 
+
                   {t === "message" && (
                     <div>
                       <Label htmlFor="message">Mensagem</Label>
@@ -459,9 +479,59 @@ function FlowsInner() {
                         placeholder="Olá {{nome}}, tudo bem?"
                       />
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        Use <code className="rounded bg-muted px-1">{"{{nome}}"}</code>, <code className="rounded bg-muted px-1">{"{{telefone}}"}</code> ou outras variáveis.
+                        Use <code className="rounded bg-muted px-1">{"{{nome}}"}</code>, <code className="rounded bg-muted px-1">{"{{telefone}}"}</code> ou outras variáveis. O "digitando…" aparece automaticamente.
                       </p>
                     </div>
+                  )}
+
+                  {t === "media" && (
+                    <>
+                      <div>
+                        <Label>Tipo de mídia</Label>
+                        <div className="mt-1 grid grid-cols-4 gap-1">
+                          {(["image","video","audio","document"] as const).map((mt) => (
+                            <Button key={mt} type="button" size="sm"
+                              variant={(d.mediatype ?? "image") === mt ? "default" : "outline"}
+                              onClick={() => updateSelected({ mediatype: mt })}
+                              className="capitalize">{mt}</Button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="media-url">URL ou base64 da mídia</Label>
+                        <Input id="media-url" value={d.mediaUrl ?? ""} onChange={(e) => updateSelected({ mediaUrl: e.target.value })} placeholder="https://… ou data:image/png;base64,…" />
+                        <p className="mt-1 text-[11px] text-muted-foreground">URL pública (faça upload no menu Campanhas → Mídia) ou data URI.</p>
+                      </div>
+                      {(d.mediatype === "document") && (
+                        <div>
+                          <Label htmlFor="filename">Nome do arquivo</Label>
+                          <Input id="filename" value={d.fileName ?? ""} onChange={(e) => updateSelected({ fileName: e.target.value })} placeholder="contrato.pdf" />
+                        </div>
+                      )}
+                      {d.mediatype !== "audio" && (
+                        <div>
+                          <Label htmlFor="caption">Legenda (opcional)</Label>
+                          <Textarea id="caption" rows={3} value={d.caption ?? ""} onChange={(e) => updateSelected({ caption: e.target.value })} placeholder="Olha só {{nome}}!" />
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {t === "typing" && (
+                    <>
+                      <div>
+                        <Label>Mostrar</Label>
+                        <div className="mt-1 grid grid-cols-2 gap-1">
+                          <Button type="button" size="sm" variant={(d.presence ?? "composing") === "composing" ? "default" : "outline"} onClick={() => updateSelected({ presence: "composing" })}>Digitando…</Button>
+                          <Button type="button" size="sm" variant={d.presence === "recording" ? "default" : "outline"} onClick={() => updateSelected({ presence: "recording" })}>Gravando áudio</Button>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="typing-secs">Duração (segundos)</Label>
+                        <Input id="typing-secs" type="number" min={1} max={15} value={d.seconds ?? 3} onChange={(e) => updateSelected({ seconds: Number(e.target.value) })} />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">Não envia mensagem — só mostra o indicador no WhatsApp do contato.</p>
+                    </>
                   )}
 
                   {t === "ask" && (
@@ -477,6 +547,7 @@ function FlowsInner() {
                       </div>
                     </>
                   )}
+
 
                   {t === "ai" && (
                     <>

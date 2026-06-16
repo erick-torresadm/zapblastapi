@@ -11,7 +11,8 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
           return new Response("Unauthorized", { status: 401 });
         }
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { sendText, sendMedia } = await import("@/lib/evolution.server");
+        const { sendText, sendMedia, sendPresence, typingDurationMs, isInQuietHours } = await import("@/lib/evolution.server");
+
 
         // 1) Reset diário de sent_today
         await supabaseAdmin.from("whatsapp_instances")
@@ -51,7 +52,7 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
 
 
         let sent = 0, failed = 0, skipped = 0;
-        const instanceCache: Record<string, { server: { base_url: string; api_key: string }; instance_name: string; sent_today: number; daily_limit: number; last_sent_at: string | null; status: string }> = {};
+        const instanceCache: Record<string, { server: { base_url: string; api_key: string }; instance_name: string; sent_today: number; daily_limit: number; last_sent_at: string | null; status: string; quiet_start_hour: number; quiet_end_hour: number; typing_enabled: boolean; typing_wpm: number; hourly_limit: number; sent_hour: number; sent_hour_at: string | null }> = {};
 
         for (const msg of pending ?? []) {
           const camp = msg.campaigns as { min_delay_s: number; max_delay_s: number; instance_ids: string[]; media_url: string | null; media_type: string | null; media_filename: string | null; flow_id: string | null };
@@ -64,7 +65,7 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
           if (toFetch.length) {
             const { data: insts } = await supabaseAdmin
               .from("whatsapp_instances")
-              .select("id, instance_name, sent_today, daily_limit, last_sent_at, status, evolution_servers(base_url, api_key)")
+              .select("id, instance_name, sent_today, daily_limit, last_sent_at, status, quiet_start_hour, quiet_end_hour, typing_enabled, typing_wpm, hourly_limit, sent_hour, sent_hour_at, evolution_servers(base_url, api_key)")
               .in("id", toFetch);
             for (const i of insts ?? []) {
               const srv = i.evolution_servers as { base_url: string; api_key: string } | null;
@@ -76,15 +77,29 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
                 daily_limit: i.daily_limit,
                 last_sent_at: i.last_sent_at,
                 status: i.status,
+                quiet_start_hour: i.quiet_start_hour,
+                quiet_end_hour: i.quiet_end_hour,
+                typing_enabled: i.typing_enabled,
+                typing_wpm: i.typing_wpm,
+                hourly_limit: i.hourly_limit,
+                sent_hour: i.sent_hour,
+                sent_hour_at: i.sent_hour_at,
               };
             }
           }
+
 
           // Escolhe chip: connected + sent<limit + delay passado, ordenado pelo last_sent_at mais antigo
           const now = Date.now();
           const eligible = candidateIds
             .map((id) => ({ id, ...instanceCache[id] }))
             .filter((i) => i && i.status === "connected" && i.sent_today < i.daily_limit)
+            .filter((i) => !isInQuietHours(i.quiet_start_hour, i.quiet_end_hour))
+            .filter((i) => {
+              // reset horário se hora passou
+              if (!i.sent_hour_at || now - new Date(i.sent_hour_at).getTime() >= 3600 * 1000) return true;
+              return i.sent_hour < i.hourly_limit;
+            })
             .filter((i) => {
               if (!i.last_sent_at) return true;
               const delay = (camp.min_delay_s + Math.random() * (camp.max_delay_s - camp.min_delay_s)) * 1000;
@@ -94,6 +109,7 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
 
           if (!eligible.length) { skipped++; continue; }
           const chip = eligible[0];
+
 
           // Marca sending
           await supabaseAdmin.from("campaign_messages").update({ status: "sending", instance_id: chip.id, attempts: msg.attempts + 1 }).eq("id", msg.id);
@@ -106,6 +122,11 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
               let evoRes: Record<string, unknown>;
               if (camp.media_url && camp.media_type) {
                 const mt = camp.media_type as "image" | "video" | "audio" | "document";
+                if (chip.typing_enabled) {
+                  const presence = mt === "audio" ? "recording" : "composing";
+                  try { await sendPresence(chip.server, chip.instance_name, msg.phone, presence, 1500); } catch {}
+                  await new Promise((r) => setTimeout(r, 1500));
+                }
                 evoRes = await sendMedia(chip.server, chip.instance_name, msg.phone, {
                   mediatype: mt,
                   media: camp.media_url,
@@ -113,7 +134,13 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
                   fileName: camp.media_filename ?? undefined,
                 });
               } else {
-                evoRes = await sendText(chip.server, chip.instance_name, msg.phone, msg.rendered_message ?? "");
+                const text = msg.rendered_message ?? "";
+                if (chip.typing_enabled && text) {
+                  const dur = typingDurationMs(text, chip.typing_wpm);
+                  try { await sendPresence(chip.server, chip.instance_name, msg.phone, "composing", dur); } catch {}
+                  await new Promise((r) => setTimeout(r, dur));
+                }
+                evoRes = await sendText(chip.server, chip.instance_name, msg.phone, text);
               }
               evoId = (evoRes as { key?: { id?: string } })?.key?.id
                 ?? (evoRes as { messageId?: string })?.messageId ?? null;
@@ -126,12 +153,21 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
             }).eq("id", msg.id);
 
             if (shouldSend) {
+              const nowIso = new Date().toISOString();
               const newSent = chip.sent_today + 1;
+              // reset hora se janela expirou
+              const hourExpired = !chip.sent_hour_at || (Date.now() - new Date(chip.sent_hour_at).getTime()) >= 3600 * 1000;
+              const newHour = hourExpired ? 1 : chip.sent_hour + 1;
+              const newHourAt = hourExpired ? nowIso : (chip.sent_hour_at ?? nowIso);
               await supabaseAdmin.from("whatsapp_instances").update({
-                sent_today: newSent, last_sent_at: new Date().toISOString(),
+                sent_today: newSent, last_sent_at: nowIso,
+                sent_hour: newHour, sent_hour_at: newHourAt,
               }).eq("id", chip.id);
               instanceCache[chip.id].sent_today = newSent;
-              instanceCache[chip.id].last_sent_at = new Date().toISOString();
+              instanceCache[chip.id].last_sent_at = nowIso;
+              instanceCache[chip.id].sent_hour = newHour;
+              instanceCache[chip.id].sent_hour_at = newHourAt;
+
             }
 
             await supabaseAdmin.from("campaigns")
