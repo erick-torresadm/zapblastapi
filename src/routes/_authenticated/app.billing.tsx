@@ -80,7 +80,7 @@ function BillingPage() {
         {(data?.plans ?? []).map((p) => {
           const Icon = planIcons[p.slug] ?? Sparkles;
           const isCurrent = sub?.plan_id === p.id;
-          const annualTotal = (p as { price_annual_cents?: number | null }).price_annual_cents ?? Math.round(p.price_cents * 12 * 0.8);
+          const annualTotal = (p as { price_annual_cents?: number | null }).price_annual_cents ?? Math.round(p.price_cents * 12 * 0.7);
           const monthlyEquivalent = Math.round(annualTotal / 12);
           const yearlySavings = (p.price_cents * 12) - annualTotal;
           const showAnnual = cycle === "annual";
