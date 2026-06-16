@@ -61,12 +61,13 @@ function InstancesPage() {
   });
 
   const refreshQr = useMutation({
-    mutationFn: async (instance_id: string) => qrFn({ data: { instance_id } }),
-    onSuccess: (res, id) => {
+    mutationFn: async (args: { instance_id: string; force_restart?: boolean }) =>
+      qrFn({ data: args }),
+    onSuccess: (res, args) => {
       setQrData((prev) => ({
         qrcode: res.qrcode,
         state: res.state,
-        instanceId: id,
+        instanceId: args.instance_id,
         error: res.error ?? null,
         tries: (prev?.tries ?? 0) + 1,
       }));
