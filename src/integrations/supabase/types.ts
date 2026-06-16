@@ -572,36 +572,48 @@ export type Database = {
       flow_keyword_triggers: {
         Row: {
           active: boolean
+          allow_from_me: boolean
+          cooldown_seconds: number
           created_at: string
           created_by_admin: boolean
+          delay_seconds: number
           flow_id: string
           id: string
           instance_id: string | null
           keywords: string[]
+          last_triggered_at: string | null
           match_mode: string
           updated_at: string
           user_id: string
         }
         Insert: {
           active?: boolean
+          allow_from_me?: boolean
+          cooldown_seconds?: number
           created_at?: string
           created_by_admin?: boolean
+          delay_seconds?: number
           flow_id: string
           id?: string
           instance_id?: string | null
           keywords?: string[]
+          last_triggered_at?: string | null
           match_mode?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           active?: boolean
+          allow_from_me?: boolean
+          cooldown_seconds?: number
           created_at?: string
           created_by_admin?: boolean
+          delay_seconds?: number
           flow_id?: string
           id?: string
           instance_id?: string | null
           keywords?: string[]
+          last_triggered_at?: string | null
           match_mode?: string
           updated_at?: string
           user_id?: string
