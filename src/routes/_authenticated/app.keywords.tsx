@@ -27,6 +27,7 @@ type Trigger = {
   id: string; user_id: string; flow_id: string; instance_id: string | null;
   keywords: string[]; match_mode: "exact" | "contains" | "starts_with"; active: boolean;
   created_by_admin: boolean; flow_name: string;
+  allow_from_me: boolean; delay_seconds: number; cooldown_seconds: number;
   instance: { id: string; instance_name: string; status: string } | null;
 };
 
@@ -51,11 +52,16 @@ function KeywordsPage() {
     flow_id: "", instance_id: "", keywords: "",
     match_mode: "contains" as "exact" | "contains" | "starts_with",
     active: true, user_id: "",
+    allow_from_me: false, delay_seconds: 0, cooldown_seconds: 0,
   });
 
   function openNew() {
     setEditing(null);
-    setForm({ flow_id: "", instance_id: "", keywords: "", match_mode: "contains", active: true, user_id: "" });
+    setForm({
+      flow_id: "", instance_id: "", keywords: "", match_mode: "contains",
+      active: true, user_id: "",
+      allow_from_me: false, delay_seconds: 0, cooldown_seconds: 0,
+    });
     setOpen(true);
   }
   function openEdit(t: Trigger) {
@@ -67,6 +73,9 @@ function KeywordsPage() {
       match_mode: t.match_mode,
       active: t.active,
       user_id: t.user_id,
+      allow_from_me: !!t.allow_from_me,
+      delay_seconds: t.delay_seconds ?? 0,
+      cooldown_seconds: t.cooldown_seconds ?? 0,
     });
     setOpen(true);
   }
