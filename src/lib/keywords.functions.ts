@@ -11,6 +11,9 @@ const upsertSchema = z.object({
   keywords: z.array(z.string().min(1)).min(1),
   match_mode: matchModeSchema.default("contains"),
   active: z.boolean().default(true),
+  allow_from_me: z.boolean().default(false),
+  delay_seconds: z.number().int().min(0).max(86400).default(0),
+  cooldown_seconds: z.number().int().min(0).max(86400).default(0),
   user_id: z.string().uuid().optional(), // admin pode definir para outro usuário
 });
 
@@ -27,7 +30,7 @@ export const listKeywordTriggersFn = createServerFn({ method: "GET" })
 
     const query = supabase
       .from("flow_keyword_triggers" as any)
-      .select("id,user_id,flow_id,instance_id,keywords,match_mode,active,created_by_admin,created_at,updated_at")
+      .select("id,user_id,flow_id,instance_id,keywords,match_mode,active,created_by_admin,allow_from_me,delay_seconds,cooldown_seconds,created_at,updated_at")
       .order("created_at", { ascending: false });
 
     const { data, error } = admin ? await query : await query.eq("user_id", userId);
@@ -87,6 +90,9 @@ export const upsertKeywordTriggerFn = createServerFn({ method: "POST" })
         keywords,
         match_mode: data.match_mode,
         active: data.active,
+        allow_from_me: data.allow_from_me,
+        delay_seconds: data.delay_seconds,
+        cooldown_seconds: data.cooldown_seconds,
       }).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
@@ -99,6 +105,9 @@ export const upsertKeywordTriggerFn = createServerFn({ method: "POST" })
       keywords,
       match_mode: data.match_mode,
       active: data.active,
+      allow_from_me: data.allow_from_me,
+      delay_seconds: data.delay_seconds,
+      cooldown_seconds: data.cooldown_seconds,
       created_by_admin: admin && targetUserId !== userId,
     }).select("id").single() as any);
     if (error) throw new Error(error.message);

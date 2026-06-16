@@ -9,10 +9,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, KeyRound, Pencil } from "lucide-react";
+import { Plus, Trash2, Bot, Pencil, Clock, User } from "lucide-react";
 import { toast } from "sonner";
 import {
   listKeywordTriggersFn, upsertKeywordTriggerFn, toggleKeywordTriggerFn,
@@ -27,6 +27,7 @@ type Trigger = {
   id: string; user_id: string; flow_id: string; instance_id: string | null;
   keywords: string[]; match_mode: "exact" | "contains" | "starts_with"; active: boolean;
   created_by_admin: boolean; flow_name: string;
+  allow_from_me: boolean; delay_seconds: number; cooldown_seconds: number;
   instance: { id: string; instance_name: string; status: string } | null;
 };
 
@@ -51,11 +52,16 @@ function KeywordsPage() {
     flow_id: "", instance_id: "", keywords: "",
     match_mode: "contains" as "exact" | "contains" | "starts_with",
     active: true, user_id: "",
+    allow_from_me: false, delay_seconds: 0, cooldown_seconds: 0,
   });
 
   function openNew() {
     setEditing(null);
-    setForm({ flow_id: "", instance_id: "", keywords: "", match_mode: "contains", active: true, user_id: "" });
+    setForm({
+      flow_id: "", instance_id: "", keywords: "", match_mode: "contains",
+      active: true, user_id: "",
+      allow_from_me: false, delay_seconds: 0, cooldown_seconds: 0,
+    });
     setOpen(true);
   }
   function openEdit(t: Trigger) {
@@ -67,6 +73,9 @@ function KeywordsPage() {
       match_mode: t.match_mode,
       active: t.active,
       user_id: t.user_id,
+      allow_from_me: !!t.allow_from_me,
+      delay_seconds: t.delay_seconds ?? 0,
+      cooldown_seconds: t.cooldown_seconds ?? 0,
     });
     setOpen(true);
   }
@@ -84,6 +93,9 @@ function KeywordsPage() {
           keywords: kws,
           match_mode: form.match_mode,
           active: form.active,
+          allow_from_me: form.allow_from_me,
+          delay_seconds: form.delay_seconds,
+          cooldown_seconds: form.cooldown_seconds,
           user_id: opts?.isAdmin && form.user_id ? form.user_id : undefined,
         },
       });
@@ -114,13 +126,13 @@ function KeywordsPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <KeyRound className="h-6 w-6" /> Palavras-chave
+            <Bot className="h-6 w-6" /> Bot — Palavras-chave
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Dispare fluxos automaticamente quando o contato enviar uma mensagem com a palavra-chave configurada.
+            O servidor escuta cada mensagem (recebida ou enviada pelo seu chip). Quando bater com uma palavra-chave, o fluxo dispara automaticamente.
           </p>
         </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Nova palavra-chave</Button>
+        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo gatilho</Button>
       </div>
 
       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
@@ -137,6 +149,15 @@ function KeywordsPage() {
                     <Badge variant="secondary">Chip: {t.instance.instance_name}</Badge>
                   ) : (
                     <Badge variant="secondary">Qualquer chip</Badge>
+                  )}
+                  {t.allow_from_me && (
+                    <Badge variant="outline" className="gap-1"><User className="h-3 w-3" /> Eu também disparo</Badge>
+                  )}
+                  {t.delay_seconds > 0 && (
+                    <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" /> Atraso {t.delay_seconds}s</Badge>
+                  )}
+                  {t.cooldown_seconds > 0 && (
+                    <Badge variant="outline" className="gap-1">Cooldown {t.cooldown_seconds}s</Badge>
                   )}
                   {t.created_by_admin && <Badge>admin</Badge>}
                 </div>
@@ -179,9 +200,9 @@ function KeywordsPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar palavra-chave" : "Nova palavra-chave"}</DialogTitle>
+            <DialogTitle>{editing ? "Editar gatilho do Bot" : "Novo gatilho do Bot"}</DialogTitle>
             <DialogDescription>
-              Quando o contato enviar uma mensagem que combine, o fluxo é disparado para ele.
+              Quando a mensagem combinar com uma das palavras, o fluxo escolhido será disparado.
             </DialogDescription>
           </DialogHeader>
 
@@ -250,6 +271,37 @@ function KeywordsPage() {
                   <SelectItem value="starts_with">Começa com</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="rounded-md border p-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label htmlFor="afm" className="text-sm">Eu também disparo (fromMe)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Quando ligado, mensagens enviadas pelo seu chip também acionam o fluxo (útil para o admin "comandar" o bot).
+                  </p>
+                </div>
+                <Switch id="afm" checked={form.allow_from_me} onCheckedChange={(v) => setForm({ ...form, allow_from_me: v })} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="delay" className="text-sm">Atraso (segundos)</Label>
+                  <Input id="delay" type="number" min={0} max={86400}
+                    value={form.delay_seconds}
+                    onChange={(e) => setForm({ ...form, delay_seconds: Math.max(0, Number(e.target.value) || 0) })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Espera antes de iniciar o fluxo.</p>
+                </div>
+                <div>
+                  <Label htmlFor="cool" className="text-sm">Cooldown (segundos)</Label>
+                  <Input id="cool" type="number" min={0} max={86400}
+                    value={form.cooldown_seconds}
+                    onChange={(e) => setForm({ ...form, cooldown_seconds: Math.max(0, Number(e.target.value) || 0) })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Tempo mínimo entre disparos do mesmo gatilho.</p>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center justify-between">

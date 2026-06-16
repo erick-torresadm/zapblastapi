@@ -415,13 +415,28 @@ export async function triggerKeywordFlows(
   const lower = text.toLowerCase();
 
   const { data: triggers, error: tErr } = await supabaseAdmin.from("flow_keyword_triggers")
-    .select("id, flow_id, instance_id, keywords, match_mode")
+    .select("id, flow_id, instance_id, keywords, match_mode, allow_from_me, delay_seconds, cooldown_seconds, last_triggered_at")
     .eq("user_id", args.user_id).eq("active", true);
   if (tErr) { console.error("[keywords] load triggers error", tErr); return; }
   if (!triggers?.length) return;
 
-  const matched = (triggers as Array<{ id: string; flow_id: string; instance_id: string | null; keywords: string[]; match_mode: string }>).filter((t) => {
+  type TriggerRow = {
+    id: string; flow_id: string; instance_id: string | null;
+    keywords: string[]; match_mode: string;
+    allow_from_me: boolean; delay_seconds: number;
+    cooldown_seconds: number; last_triggered_at: string | null;
+  };
+
+  const now = Date.now();
+  const matched = (triggers as TriggerRow[]).filter((t) => {
+    // Direção: por padrão só mensagens recebidas; allow_from_me libera também as enviadas pelo usuário.
+    if (args.from_me && !t.allow_from_me) return false;
     if (t.instance_id && args.instance_id && t.instance_id !== args.instance_id) return false;
+    // Cooldown global do trigger
+    if (t.cooldown_seconds > 0 && t.last_triggered_at) {
+      const elapsed = (now - new Date(t.last_triggered_at).getTime()) / 1000;
+      if (elapsed < t.cooldown_seconds) return false;
+    }
     const kws = (t.keywords ?? []).map((k) => k.toLowerCase().trim()).filter(Boolean);
     if (!kws.length) return false;
     if (t.match_mode === "exact") return kws.includes(lower);
@@ -453,9 +468,23 @@ export async function triggerKeywordFlows(
   if (!contactId) return;
 
   for (const t of matched) {
-    await createFlowRun(supabaseAdmin, {
+    const runId = await createFlowRun(supabaseAdmin, {
       flow_id: t.flow_id, user_id: args.user_id,
       contact_id: contactId, contact_phone: args.phone, instance_id: instanceId,
     });
+
+    // Aplica atraso inicial: marca run como 'waiting' até wait_until
+    if (runId && t.delay_seconds > 0) {
+      const waitUntil = new Date(Date.now() + t.delay_seconds * 1000).toISOString();
+      await supabaseAdmin.from("flow_runs")
+        .update({ status: "waiting", wait_until: waitUntil })
+        .eq("id", runId);
+    }
+
+    // Atualiza last_triggered_at para o cooldown
+    await supabaseAdmin.from("flow_keyword_triggers")
+      .update({ last_triggered_at: new Date().toISOString() })
+      .eq("id", t.id);
   }
 }
+
