@@ -86,27 +86,56 @@ async function getInstanceWithServer(instanceId: string, userClient: any) {
 
 export const getInstanceQrFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: { instance_id: string }) => z.object({ instance_id: z.string().uuid() }).parse(i))
+  .inputValidator((i: { instance_id: string; force_restart?: boolean }) =>
+    z.object({ instance_id: z.string().uuid(), force_restart: z.boolean().optional() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { inst, srv } = await getInstanceWithServer(data.instance_id, supabase);
-    const { connectInstance, instanceState } = await import("@/lib/evolution.server");
+    const { connectInstance, instanceState, restartInstance, logoutInstance } = await import("@/lib/evolution.server");
     const { normalizeQr, extractEvolutionState, describePayload } = await import("@/lib/evolution-qr.server");
+    const evoServer = { base_url: srv.base_url, api_key: srv.api_key };
 
     let qr: Record<string, unknown> | null = null;
     let state: Record<string, unknown> | null = null;
     let lastError: string | null = null;
 
-    try {
-      qr = await connectInstance({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name);
-    } catch (e) {
-      lastError = (e as Error).message;
-      console.warn(`[evolution] connect falhou para ${inst.instance_name}: ${lastError}`);
+    async function tryConnect() {
+      try {
+        qr = await connectInstance(evoServer, inst.instance_name);
+      } catch (e) {
+        lastError = (e as Error).message;
+        console.warn(`[evolution] connect falhou para ${inst.instance_name}: ${lastError}`);
+      }
     }
+
+    // Se o painel pediu reset manual, derruba a sessão antes.
+    if (data.force_restart) {
+      try { await logoutInstance(evoServer, inst.instance_name); } catch { /* ignore */ }
+      try { await restartInstance(evoServer, inst.instance_name); } catch { /* ignore */ }
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+
+    await tryConnect();
     try {
-      state = await instanceState({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name);
+      state = await instanceState(evoServer, inst.instance_name);
     } catch (e) {
       console.warn(`[evolution] connectionState falhou para ${inst.instance_name}: ${(e as Error).message}`);
+    }
+
+    let base64 = await normalizeQr(qr);
+
+    // Workaround bug Evolution #2385: connect devolve { count: N } sem QR quando a instância
+    // está presa em loop de reconexão. Restart força o Baileys a gerar um novo QR.
+    if (!base64 && qr && typeof qr === "object" && "count" in qr && Object.keys(qr).length <= 2) {
+      console.warn(`[evolution] connect retornou shape {count} para ${inst.instance_name}, tentando restart`);
+      try {
+        await restartInstance(evoServer, inst.instance_name);
+        await new Promise((r) => setTimeout(r, 1500));
+        await tryConnect();
+        base64 = await normalizeQr(qr);
+      } catch (e) {
+        console.warn(`[evolution] restart falhou: ${(e as Error).message}`);
+      }
     }
 
     const stateVal = extractEvolutionState(state) ?? extractEvolutionState(qr) ?? null;
@@ -115,7 +144,6 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
       return { qrcode: null, state: stateVal, error: null, source: "connected" as const };
     }
 
-    let base64 = await normalizeQr(qr);
     let source: "direct" | "stored" | "none" | "connected" = "none";
 
     if (base64) {
@@ -126,7 +154,7 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
         last_qr_error: null,
       }).eq("id", inst.id);
     } else {
-      console.warn(`[evolution] sem QR direto para ${inst.instance_name}. Resposta: ${describePayload(qr)}`);
+      console.warn(`[evolution] sem QR para ${inst.instance_name}. Resposta: ${describePayload(qr)} | state: ${describePayload(state)}`);
       if (inst.last_qr_base64 && inst.last_qr_at) {
         const ageMs = Date.now() - new Date(inst.last_qr_at).getTime();
         if (ageMs < 55_000) {
@@ -134,8 +162,11 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
           source = "stored";
         }
       }
-      if (!base64 && lastError) {
-        await supabase.from("whatsapp_instances").update({ last_qr_error: lastError }).eq("id", inst.id);
+      if (!base64) {
+        const msg = lastError
+          ?? "Evolution não devolveu QR (instância pode estar em loop de reconexão). Clique em \"Resetar conexão\".";
+        await supabase.from("whatsapp_instances").update({ last_qr_error: msg }).eq("id", inst.id);
+        lastError = msg;
       }
     }
 
@@ -146,6 +177,7 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
       source,
     };
   });
+
 
 
 export const deleteInstanceFn = createServerFn({ method: "POST" })
