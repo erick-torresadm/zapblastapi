@@ -2,13 +2,15 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { useServerFn } from "@tanstack/react-start";
+import { checkSignupIpFn, recordSignupIpFn } from "@/lib/signup-guard.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Zap } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/auth")({
@@ -16,9 +18,12 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+
 function AuthPage() {
   const nav = useNavigate();
   const [loading, setLoading] = useState(false);
+  const checkIp = useServerFn(checkSignupIpFn);
+  const recordIp = useServerFn(recordSignupIpFn);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -43,20 +48,39 @@ function AuthPage() {
   async function signUp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const email = String(fd.get("email"));
+    const password = String(fd.get("password"));
+    const name = String(fd.get("name") ?? "");
+    if (password.length < 4) return toast.error("A senha precisa ter ao menos 4 caracteres.");
+
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: String(fd.get("email")),
-      password: String(fd.get("password")),
-      options: {
-        emailRedirectTo: window.location.origin + "/app",
-        data: { full_name: String(fd.get("name") ?? "") },
-      },
-    });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Conta criada! Você já está logado.");
-    nav({ to: "/app", replace: true });
+    try {
+      // 1) Bloqueia múltiplos cadastros do mesmo IP
+      const ipCheck = await checkIp();
+      if (!ipCheck.ok) { setLoading(false); return toast.error(ipCheck.reason); }
+
+      // 2) Cria conta (sem confirmação de e-mail — auto-login)
+      const { error } = await supabase.auth.signUp({
+        email, password,
+        options: { data: { full_name: name } },
+      });
+      if (error) { setLoading(false); return toast.error(error.message); }
+
+      // 3) Registra IP do novo usuário
+      try { await recordIp(); } catch (e) { console.warn("[signup] recordIp falhou", e); }
+
+      setLoading(false);
+      toast.success("🎉 Conta criada! Seu teste Pro de 7 dias começou agora.", {
+        description: "Você ganhou acesso completo: 20 chips, 5.000 mensagens/dia e aquecimento ilimitado.",
+        duration: 6000,
+      });
+      nav({ to: "/app", replace: true });
+    } catch (e) {
+      setLoading(false);
+      toast.error((e as Error).message);
+    }
   }
+
 
   async function google() {
     setLoading(true);
@@ -125,13 +149,25 @@ function AuthPage() {
                 </TabsContent>
 
                 <TabsContent value="signup" className="mt-5">
+                  <div className="mb-4 flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs">
+                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <div>
+                      <div className="font-semibold text-foreground">7 dias grátis no plano Pro</div>
+                      <div className="text-muted-foreground">20 chips, 5.000 mensagens/dia, aquecimento ilimitado. Sem cartão.</div>
+                    </div>
+                  </div>
                   <form onSubmit={signUp} className="space-y-4">
                     <div><Label htmlFor="su-name">Nome</Label><Input id="su-name" name="name" required className="mt-1.5" /></div>
                     <div><Label htmlFor="su-email">E-mail</Label><Input id="su-email" name="email" type="email" required autoComplete="email" className="mt-1.5" /></div>
-                    <div><Label htmlFor="su-pwd">Senha</Label><Input id="su-pwd" name="password" type="password" required minLength={6} autoComplete="new-password" className="mt-1.5" /></div>
-                    <Button type="submit" className="w-full bg-gradient-to-br from-primary to-primary-glow shadow-glow" disabled={loading}>Criar conta</Button>
+                    <div>
+                      <Label htmlFor="su-pwd">Senha</Label>
+                      <Input id="su-pwd" name="password" type="password" required autoComplete="new-password" className="mt-1.5" />
+                      <p className="mt-1 text-[11px] text-muted-foreground">Mínimo 4 caracteres. Use o que for fácil de lembrar.</p>
+                    </div>
+                    <Button type="submit" className="w-full bg-gradient-to-br from-primary to-primary-glow shadow-glow" disabled={loading}>Começar 7 dias grátis</Button>
                   </form>
                 </TabsContent>
+
               </Tabs>
 
               <div className="my-5 flex items-center gap-2"><div className="h-px flex-1 bg-border" /><span className="text-xs text-muted-foreground">OU</span><div className="h-px flex-1 bg-border" /></div>
