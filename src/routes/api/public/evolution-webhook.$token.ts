@@ -58,7 +58,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
 
         if (event.includes("messages.upsert") || event === "MESSAGES_UPSERT") {
           const key = (data as { key?: { id?: string; remoteJid?: string; fromMe?: boolean } }).key;
-          const fromMe = key?.fromMe;
+          const fromMe = !!key?.fromMe;
           const remoteJid = key?.remoteJid ?? "";
           const fromPhone = remoteJid.replace(/@.*/, "");
           const messageText =
@@ -66,47 +66,67 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
             ?? ((data as { message?: { extendedTextMessage?: { text?: string } } }).message?.extendedTextMessage?.text)
             ?? null;
 
-          // Resposta de contato (não fromMe) → grava inbox
-          if (!fromMe && fromPhone) {
-            await supabaseAdmin.from("incoming_messages").insert({
+          if (fromPhone) {
+            // Grava em chat_messages (CRM/Inbox)
+            await supabaseAdmin.from("chat_messages").insert({
               user_id: server.user_id,
               instance_id: instanceId,
-              from_phone: fromPhone,
-              message_text: messageText,
+              contact_phone: fromPhone,
+              direction: fromMe ? "out" : "in",
+              text: messageText,
               evolution_message_id: key?.id ?? null,
-              raw_payload: payload as never,
+              status: "delivered",
             });
 
-            // Marca mensagem original como "replied"
-            await supabaseAdmin.from("campaign_messages")
-              .update({ status: "replied" })
-              .eq("user_id", server.user_id)
-              .eq("phone", fromPhone)
-              .in("status", ["sent", "delivered", "read"]);
+            if (!fromMe) {
+              await supabaseAdmin.from("incoming_messages").insert({
+                user_id: server.user_id,
+                instance_id: instanceId,
+                from_phone: fromPhone,
+                message_text: messageText,
+                evolution_message_id: key?.id ?? null,
+                raw_payload: payload as never,
+              });
 
-            // Resume flow_runs aguardando resposta deste contato
-            const { resumeFlowRunsForReply, triggerKeywordFlows } = await import("@/lib/flow-engine.server");
-            await resumeFlowRunsForReply(supabaseAdmin, {
-              user_id: server.user_id, phone: fromPhone, text: messageText,
-            });
+              await supabaseAdmin.from("campaign_messages")
+                .update({ status: "replied" })
+                .eq("user_id", server.user_id)
+                .eq("phone", fromPhone)
+                .in("status", ["sent", "delivered", "read"]);
 
-            // Dispara fluxos por palavra-chave (não interfere se contato já está em um run)
-            await triggerKeywordFlows(supabaseAdmin, {
-              user_id: server.user_id, instance_id: instanceId, phone: fromPhone, text: messageText,
-            });
+              const { resumeFlowRunsForReply } = await import("@/lib/flow-engine.server");
+              await resumeFlowRunsForReply(supabaseAdmin, {
+                user_id: server.user_id, phone: fromPhone, text: messageText,
+              });
 
-            // Opt-out automático
-            const txt = (messageText ?? "").trim().toUpperCase();
-            if (["PARAR", "SAIR", "STOP", "CANCELAR", "REMOVER"].includes(txt)) {
-              await supabaseAdmin.from("opt_outs").insert({
-                user_id: server.user_id, phone: fromPhone, reason: "auto: " + txt,
-              }).select().maybeSingle();
-              await supabaseAdmin.from("contacts").update({ opted_out: true })
-                .eq("user_id", server.user_id).eq("phone", fromPhone);
+              const txt = (messageText ?? "").trim().toUpperCase();
+              if (["PARAR", "SAIR", "STOP", "CANCELAR", "REMOVER"].includes(txt)) {
+                await supabaseAdmin.from("opt_outs").insert({
+                  user_id: server.user_id, phone: fromPhone, reason: "auto: " + txt,
+                }).select().maybeSingle();
+                await supabaseAdmin.from("contacts").update({ opted_out: true })
+                  .eq("user_id", server.user_id).eq("phone", fromPhone);
+              }
+            }
+
+            // Dispara fluxo por palavra-chave para qualquer mensagem (in OU out)
+            // fromMe=true permite que o próprio admin/usuário "comande" o disparo enviando a palavra-chave
+            // pelo WhatsApp dele ao contato.
+            try {
+              const { triggerKeywordFlows } = await import("@/lib/flow-engine.server");
+              await triggerKeywordFlows(supabaseAdmin, {
+                user_id: server.user_id,
+                instance_id: instanceId,
+                phone: fromPhone,
+                text: messageText,
+                from_me: fromMe,
+              });
+            } catch (e) {
+              console.error("triggerKeywordFlows failed", e);
             }
           }
-
         }
+
 
         if (event.includes("messages.update") || event === "MESSAGES_UPDATE") {
           const arr = Array.isArray(data) ? data : [data];

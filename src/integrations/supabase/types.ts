@@ -180,6 +180,53 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          contact_phone: string
+          created_at: string
+          direction: string
+          evolution_message_id: string | null
+          id: string
+          instance_id: string | null
+          read_at: string | null
+          status: string
+          text: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_phone: string
+          created_at?: string
+          direction: string
+          evolution_message_id?: string | null
+          id?: string
+          instance_id?: string | null
+          read_at?: string | null
+          status?: string
+          text?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_phone?: string
+          created_at?: string
+          direction?: string
+          evolution_message_id?: string | null
+          id?: string
+          instance_id?: string | null
+          read_at?: string | null
+          status?: string
+          text?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chip_catalog: {
         Row: {
           active: boolean
@@ -325,7 +372,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          list_id: string
+          list_id: string | null
+          name: string | null
           opted_out: boolean
           phone: string
           user_id: string
@@ -334,7 +382,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          list_id: string
+          list_id?: string | null
+          name?: string | null
           opted_out?: boolean
           phone: string
           user_id: string
@@ -343,7 +392,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          list_id?: string
+          list_id?: string | null
+          name?: string | null
           opted_out?: boolean
           phone?: string
           user_id?: string
