@@ -85,9 +85,14 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
               .in("status", ["sent", "delivered", "read"]);
 
             // Resume flow_runs aguardando resposta deste contato
-            const { resumeFlowRunsForReply } = await import("@/lib/flow-engine.server");
+            const { resumeFlowRunsForReply, triggerKeywordFlows } = await import("@/lib/flow-engine.server");
             await resumeFlowRunsForReply(supabaseAdmin, {
               user_id: server.user_id, phone: fromPhone, text: messageText,
+            });
+
+            // Dispara fluxos por palavra-chave (não interfere se contato já está em um run)
+            await triggerKeywordFlows(supabaseAdmin, {
+              user_id: server.user_id, instance_id: instanceId, phone: fromPhone, text: messageText,
             });
 
             // Opt-out automático
