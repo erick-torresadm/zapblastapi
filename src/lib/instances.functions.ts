@@ -26,12 +26,14 @@ export const listAvailableServersFn = createServerFn({ method: "GET" })
   });
 
 // Monta a URL do webhook que vamos passar para a Evolution API.
+// Prioriza env vars, mas tem fallback para a URL estável do projeto (sempre disponível
+// no Cloudflare Workers do TanStack Start), pra não depender de configuração manual.
+const STABLE_PROJECT_URL = "https://project--54478801-c0b5-4fb0-9ac8-01416bfad841.lovable.app";
 function buildWebhookUrl(webhook_token: string) {
   const base = process.env.PUBLIC_APP_URL
     ?? process.env.APP_URL
     ?? process.env.LOVABLE_PUBLISHED_URL
-    ?? "";
-  if (!base) return undefined;
+    ?? STABLE_PROJECT_URL;
   return `${base.replace(/\/$/, "")}/api/public/evolution-webhook/${webhook_token}`;
 }
 
