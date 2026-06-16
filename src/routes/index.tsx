@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
-  Zap, ShieldCheck, Flame, ShoppingCart, MessageSquare, BarChart3, Clock, Shuffle,
-  ArrowRight, Check, Sparkles,
+  Zap, ShieldCheck, Flame, ShoppingCart, MessageSquare, BarChart3,
+  ArrowRight, Check, Sparkles, Workflow, Inbox, Bot, Users,
 } from "lucide-react";
 import { Meteors } from "@/components/magicui/meteors";
 import { GridPattern } from "@/components/magicui/grid-pattern";
