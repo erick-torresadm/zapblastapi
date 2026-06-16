@@ -741,10 +741,12 @@ export type Database = {
           max_chips: number
           max_messages_per_day: number
           name: string
+          price_annual_cents: number | null
           price_cents: number
           slug: string
           sort_order: number
           stripe_price_id: string | null
+          stripe_price_id_annual: string | null
         }
         Insert: {
           active?: boolean
@@ -755,10 +757,12 @@ export type Database = {
           max_chips?: number
           max_messages_per_day?: number
           name: string
+          price_annual_cents?: number | null
           price_cents: number
           slug: string
           sort_order?: number
           stripe_price_id?: string | null
+          stripe_price_id_annual?: string | null
         }
         Update: {
           active?: boolean
@@ -769,10 +773,12 @@ export type Database = {
           max_chips?: number
           max_messages_per_day?: number
           name?: string
+          price_annual_cents?: number | null
           price_cents?: number
           slug?: string
           sort_order?: number
           stripe_price_id?: string | null
+          stripe_price_id_annual?: string | null
         }
         Relationships: []
       }
