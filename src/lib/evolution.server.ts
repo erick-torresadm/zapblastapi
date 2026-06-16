@@ -100,3 +100,17 @@ export async function sendMedia(
     }),
   });
 }
+
+export async function checkWhatsappNumbers(
+  server: EvolutionServer,
+  instanceName: string,
+  numbers: string[],
+): Promise<Array<{ jid: string; exists: boolean; number: string }>> {
+  const res = await evoFetch(server, `/chat/whatsappNumbers/${encodeURIComponent(instanceName)}`, {
+    method: "POST",
+    body: JSON.stringify({ numbers }),
+  }) as unknown;
+  return (Array.isArray(res) ? res : []) as Array<{ jid: string; exists: boolean; number: string }>;
+
+}
+
