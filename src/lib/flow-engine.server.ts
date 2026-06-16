@@ -1,9 +1,40 @@
 // Motor de execução de fluxos. Server-only. Processa um node por vez e reagenda via wait_until.
-import { sendText } from "@/lib/evolution.server";
+// Inclui suporte a mídia (image/video/audio/document), presence (digitando/gravando)
+// e respeita limites anti-banimento por chip (delay humanizado, horário silencioso,
+// limite por hora e por dia, validação de número).
+import {
+  sendText,
+  sendMedia,
+  sendPresence,
+  typingDurationMs,
+  pickHumanDelayMs,
+  isInQuietHours,
+  checkWhatsappNumbers,
+} from "@/lib/evolution.server";
 
 type Node = { id: string; type: string; data?: Record<string, unknown> };
 type Edge = { id: string; source: string; target: string; sourceHandle?: string };
 type Flow = { nodes: Node[]; edges: Edge[] };
+
+type InstanceRow = {
+  id: string;
+  instance_name: string;
+  status: string;
+  sent_today: number;
+  daily_limit: number;
+  sent_hour: number;
+  sent_hour_at: string | null;
+  hourly_limit: number;
+  min_delay_ms: number;
+  max_delay_ms: number;
+  quiet_start_hour: number;
+  quiet_end_hour: number;
+  typing_enabled: boolean;
+  typing_wpm: number;
+  validate_numbers: boolean;
+  last_sent_at: string | null;
+  evolution_servers: { base_url: string; api_key: string } | null;
+};
 
 function renderTemplate(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => vars[k] ?? "");
@@ -20,7 +51,6 @@ function findEntryNode(flow: Flow): Node | undefined {
     const next = nextEdge(flow, start.id);
     return next ? flow.nodes.find((n) => n.id === next.target) : undefined;
   }
-  // sem start explícito: pega node que não é alvo de nenhuma edge
   const targets = new Set(flow.edges.map((e) => e.target));
   return flow.nodes.find((n) => !targets.has(n.id) && n.type !== "start");
 }
@@ -57,7 +87,75 @@ export async function createFlowRun(
   return data?.id ?? null;
 }
 
-// Executa um único passo do run. Retorna true se ainda tem trabalho a fazer (status=pending).
+// Reseta contadores hora/dia se a janela já expirou. Retorna instância atualizada.
+async function refreshCounters(supabaseAdmin: any, inst: InstanceRow): Promise<InstanceRow> {
+  const now = new Date();
+  const todayUTC = now.toISOString().slice(0, 10);
+  const patch: Record<string, unknown> = {};
+
+  // Reset hora
+  if (!inst.sent_hour_at || now.getTime() - new Date(inst.sent_hour_at).getTime() >= 3600 * 1000) {
+    patch.sent_hour = 0;
+    patch.sent_hour_at = now.toISOString();
+    inst.sent_hour = 0;
+    inst.sent_hour_at = now.toISOString();
+  }
+  // Reset dia (last_reset_date é outro campo já existente, mas garantimos local também)
+  if (inst.last_sent_at && inst.last_sent_at.slice(0, 10) < todayUTC) {
+    patch.sent_today = 0;
+    inst.sent_today = 0;
+  }
+  if (Object.keys(patch).length) {
+    await supabaseAdmin.from("whatsapp_instances").update(patch).eq("id", inst.id);
+  }
+  return inst;
+}
+
+// Verifica se pode enviar agora. Retorna número de ms a aguardar (0 = pode enviar).
+function safetyWaitMs(inst: InstanceRow): number {
+  const now = Date.now();
+  // 1) quiet hours
+  if (isInQuietHours(inst.quiet_start_hour, inst.quiet_end_hour)) {
+    // adia até a hora final
+    const d = new Date();
+    const targetH = inst.quiet_end_hour;
+    const brasilHour = (d.getUTCHours() - 3 + 24) % 24;
+    let hoursToAdd = (targetH - brasilHour + 24) % 24;
+    if (hoursToAdd === 0) hoursToAdd = 24;
+    return hoursToAdd * 3600 * 1000;
+  }
+  // 2) limites
+  if (inst.sent_today >= inst.daily_limit) {
+    // adia até amanhã 00:00 UTC (suficientemente longo)
+    return 6 * 3600 * 1000;
+  }
+  if (inst.sent_hour >= inst.hourly_limit) {
+    const elapsed = inst.sent_hour_at ? now - new Date(inst.sent_hour_at).getTime() : 0;
+    return Math.max(60_000, 3600_000 - elapsed);
+  }
+  // 3) delay humano desde último envio
+  if (inst.last_sent_at) {
+    const minWait = inst.min_delay_ms;
+    const since = now - new Date(inst.last_sent_at).getTime();
+    if (since < minWait) return minWait - since;
+  }
+  return 0;
+}
+
+async function bumpCounters(supabaseAdmin: any, inst: InstanceRow) {
+  const nowIso = new Date().toISOString();
+  await supabaseAdmin.from("whatsapp_instances").update({
+    sent_today: inst.sent_today + 1,
+    sent_hour: inst.sent_hour + 1,
+    sent_hour_at: inst.sent_hour_at ?? nowIso,
+    last_sent_at: nowIso,
+  }).eq("id", inst.id);
+  inst.sent_today++;
+  inst.sent_hour++;
+  inst.last_sent_at = nowIso;
+}
+
+// Executa um único passo do run.
 export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise<void> {
   const { data: run } = await supabaseAdmin.from("flow_runs").select("*").eq("id", runId).maybeSingle();
   if (!run || run.status === "completed" || run.status === "failed") return;
@@ -74,18 +172,19 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     return;
   }
 
-  // Carrega chip
-  const { data: inst } = await supabaseAdmin
+  const { data: instRaw } = await supabaseAdmin
     .from("whatsapp_instances")
-    .select("id, instance_name, status, evolution_servers(base_url, api_key)")
+    .select("id, instance_name, status, sent_today, daily_limit, sent_hour, sent_hour_at, hourly_limit, min_delay_ms, max_delay_ms, quiet_start_hour, quiet_end_hour, typing_enabled, typing_wpm, validate_numbers, last_sent_at, evolution_servers(base_url, api_key)")
     .eq("id", run.instance_id)
     .maybeSingle();
-  const srv = inst?.evolution_servers as { base_url: string; api_key: string } | null;
+  let inst = instRaw as InstanceRow | null;
+  if (inst) inst = await refreshCounters(supabaseAdmin, inst);
+  const srv = inst?.evolution_servers ?? null;
 
   const vars = (run.variables ?? {}) as Record<string, string>;
   const data = (node.data ?? {}) as Record<string, unknown>;
 
-  async function logStep(status: "completed" | "failed", error?: string, output?: Record<string, unknown>) {
+  async function logStep(status: "completed" | "failed" | "skipped", error?: string, output?: Record<string, unknown>) {
     await supabaseAdmin.from("flow_run_steps").insert({
       run_id: runId, flow_id: run.flow_id, user_id: run.user_id,
       node_id: node!.id, node_type: node!.type, status, error: error ?? null, output: output ?? null,
@@ -103,6 +202,28 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     }
   }
 
+  // Para nodes que enviam mensagem, verifica anti-ban
+  async function gateSafetyOrDefer(): Promise<boolean> {
+    if (!inst) return true;
+    const wait = safetyWaitMs(inst);
+    if (wait <= 0) return true;
+    const until = new Date(Date.now() + wait).toISOString();
+    await supabaseAdmin.from("flow_runs").update({ status: "waiting", wait_until: until }).eq("id", runId);
+    await logStep("skipped", undefined, { deferred_until: until, reason: "anti-ban" });
+    return false;
+  }
+
+  async function sendTextSafely(text: string) {
+    if (!srv || !inst || inst.status !== "connected") return;
+    if (inst.typing_enabled) {
+      const dur = typingDurationMs(text, inst.typing_wpm);
+      try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, "composing", dur); } catch {}
+      await new Promise((r) => setTimeout(r, dur));
+    }
+    await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, text);
+    await bumpCounters(supabaseAdmin, inst);
+  }
+
   try {
     if (node.type === "start") {
       await logStep("completed");
@@ -112,20 +233,98 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
 
     if (node.type === "message") {
       const tpl = String(data.message ?? "");
-      if (tpl && srv && inst?.status === "connected") {
-        await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, renderTemplate(tpl, vars));
+      if (tpl && inst) {
+        if (!(await gateSafetyOrDefer())) return;
+        // valida número uma vez por run, opcional
+        if (inst.validate_numbers && !run.variables?.__validated && srv) {
+          try {
+            const res = await checkWhatsappNumbers({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, [run.contact_phone]);
+            const ok = Array.isArray(res) && res[0]?.exists !== false;
+            if (!ok) {
+              await logStep("failed", "Número não tem WhatsApp");
+              await supabaseAdmin.from("flow_runs").update({ status: "failed", error: "Número sem WhatsApp", finished_at: new Date().toISOString() }).eq("id", runId);
+              return;
+            }
+            await supabaseAdmin.from("flow_runs").update({ variables: { ...vars, __validated: "1" } }).eq("id", runId);
+          } catch {}
+        }
+        await sendTextSafely(renderTemplate(tpl, vars));
       }
       await logStep("completed", undefined, { sent: !!tpl });
+      // agenda próximo com delay humano
+      if (inst) {
+        const wait = pickHumanDelayMs(inst.min_delay_ms, inst.max_delay_ms);
+        const edge = nextEdge(flow!, node!.id);
+        if (edge) {
+          await supabaseAdmin.from("flow_runs").update({
+            current_node_id: edge.target, status: "waiting",
+            wait_until: new Date(Date.now() + wait).toISOString(),
+          }).eq("id", runId);
+          return;
+        }
+      }
       await goNext();
+      return;
+    }
+
+    if (node.type === "media") {
+      const mediatype = (String(data.mediatype ?? "image")) as "image" | "video" | "audio" | "document";
+      const url = String(data.mediaUrl ?? "");
+      const caption = data.caption ? renderTemplate(String(data.caption), vars) : undefined;
+      const fileName = data.fileName ? String(data.fileName) : undefined;
+      if (url && srv && inst && inst.status === "connected") {
+        if (!(await gateSafetyOrDefer())) return;
+        // presence apropriado pro tipo
+        const presence = mediatype === "audio" ? "recording" : "composing";
+        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, presence, 1500); } catch {}
+        await new Promise((r) => setTimeout(r, 1500));
+        await sendMedia({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, {
+          mediatype, media: url, caption, fileName,
+        });
+        await bumpCounters(supabaseAdmin, inst);
+      }
+      await logStep("completed", undefined, { sent: !!url, mediatype });
+      if (inst) {
+        const wait = pickHumanDelayMs(inst.min_delay_ms, inst.max_delay_ms);
+        const edge = nextEdge(flow!, node!.id);
+        if (edge) {
+          await supabaseAdmin.from("flow_runs").update({
+            current_node_id: edge.target, status: "waiting",
+            wait_until: new Date(Date.now() + wait).toISOString(),
+          }).eq("id", runId);
+          return;
+        }
+      }
+      await goNext();
+      return;
+    }
+
+    if (node.type === "typing") {
+      // Mostra "digitando" ou "gravando" sem enviar nada. Útil pra dar realismo entre mensagens.
+      const presence = (String(data.presence ?? "composing")) as "composing" | "recording";
+      const secs = Math.max(1, Math.min(15, Number(data.seconds ?? 3)));
+      if (srv && inst && inst.status === "connected") {
+        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, presence, secs * 1000); } catch {}
+      }
+      await logStep("completed", undefined, { presence, secs });
+      const until = new Date(Date.now() + secs * 1000).toISOString();
+      const edge = nextEdge(flow!, node!.id);
+      if (edge) {
+        await supabaseAdmin.from("flow_runs").update({
+          current_node_id: edge.target, status: "waiting", wait_until: until,
+        }).eq("id", runId);
+      } else {
+        await goNext();
+      }
       return;
     }
 
     if (node.type === "ask") {
       const tpl = String(data.message ?? "");
-      if (tpl && srv && inst?.status === "connected") {
-        await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, renderTemplate(tpl, vars));
+      if (tpl && inst) {
+        if (!(await gateSafetyOrDefer())) return;
+        await sendTextSafely(renderTemplate(tpl, vars));
       }
-      // pausa esperando resposta — webhook vai resumir
       await supabaseAdmin.from("flow_runs").update({
         status: "waiting", waiting_for: String(data.variable ?? "resposta"),
       }).eq("id", runId);
@@ -157,7 +356,6 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     }
 
     if (node.type === "tag" || node.type === "ai") {
-      // tag/ai: noop (sem sistema de tags / IA neste motor mínimo)
       await logStep("completed");
       await goNext();
       return;
@@ -169,7 +367,6 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       return;
     }
 
-    // tipo desconhecido — pula
     await logStep("completed");
     await goNext();
   } catch (e) {
@@ -179,7 +376,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   }
 }
 
-// Resume runs aguardando resposta deste contato. Grava resposta no variable, avança.
+// Resume runs aguardando resposta deste contato.
 export async function resumeFlowRunsForReply(
   supabaseAdmin: any,
   args: { user_id: string; phone: string; text: string | null },
@@ -208,8 +405,7 @@ export async function resumeFlowRunsForReply(
   }
 }
 
-// Verifica triggers por keyword e dispara o fluxo (chamado pelo webhook MESSAGES_UPSERT).
-// Suporta from_me: quando true, é o próprio admin/usuário enviando o comando para o contato.
+// Verifica triggers por keyword e dispara o fluxo.
 export async function triggerKeywordFlows(
   supabaseAdmin: any,
   args: { user_id: string; instance_id: string | null; phone: string; text: string | null; from_me?: boolean },
@@ -222,64 +418,44 @@ export async function triggerKeywordFlows(
     .select("id, flow_id, instance_id, keywords, match_mode")
     .eq("user_id", args.user_id).eq("active", true);
   if (tErr) { console.error("[keywords] load triggers error", tErr); return; }
-  if (!triggers?.length) {
-    console.log("[keywords] no active triggers for user", args.user_id);
-    return;
-  }
+  if (!triggers?.length) return;
 
   const matched = (triggers as Array<{ id: string; flow_id: string; instance_id: string | null; keywords: string[]; match_mode: string }>).filter((t) => {
     if (t.instance_id && args.instance_id && t.instance_id !== args.instance_id) return false;
     const kws = (t.keywords ?? []).map((k) => k.toLowerCase().trim()).filter(Boolean);
     if (!kws.length) return false;
-    if (t.match_mode === "exact") return kws.some((k) => k === lower);
+    if (t.match_mode === "exact") return kws.includes(lower);
     if (t.match_mode === "starts_with") return kws.some((k) => lower.startsWith(k));
     return kws.some((k) => lower.includes(k));
   });
-  console.log(`[keywords] phone=${args.phone} fromMe=${args.from_me} text="${text.slice(0,60)}" triggers=${triggers.length} matched=${matched.length}`);
+
   if (!matched.length) return;
 
-  let targetInstanceId = args.instance_id;
-  if (!targetInstanceId) {
+  // resolve instance_id default (primeiro chip conectado do user)
+  let instanceId = args.instance_id;
+  if (!instanceId) {
     const { data: inst } = await supabaseAdmin.from("whatsapp_instances")
       .select("id").eq("user_id", args.user_id).eq("status", "connected").limit(1).maybeSingle();
-    targetInstanceId = inst?.id ?? null;
+    instanceId = inst?.id ?? null;
   }
-  if (!targetInstanceId) { console.warn("[keywords] no instance to run flow"); return; }
+  if (!instanceId) return;
 
-  // Resolve/cria contato (list_id é opcional agora)
-  let { data: contact } = await supabaseAdmin.from("contacts")
+  // upsert contato
+  const { data: existing } = await supabaseAdmin.from("contacts")
     .select("id").eq("user_id", args.user_id).eq("phone", args.phone).maybeSingle();
-  if (!contact) {
-    const { data: created, error: cErr } = await supabaseAdmin.from("contacts").insert({
-      user_id: args.user_id, phone: args.phone, list_id: null, variables: {},
-    }).select("id").single();
-    if (cErr) { console.error("[keywords] create contact error", cErr); return; }
-    contact = created;
+  let contactId = existing?.id;
+  if (!contactId) {
+    const { data: created } = await supabaseAdmin.from("contacts")
+      .insert({ user_id: args.user_id, phone: args.phone, name: null, list_id: null })
+      .select("id").single();
+    contactId = created?.id;
   }
-  if (!contact?.id) return;
+  if (!contactId) return;
 
   for (const t of matched) {
-    const { data: existing } = await supabaseAdmin.from("flow_runs")
-      .select("id").eq("flow_id", t.flow_id).eq("contact_phone", args.phone)
-      .in("status", ["pending", "waiting"]).limit(1).maybeSingle();
-    if (existing) { console.log(`[keywords] skip flow ${t.flow_id}: run already active`); continue; }
-
-    const runId = await createFlowRun(supabaseAdmin, {
-      flow_id: t.flow_id,
-      user_id: args.user_id,
-      contact_id: contact.id,
-      contact_phone: args.phone,
-      instance_id: targetInstanceId,
-      initial_vars: { trigger_text: text, from_me: args.from_me ? "1" : "0" },
+    await createFlowRun(supabaseAdmin, {
+      flow_id: t.flow_id, user_id: args.user_id,
+      contact_id: contactId, contact_phone: args.phone, instance_id: instanceId,
     });
-    console.log(`[keywords] started run ${runId} for flow ${t.flow_id}`);
-    if (runId) {
-      for (let i = 0; i < 20; i++) {
-        const { data: r } = await supabaseAdmin.from("flow_runs").select("status").eq("id", runId).maybeSingle();
-        if (!r || r.status !== "pending") break;
-        await advanceFlowRun(supabaseAdmin, runId);
-      }
-    }
   }
 }
-
