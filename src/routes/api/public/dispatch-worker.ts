@@ -122,6 +122,11 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
               let evoRes: Record<string, unknown>;
               if (camp.media_url && camp.media_type) {
                 const mt = camp.media_type as "image" | "video" | "audio" | "document";
+                if (chip.typing_enabled) {
+                  const presence = mt === "audio" ? "recording" : "composing";
+                  try { await sendPresence(chip.server, chip.instance_name, msg.phone, presence, 1500); } catch {}
+                  await new Promise((r) => setTimeout(r, 1500));
+                }
                 evoRes = await sendMedia(chip.server, chip.instance_name, msg.phone, {
                   mediatype: mt,
                   media: camp.media_url,
@@ -129,7 +134,13 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
                   fileName: camp.media_filename ?? undefined,
                 });
               } else {
-                evoRes = await sendText(chip.server, chip.instance_name, msg.phone, msg.rendered_message ?? "");
+                const text = msg.rendered_message ?? "";
+                if (chip.typing_enabled && text) {
+                  const dur = typingDurationMs(text, chip.typing_wpm);
+                  try { await sendPresence(chip.server, chip.instance_name, msg.phone, "composing", dur); } catch {}
+                  await new Promise((r) => setTimeout(r, dur));
+                }
+                evoRes = await sendText(chip.server, chip.instance_name, msg.phone, text);
               }
               evoId = (evoRes as { key?: { id?: string } })?.key?.id
                 ?? (evoRes as { messageId?: string })?.messageId ?? null;
@@ -142,12 +153,21 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
             }).eq("id", msg.id);
 
             if (shouldSend) {
+              const nowIso = new Date().toISOString();
               const newSent = chip.sent_today + 1;
+              // reset hora se janela expirou
+              const hourExpired = !chip.sent_hour_at || (Date.now() - new Date(chip.sent_hour_at).getTime()) >= 3600 * 1000;
+              const newHour = hourExpired ? 1 : chip.sent_hour + 1;
+              const newHourAt = hourExpired ? nowIso : (chip.sent_hour_at ?? nowIso);
               await supabaseAdmin.from("whatsapp_instances").update({
-                sent_today: newSent, last_sent_at: new Date().toISOString(),
+                sent_today: newSent, last_sent_at: nowIso,
+                sent_hour: newHour, sent_hour_at: newHourAt,
               }).eq("id", chip.id);
               instanceCache[chip.id].sent_today = newSent;
-              instanceCache[chip.id].last_sent_at = new Date().toISOString();
+              instanceCache[chip.id].last_sent_at = nowIso;
+              instanceCache[chip.id].sent_hour = newHour;
+              instanceCache[chip.id].sent_hour_at = newHourAt;
+
             }
 
             await supabaseAdmin.from("campaigns")
