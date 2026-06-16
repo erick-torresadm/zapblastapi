@@ -43,11 +43,12 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
         // 4) Pega até 30 mensagens pending de campanhas em execução
         const { data: pending } = await supabaseAdmin
           .from("campaign_messages")
-          .select("*, campaigns!inner(status, min_delay_s, max_delay_s, instance_ids, media_url, media_type, media_filename)")
+          .select("*, campaigns!inner(status, min_delay_s, max_delay_s, instance_ids, media_url, media_type, media_filename, flow_id)")
           .eq("status", "pending")
           .eq("campaigns.status", "running")
           .order("created_at", { ascending: true })
           .limit(30);
+
 
         let sent = 0, failed = 0, skipped = 0;
         const instanceCache: Record<string, { server: { base_url: string; api_key: string }; instance_name: string; sent_today: number; daily_limit: number; last_sent_at: string | null; status: string }> = {};
