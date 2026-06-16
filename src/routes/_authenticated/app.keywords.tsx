@@ -93,6 +93,9 @@ function KeywordsPage() {
           keywords: kws,
           match_mode: form.match_mode,
           active: form.active,
+          allow_from_me: form.allow_from_me,
+          delay_seconds: form.delay_seconds,
+          cooldown_seconds: form.cooldown_seconds,
           user_id: opts?.isAdmin && form.user_id ? form.user_id : undefined,
         },
       });
