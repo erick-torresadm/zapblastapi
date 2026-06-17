@@ -41,6 +41,14 @@ function isLidIdentifier(value: string | null | undefined): boolean {
   return raw.endsWith("@lid") || /^\d{15,}$/.test(user.replace(/\D/g, ""));
 }
 
+function extractRealPhone(value: unknown): string | null {
+  if (!value) return null;
+  const raw = String(value);
+  const user = raw.includes("@") ? raw.split("@")[0] : raw;
+  const digits = user.replace(/\D/g, "");
+  return digits.length >= 8 && digits.length <= 14 ? digits : null;
+}
+
 function toEvolutionTarget(value: string): string {
   if (value.includes("@")) return value;
   return isLidIdentifier(value) ? `${value}@lid` : value;
@@ -225,7 +233,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
 
   async function sendTextSafely(text: string) {
     if (!srv || !inst || inst.status !== "connected") return;
-    const target = toEvolutionTarget(run.contact_phone);
+    const target = await resolveEvolutionTarget();
     if (inst.typing_enabled) {
       const dur = typingDurationMs(text, inst.typing_wpm);
       try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, "composing", dur); } catch {}
@@ -289,7 +297,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         if (!(await gateSafetyOrDefer())) return;
         // presence apropriado pro tipo
         const presence = mediatype === "audio" ? "recording" : "composing";
-        const target = toEvolutionTarget(run.contact_phone);
+        const target = await resolveEvolutionTarget();
         try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, presence, 1500); } catch {}
         await new Promise((r) => setTimeout(r, 1500));
         await sendMedia({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, {
@@ -308,7 +316,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       const presence = (String(data.presence ?? "composing")) as "composing" | "recording";
       const secs = Math.max(1, Math.min(15, Number(data.seconds ?? 3)));
       if (srv && inst && inst.status === "connected") {
-        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, toEvolutionTarget(run.contact_phone), presence, secs * 1000); } catch {}
+        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, await resolveEvolutionTarget(), presence, secs * 1000); } catch {}
       }
       await logStep("completed", undefined, { presence, secs });
       const until = new Date(Date.now() + secs * 1000).toISOString();
