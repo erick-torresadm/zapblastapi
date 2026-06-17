@@ -427,7 +427,6 @@ function FlowsInner() {
               }
             }}
             edgesFocusable
-            edgesUpdatable={false}
             nodeTypes={nodeTypes}
             fitView
             proOptions={{ hideAttribution: true }}
