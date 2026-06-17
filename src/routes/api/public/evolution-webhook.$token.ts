@@ -70,18 +70,33 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           else if (jidDomain === "lid") chatType = "lid";
           else if (jidDomain === "broadcast" || jidUser === "status") chatType = "broadcast";
 
-          // Para LID: a Evolution costuma enviar o telefone real em key.senderPn
-          // (formato "5511999999999@s.whatsapp.net"). Reaproveitamos como user.
+          // Para LID: tenta extrair telefone real de várias propriedades que a Evolution/Baileys pode enviar
           let resolvedJid = remoteJid;
           let resolvedUser = jidUser;
-          if (chatType === "lid" && senderPn) {
-            const pnUser = senderPn.includes("@") ? senderPn.split("@")[0] : senderPn;
-            const pnDigits = pnUser.replace(/[^0-9]/g, "");
-            if (pnDigits.length >= 8 && pnDigits.length <= 15) {
+          const tryPn = (v: unknown): string | null => {
+            if (!v) return null;
+            const s = String(v);
+            const u = s.includes("@") ? s.split("@")[0] : s;
+            const d = u.replace(/[^0-9]/g, "");
+            return d.length >= 8 && d.length <= 14 ? d : null;
+          };
+          if (chatType === "lid") {
+            const participantPn = (key as { participantPn?: string } | undefined)?.participantPn;
+            const dataPn = (data as { senderPn?: string; participantPn?: string; pn?: string });
+            const pn =
+              tryPn(senderPn) ?? tryPn(participantPn) ?? tryPn(dataPn.senderPn)
+              ?? tryPn(dataPn.participantPn) ?? tryPn(dataPn.pn);
+            if (pn) {
               chatType = "user";
-              resolvedUser = pnUser;
-              resolvedJid = senderPn.includes("@") ? senderPn : `${pnUser}@s.whatsapp.net`;
-              console.log("[webhook] LID resolvido via senderPn", { remoteJid, resolvedJid });
+              resolvedUser = pn;
+              resolvedJid = `${pn}@s.whatsapp.net`;
+              console.log("[webhook] LID resolvido", { remoteJid, resolvedJid });
+            } else {
+              // LID puro: não temos telefone real, mas mantemos como contato usando o próprio LID
+              // para que o gatilho de palavra-chave ainda dispare. Envios voltam pelo JID @lid.
+              chatType = "user";
+              resolvedJid = remoteJid; // mantém @lid
+              console.log("[webhook] LID sem telefone, usando LID como identificador", { remoteJid });
             }
           }
 
@@ -101,10 +116,11 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           }
 
           const fromPhone = resolvedUser.replace(/[^0-9]/g, "");
-          if (!fromPhone || fromPhone.length < 8 || fromPhone.length > 15) {
+          if (!fromPhone || fromPhone.length < 8 || fromPhone.length > 18) {
             console.log("[webhook] ignorado (telefone inválido)", fromPhone);
             return Response.json({ ok: true, skipped: "invalid_phone" });
           }
+
 
           // Grava em chat_messages (CRM/Inbox)
           await supabaseAdmin.from("chat_messages").insert({
