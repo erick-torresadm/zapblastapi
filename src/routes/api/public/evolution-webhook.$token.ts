@@ -57,13 +57,11 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
         }
 
         if (event.includes("messages.upsert") || event === "MESSAGES_UPSERT") {
-          const key = (data as { key?: { id?: string; remoteJid?: string; fromMe?: boolean; participant?: string } }).key;
+          const key = (data as { key?: { id?: string; remoteJid?: string; fromMe?: boolean; participant?: string; senderPn?: string } }).key;
           const fromMe = !!key?.fromMe;
           const remoteJid = key?.remoteJid ?? "";
+          const senderPn = String((key as { senderPn?: string } | undefined)?.senderPn ?? "");
 
-          // Classifica o tipo de chat. CRM só processa 1:1 (@s.whatsapp.net).
-          // Ignora: grupos (@g.us), broadcasts (status@broadcast / @broadcast), LIDs (@lid),
-          // newsletters (@newsletter) e qualquer outra coisa exótica.
           const jidDomain = remoteJid.includes("@") ? remoteJid.split("@")[1] : "";
           const jidUser = remoteJid.includes("@") ? remoteJid.split("@")[0] : remoteJid;
           let chatType: "user" | "group" | "lid" | "broadcast" | "other" = "other";
@@ -72,14 +70,19 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           else if (jidDomain === "lid") chatType = "lid";
           else if (jidDomain === "broadcast" || jidUser === "status") chatType = "broadcast";
 
-          // Só 1:1 entra no CRM e dispara fluxos/opt-out
-          if (chatType !== "user") {
-            return Response.json({ ok: true, skipped: chatType });
-          }
-
-          const fromPhone = jidUser.replace(/[^0-9]/g, "");
-          if (!fromPhone || fromPhone.length < 8 || fromPhone.length > 15) {
-            return Response.json({ ok: true, skipped: "invalid_phone" });
+          // Para LID: a Evolution costuma enviar o telefone real em key.senderPn
+          // (formato "5511999999999@s.whatsapp.net"). Reaproveitamos como user.
+          let resolvedJid = remoteJid;
+          let resolvedUser = jidUser;
+          if (chatType === "lid" && senderPn) {
+            const pnUser = senderPn.includes("@") ? senderPn.split("@")[0] : senderPn;
+            const pnDigits = pnUser.replace(/[^0-9]/g, "");
+            if (pnDigits.length >= 8 && pnDigits.length <= 15) {
+              chatType = "user";
+              resolvedUser = pnUser;
+              resolvedJid = senderPn.includes("@") ? senderPn : `${pnUser}@s.whatsapp.net`;
+              console.log("[webhook] LID resolvido via senderPn", { remoteJid, resolvedJid });
+            }
           }
 
           const messageText =
@@ -87,12 +90,28 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
             ?? ((data as { message?: { extendedTextMessage?: { text?: string } } }).message?.extendedTextMessage?.text)
             ?? null;
 
+          console.log("[webhook] messages.upsert", {
+            instance: instanceName, instanceId, chatType, fromMe,
+            remoteJid, resolvedJid, hasText: !!messageText,
+          });
+
+          if (chatType !== "user") {
+            console.log("[webhook] ignorado (não é 1:1)", chatType);
+            return Response.json({ ok: true, skipped: chatType });
+          }
+
+          const fromPhone = resolvedUser.replace(/[^0-9]/g, "");
+          if (!fromPhone || fromPhone.length < 8 || fromPhone.length > 15) {
+            console.log("[webhook] ignorado (telefone inválido)", fromPhone);
+            return Response.json({ ok: true, skipped: "invalid_phone" });
+          }
+
           // Grava em chat_messages (CRM/Inbox)
           await supabaseAdmin.from("chat_messages").insert({
             user_id: server.user_id,
             instance_id: instanceId,
             contact_phone: fromPhone,
-            contact_jid: remoteJid,
+            contact_jid: resolvedJid,
             chat_type: chatType,
             direction: fromMe ? "out" : "in",
             text: messageText,
@@ -134,15 +153,28 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           // Dispara fluxo por palavra-chave (entrada OU saída, conforme allow_from_me do gatilho)
           try {
             const { triggerKeywordFlows } = await import("@/lib/flow-engine.server");
-            await triggerKeywordFlows(supabaseAdmin, {
+            const r = await triggerKeywordFlows(supabaseAdmin, {
               user_id: server.user_id,
               instance_id: instanceId,
               phone: fromPhone,
               text: messageText,
               from_me: fromMe,
             });
+            console.log("[webhook] triggerKeywordFlows result", r);
+
+            // Se algum run foi criado, tenta avançar imediatamente para não depender do cron
+            if (r.runs.length) {
+              const { advanceFlowRun } = await import("@/lib/flow-engine.server");
+              for (const runId of r.runs) {
+                for (let i = 0; i < 10; i++) {
+                  const { data: cur } = await supabaseAdmin.from("flow_runs").select("status").eq("id", runId).maybeSingle();
+                  if (!cur || cur.status !== "pending") break;
+                  await advanceFlowRun(supabaseAdmin, runId);
+                }
+              }
+            }
           } catch (e) {
-            console.error("triggerKeywordFlows failed", e);
+            console.error("[webhook] triggerKeywordFlows failed", e);
           }
         }
 

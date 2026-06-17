@@ -12,11 +12,11 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Bot, Pencil, Clock, User } from "lucide-react";
+import { Plus, Trash2, Bot, Pencil, Clock, User, PlayCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   listKeywordTriggersFn, upsertKeywordTriggerFn, toggleKeywordTriggerFn,
-  deleteKeywordTriggerFn, listFlowsForKeywordsFn,
+  deleteKeywordTriggerFn, listFlowsForKeywordsFn, listRecentFlowRunsFn, testKeywordTriggerFn,
 } from "@/lib/keywords.functions";
 
 export const Route = createFileRoute("/_authenticated/app/keywords")({
@@ -42,9 +42,27 @@ function KeywordsPage() {
   const saveFn = useServerFn(upsertKeywordTriggerFn);
   const toggleFn = useServerFn(toggleKeywordTriggerFn);
   const delFn = useServerFn(deleteKeywordTriggerFn);
+  const recentFn = useServerFn(listRecentFlowRunsFn);
+  const testFn = useServerFn(testKeywordTriggerFn);
 
   const { data: list, isLoading } = useQuery({ queryKey: ["kw-triggers"], queryFn: () => listFn() });
   const { data: opts } = useQuery({ queryKey: ["kw-opts"], queryFn: () => optsFn() });
+  const { data: recent, refetch: refetchRecent } = useQuery({
+    queryKey: ["kw-recent"], queryFn: () => recentFn(), refetchInterval: 5000,
+  });
+
+  const [testOpenFor, setTestOpenFor] = useState<string | null>(null);
+  const [testPhone, setTestPhone] = useState("");
+
+  const testMut = useMutation({
+    mutationFn: (v: { trigger_id: string; phone: string }) => testFn({ data: v }),
+    onSuccess: (r) => {
+      toast.success(`Gatilho disparado: ${r.matched} match, ${r.runs.length} run(s)`);
+      setTestOpenFor(null);
+      qc.invalidateQueries({ queryKey: ["kw-recent"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Trigger | null>(null);
@@ -172,6 +190,9 @@ function KeywordsPage() {
                   checked={t.active}
                   onCheckedChange={(v) => toggleMut.mutate({ id: t.id, active: v })}
                 />
+                <Button size="icon" variant="ghost" title="Testar" onClick={() => { setTestOpenFor(t.id); setTestPhone(""); }}>
+                  <PlayCircle className="h-4 w-4" />
+                </Button>
                 <Button size="icon" variant="ghost" onClick={() => openEdit(t)}>
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -196,6 +217,86 @@ function KeywordsPage() {
           </Card>
         )}
       </div>
+
+      {/* Fila de disparos recentes */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              Fila de disparos
+              <Badge variant="secondary">{recent?.todayCount ?? 0} hoje</Badge>
+            </CardTitle>
+            <CardDescription>Últimos fluxos disparados — atualiza a cada 5s.</CardDescription>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => refetchRecent()}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y">
+            {(recent?.items ?? []).length === 0 && (
+              <div className="p-4 text-sm text-muted-foreground">Nenhum disparo ainda.</div>
+            )}
+            {(recent?.items ?? []).map((r) => (
+              <div key={r.id} className="flex items-center justify-between gap-3 p-3 text-sm">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium truncate">{r.flow_name}</span>
+                    <span className="text-muted-foreground">→ {r.contact_phone}</span>
+                    {r.keyword && <Badge variant="outline" className="font-mono text-xs">{r.keyword}</Badge>}
+                    <Badge variant="outline" className="text-xs">{r.instance_name}</Badge>
+                  </div>
+                  {r.error && <div className="text-xs text-destructive mt-1 truncate">{r.error}</div>}
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <Badge
+                    variant={
+                      r.status === "completed" ? "secondary"
+                      : r.status === "failed" ? "destructive"
+                      : "outline"
+                    }
+                    className="text-xs capitalize"
+                  >
+                    {r.status}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {r.started_at ? new Date(r.started_at).toLocaleString("pt-BR") : "—"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dialog de teste manual */}
+      <Dialog open={!!testOpenFor} onOpenChange={(o) => !o && setTestOpenFor(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Testar gatilho</DialogTitle>
+            <DialogDescription>
+              Vamos simular uma mensagem com a primeira palavra-chave deste gatilho e disparar o fluxo no número informado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Telefone (somente números, com DDD/país)</Label>
+            <Input
+              placeholder="5511999999999"
+              value={testPhone}
+              onChange={(e) => setTestPhone(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTestOpenFor(null)}>Cancelar</Button>
+            <Button
+              disabled={!testPhone || testMut.isPending}
+              onClick={() => testOpenFor && testMut.mutate({ trigger_id: testOpenFor, phone: testPhone })}
+            >
+              {testMut.isPending ? "Disparando…" : "Disparar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">

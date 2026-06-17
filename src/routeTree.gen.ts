@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as ApiPublicWarmupWorkerRouteImport } from './routes/api/public/warmup-worker'
 import { Route as ApiPublicFlowWorkerRouteImport } from './routes/api/public/flow-worker'
+import { Route as ApiPublicFlowTriggerTestRouteImport } from './routes/api/public/flow-trigger-test'
 import { Route as ApiPublicDispatchWorkerRouteImport } from './routes/api/public/dispatch-worker'
 import { Route as AuthenticatedAppWarmupRouteImport } from './routes/_authenticated/app.warmup'
 import { Route as AuthenticatedAppWalletRouteImport } from './routes/_authenticated/app.wallet'
@@ -66,6 +67,12 @@ const ApiPublicFlowWorkerRoute = ApiPublicFlowWorkerRouteImport.update({
   path: '/api/public/flow-worker',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFlowTriggerTestRoute =
+  ApiPublicFlowTriggerTestRouteImport.update({
+    id: '/api/public/flow-trigger-test',
+    path: '/api/public/flow-trigger-test',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicDispatchWorkerRoute = ApiPublicDispatchWorkerRouteImport.update({
   id: '/api/public/dispatch-worker',
   path: '/api/public/dispatch-worker',
@@ -197,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/app/wallet': typeof AuthenticatedAppWalletRoute
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
+  '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app/': typeof AuthenticatedAppIndexRoute
@@ -224,6 +232,7 @@ export interface FileRoutesByTo {
   '/app/wallet': typeof AuthenticatedAppWalletRoute
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
+  '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app': typeof AuthenticatedAppIndexRoute
@@ -254,6 +263,7 @@ export interface FileRoutesById {
   '/_authenticated/app/wallet': typeof AuthenticatedAppWalletRoute
   '/_authenticated/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
+  '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
@@ -284,6 +294,7 @@ export interface FileRouteTypes {
     | '/app/wallet'
     | '/app/warmup'
     | '/api/public/dispatch-worker'
+    | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
     | '/api/public/warmup-worker'
     | '/app/'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/app/wallet'
     | '/app/warmup'
     | '/api/public/dispatch-worker'
+    | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
     | '/api/public/warmup-worker'
     | '/app'
@@ -340,6 +352,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/wallet'
     | '/_authenticated/app/warmup'
     | '/api/public/dispatch-worker'
+    | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
     | '/api/public/warmup-worker'
     | '/_authenticated/app/'
@@ -358,6 +371,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
+  ApiPublicFlowTriggerTestRoute: typeof ApiPublicFlowTriggerTestRoute
   ApiPublicFlowWorkerRoute: typeof ApiPublicFlowWorkerRoute
   ApiPublicWarmupWorkerRoute: typeof ApiPublicWarmupWorkerRoute
   ApiPublicEvolutionWebhookTokenRoute: typeof ApiPublicEvolutionWebhookTokenRoute
@@ -405,6 +419,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/flow-worker'
       fullPath: '/api/public/flow-worker'
       preLoaderRoute: typeof ApiPublicFlowWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/flow-trigger-test': {
+      id: '/api/public/flow-trigger-test'
+      path: '/api/public/flow-trigger-test'
+      fullPath: '/api/public/flow-trigger-test'
+      preLoaderRoute: typeof ApiPublicFlowTriggerTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/dispatch-worker': {
@@ -633,6 +654,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
+  ApiPublicFlowTriggerTestRoute: ApiPublicFlowTriggerTestRoute,
   ApiPublicFlowWorkerRoute: ApiPublicFlowWorkerRoute,
   ApiPublicWarmupWorkerRoute: ApiPublicWarmupWorkerRoute,
   ApiPublicEvolutionWebhookTokenRoute: ApiPublicEvolutionWebhookTokenRoute,
@@ -640,13 +662,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

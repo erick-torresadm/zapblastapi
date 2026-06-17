@@ -235,20 +235,29 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       const tpl = String(data.message ?? "");
       if (tpl && inst) {
         if (!(await gateSafetyOrDefer())) return;
-        // valida número uma vez por run, opcional
+        // valida número uma vez por run, opcional — agora só AVISA e segue.
+        // (a Evolution rejeita com 400 se for inválido de fato e o erro é tratado abaixo.)
         if (inst.validate_numbers && !run.variables?.__validated && srv) {
           try {
             const res = await checkWhatsappNumbers({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, [run.contact_phone]);
             const ok = Array.isArray(res) && res[0]?.exists !== false;
             if (!ok) {
-              await logStep("failed", "Número não tem WhatsApp");
-              await supabaseAdmin.from("flow_runs").update({ status: "failed", error: "Número sem WhatsApp", finished_at: new Date().toISOString() }).eq("id", runId);
-              return;
+              await logStep("skipped", undefined, { warning: "Número não confirmado no WhatsApp; enviando mesmo assim" });
             }
             await supabaseAdmin.from("flow_runs").update({ variables: { ...vars, __validated: "1" } }).eq("id", runId);
-          } catch {}
+          } catch (e) {
+            console.warn("[flow] validate_numbers failed", (e as Error).message);
+          }
         }
-        await sendTextSafely(renderTemplate(tpl, vars));
+        try {
+          await sendTextSafely(renderTemplate(tpl, vars));
+        } catch (e) {
+          const msg = (e as Error).message;
+          console.error("[flow] sendText failed", msg);
+          await logStep("failed", msg);
+          await supabaseAdmin.from("flow_runs").update({ status: "failed", error: msg.slice(0, 500), finished_at: new Date().toISOString() }).eq("id", runId);
+          return;
+        }
       }
       await logStep("completed", undefined, { sent: !!tpl });
       // agenda próximo com delay humano
@@ -409,16 +418,18 @@ export async function resumeFlowRunsForReply(
 export async function triggerKeywordFlows(
   supabaseAdmin: any,
   args: { user_id: string; instance_id: string | null; phone: string; text: string | null; from_me?: boolean },
-): Promise<void> {
+): Promise<{ matched: number; runs: string[] }> {
   const text = (args.text ?? "").trim();
-  if (!text) return;
+  console.log("[trigger] start", { user_id: args.user_id, phone: args.phone, from_me: !!args.from_me, text_len: text.length });
+  if (!text) return { matched: 0, runs: [] };
   const lower = text.toLowerCase();
 
   const { data: triggers, error: tErr } = await supabaseAdmin.from("flow_keyword_triggers")
     .select("id, flow_id, instance_id, keywords, match_mode, allow_from_me, delay_seconds, cooldown_seconds, last_triggered_at")
     .eq("user_id", args.user_id).eq("active", true);
-  if (tErr) { console.error("[keywords] load triggers error", tErr); return; }
-  if (!triggers?.length) return;
+  if (tErr) { console.error("[trigger] load triggers error", tErr); return { matched: 0, runs: [] }; }
+  console.log("[trigger] active triggers", triggers?.length ?? 0);
+  if (!triggers?.length) return { matched: 0, runs: [] };
 
   type TriggerRow = {
     id: string; flow_id: string; instance_id: string | null;
@@ -429,22 +440,24 @@ export async function triggerKeywordFlows(
 
   const now = Date.now();
   const matched = (triggers as TriggerRow[]).filter((t) => {
-    // Direção: por padrão só mensagens recebidas; allow_from_me libera também as enviadas pelo usuário.
-    if (args.from_me && !t.allow_from_me) return false;
-    if (t.instance_id && args.instance_id && t.instance_id !== args.instance_id) return false;
-    // Cooldown global do trigger
+    if (args.from_me && !t.allow_from_me) { console.log("[trigger] skip (fromMe blocked)", t.id); return false; }
+    if (t.instance_id && args.instance_id && t.instance_id !== args.instance_id) { console.log("[trigger] skip (instance mismatch)", t.id); return false; }
     if (t.cooldown_seconds > 0 && t.last_triggered_at) {
       const elapsed = (now - new Date(t.last_triggered_at).getTime()) / 1000;
-      if (elapsed < t.cooldown_seconds) return false;
+      if (elapsed < t.cooldown_seconds) { console.log("[trigger] skip (cooldown)", t.id, elapsed); return false; }
     }
     const kws = (t.keywords ?? []).map((k) => k.toLowerCase().trim()).filter(Boolean);
     if (!kws.length) return false;
-    if (t.match_mode === "exact") return kws.includes(lower);
-    if (t.match_mode === "starts_with") return kws.some((k) => lower.startsWith(k));
-    return kws.some((k) => lower.includes(k));
+    let hit = false;
+    if (t.match_mode === "exact") hit = kws.includes(lower);
+    else if (t.match_mode === "starts_with") hit = kws.some((k) => lower.startsWith(k));
+    else hit = kws.some((k) => lower.includes(k));
+    console.log("[trigger] eval", t.id, { mode: t.match_mode, kws, hit });
+    return hit;
   });
 
-  if (!matched.length) return;
+  console.log("[trigger] matched", matched.length);
+  if (!matched.length) return { matched: 0, runs: [] };
 
   // resolve instance_id default (primeiro chip conectado do user)
   let instanceId = args.instance_id;
@@ -453,7 +466,10 @@ export async function triggerKeywordFlows(
       .select("id").eq("user_id", args.user_id).eq("status", "connected").limit(1).maybeSingle();
     instanceId = inst?.id ?? null;
   }
-  if (!instanceId) return;
+  if (!instanceId) {
+    console.warn("[trigger] no connected instance available — aborting");
+    return { matched: matched.length, runs: [] };
+  }
 
   // upsert contato
   const { data: existing } = await supabaseAdmin.from("contacts")
@@ -465,26 +481,38 @@ export async function triggerKeywordFlows(
       .select("id").single();
     contactId = created?.id;
   }
-  if (!contactId) return;
+  if (!contactId) return { matched: matched.length, runs: [] };
 
+  const runs: string[] = [];
   for (const t of matched) {
     const runId = await createFlowRun(supabaseAdmin, {
       flow_id: t.flow_id, user_id: args.user_id,
       contact_id: contactId, contact_phone: args.phone, instance_id: instanceId,
+      initial_vars: { __trigger_keyword: lower, __trigger_id: t.id },
     });
+    console.log("[trigger] created run", { trigger: t.id, run: runId, flow: t.flow_id, phone: args.phone });
 
-    // Aplica atraso inicial: marca run como 'waiting' até wait_until
-    if (runId && t.delay_seconds > 0) {
-      const waitUntil = new Date(Date.now() + t.delay_seconds * 1000).toISOString();
-      await supabaseAdmin.from("flow_runs")
-        .update({ status: "waiting", wait_until: waitUntil })
-        .eq("id", runId);
+    if (runId) {
+      runs.push(runId);
+      // Step "triggered" para aparecer na fila do painel imediatamente
+      await supabaseAdmin.from("flow_run_steps").insert({
+        run_id: runId, flow_id: t.flow_id, user_id: args.user_id,
+        node_id: "__trigger__", node_type: "trigger", status: "completed",
+        output: { keyword: lower, trigger_id: t.id, phone: args.phone, from_me: !!args.from_me },
+      });
+
+      if (t.delay_seconds > 0) {
+        const waitUntil = new Date(Date.now() + t.delay_seconds * 1000).toISOString();
+        await supabaseAdmin.from("flow_runs")
+          .update({ status: "waiting", wait_until: waitUntil })
+          .eq("id", runId);
+      }
     }
 
-    // Atualiza last_triggered_at para o cooldown
     await supabaseAdmin.from("flow_keyword_triggers")
       .update({ last_triggered_at: new Date().toISOString() })
       .eq("id", t.id);
   }
+  return { matched: matched.length, runs };
 }
 
