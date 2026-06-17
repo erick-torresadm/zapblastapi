@@ -253,7 +253,7 @@ export const cancelFlowRunFn = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const admin = await isAdmin(supabase, userId);
     const q = supabase.from("flow_runs" as any)
-      .update({ status: "canceled", finished_at: new Date().toISOString(), wait_until: null, waiting_for: null, error: "Cancelado pelo usuário" })
+      .update({ status: "stopped", finished_at: new Date().toISOString(), wait_until: null, waiting_for: null, error: "Cancelado pelo usuário" })
       .in("status", ["pending", "waiting", "running"])
       .eq("id", data.id);
     const { error } = admin ? await q : await q.eq("user_id", userId);
@@ -268,7 +268,7 @@ export const cancelAllFlowRunsFn = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const admin = await isAdmin(supabase, userId);
     const q = supabase.from("flow_runs" as any)
-      .update({ status: "canceled", finished_at: new Date().toISOString(), wait_until: null, waiting_for: null, error: "Cancelado em lote" })
+      .update({ status: "stopped", finished_at: new Date().toISOString(), wait_until: null, waiting_for: null, error: "Cancelado em lote" })
       .in("status", ["pending", "waiting", "running"]);
     const { data, error } = admin ? await q.select("id") : await q.eq("user_id", userId).select("id");
     if (error) throw new Error(error.message);

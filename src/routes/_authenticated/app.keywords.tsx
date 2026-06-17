@@ -289,7 +289,7 @@ function KeywordsPage() {
                       variant={
                         r.status === "completed" ? "secondary"
                         : r.status === "failed" ? "destructive"
-                        : r.status === "canceled" ? "outline"
+                        : r.status === "stopped" ? "outline"
                         : "outline"
                       }
                       className="text-xs capitalize"
