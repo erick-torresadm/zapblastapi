@@ -246,7 +246,12 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       ?? extractRealPhone(raw.data?.sender)
       ?? extractRealPhone(raw.data?.key?.senderPn)
       ?? extractRealPhone(raw.data?.key?.participantPn);
-    return phone ?? toEvolutionTarget(run.contact_phone);
+    if (phone) {
+      console.log("[flow] LID target resolved from webhook sender", { runId, lid: run.contact_phone, target: phone });
+      return phone;
+    }
+    console.warn("[flow] LID target unresolved; falling back to @lid", { runId, lid: run.contact_phone });
+    return toEvolutionTarget(run.contact_phone);
   }
 
   async function sendTextSafely(text: string) {
