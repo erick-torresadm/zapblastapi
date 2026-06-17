@@ -421,6 +421,13 @@ function FlowsInner() {
             onInit={(inst) => { rfRef.current = inst; }}
             onNodeClick={(_, n) => setSelectedId(n.id)}
             onPaneClick={() => setSelectedId(null)}
+            onEdgeClick={(_, edge) => {
+              if (window.confirm("Remover esta conexão?")) {
+                setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+              }
+            }}
+            edgesFocusable
+            edgesUpdatable={false}
             nodeTypes={nodeTypes}
             fitView
             proOptions={{ hideAttribution: true }}
