@@ -12,11 +12,11 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Bot, Pencil, Clock, User } from "lucide-react";
+import { Plus, Trash2, Bot, Pencil, Clock, User, PlayCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   listKeywordTriggersFn, upsertKeywordTriggerFn, toggleKeywordTriggerFn,
-  deleteKeywordTriggerFn, listFlowsForKeywordsFn,
+  deleteKeywordTriggerFn, listFlowsForKeywordsFn, listRecentFlowRunsFn, testKeywordTriggerFn,
 } from "@/lib/keywords.functions";
 
 export const Route = createFileRoute("/_authenticated/app/keywords")({
@@ -42,9 +42,27 @@ function KeywordsPage() {
   const saveFn = useServerFn(upsertKeywordTriggerFn);
   const toggleFn = useServerFn(toggleKeywordTriggerFn);
   const delFn = useServerFn(deleteKeywordTriggerFn);
+  const recentFn = useServerFn(listRecentFlowRunsFn);
+  const testFn = useServerFn(testKeywordTriggerFn);
 
   const { data: list, isLoading } = useQuery({ queryKey: ["kw-triggers"], queryFn: () => listFn() });
   const { data: opts } = useQuery({ queryKey: ["kw-opts"], queryFn: () => optsFn() });
+  const { data: recent, refetch: refetchRecent } = useQuery({
+    queryKey: ["kw-recent"], queryFn: () => recentFn(), refetchInterval: 5000,
+  });
+
+  const [testOpenFor, setTestOpenFor] = useState<string | null>(null);
+  const [testPhone, setTestPhone] = useState("");
+
+  const testMut = useMutation({
+    mutationFn: (v: { trigger_id: string; phone: string }) => testFn({ data: v }),
+    onSuccess: (r) => {
+      toast.success(`Gatilho disparado: ${r.matched} match, ${r.runs.length} run(s)`);
+      setTestOpenFor(null);
+      qc.invalidateQueries({ queryKey: ["kw-recent"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Trigger | null>(null);
