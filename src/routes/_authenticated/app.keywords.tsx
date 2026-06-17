@@ -287,7 +287,7 @@ function KeywordsPage() {
                   <div className="flex flex-col items-end gap-1">
                     <Badge
                       variant={
-                        r.status === "completed" ? "secondary"
+                        r.status === "done" ? "secondary"
                         : r.status === "failed" ? "destructive"
                         : r.status === "stopped" ? "outline"
                         : "outline"
