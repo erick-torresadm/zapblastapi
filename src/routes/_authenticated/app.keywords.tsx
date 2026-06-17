@@ -142,6 +142,24 @@ function KeywordsPage() {
     },
   });
 
+  const cancelRunMut = useMutation({
+    mutationFn: (id: string) => cancelRunFn({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Execução cancelada");
+      qc.invalidateQueries({ queryKey: ["kw-recent"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const cancelAllMut = useMutation({
+    mutationFn: () => cancelAllFn(),
+    onSuccess: (r: { canceled: number }) => {
+      toast.success(`${r.canceled} execução(ões) cancelada(s)`);
+      qc.invalidateQueries({ queryKey: ["kw-recent"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-start justify-between gap-4">
