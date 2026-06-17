@@ -7,7 +7,6 @@ import {
   sendMedia,
   sendPresence,
   typingDurationMs,
-  pickHumanDelayMs,
   isInQuietHours,
   checkWhatsappNumbers,
 } from "@/lib/evolution.server";
@@ -35,6 +34,17 @@ type InstanceRow = {
   last_sent_at: string | null;
   evolution_servers: { base_url: string; api_key: string } | null;
 };
+
+function isLidIdentifier(value: string | null | undefined): boolean {
+  const raw = String(value ?? "");
+  const user = raw.includes("@") ? raw.split("@")[0] : raw;
+  return raw.endsWith("@lid") || /^\d{15,}$/.test(user.replace(/\D/g, ""));
+}
+
+function toEvolutionTarget(value: string): string {
+  if (value.includes("@")) return value;
+  return isLidIdentifier(value) ? `${value}@lid` : value;
+}
 
 function renderTemplate(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => vars[k] ?? "");
@@ -215,11 +225,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
 
   async function sendTextSafely(text: string) {
     if (!srv || !inst || inst.status !== "connected") return;
-    // Se o "phone" do contato é um LID (Baileys gera identificadores de 15+ dígitos),
-    // a Evolution precisa receber o JID completo "<lid>@lid" para encaminhar.
-    const target = run.contact_phone.length >= 15
-      ? `${run.contact_phone}@lid`
-      : run.contact_phone;
+    const target = toEvolutionTarget(run.contact_phone);
     if (inst.typing_enabled) {
       const dur = typingDurationMs(text, inst.typing_wpm);
       try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, "composing", dur); } catch {}
@@ -243,7 +249,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         if (!(await gateSafetyOrDefer())) return;
         // valida número uma vez por run, opcional — agora só AVISA e segue.
         // (a Evolution rejeita com 400 se for inválido de fato e o erro é tratado abaixo.)
-        if (inst.validate_numbers && !run.variables?.__validated && srv) {
+        if (inst.validate_numbers && !run.variables?.__validated && srv && !isLidIdentifier(run.contact_phone)) {
           try {
             const res = await checkWhatsappNumbers({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, [run.contact_phone]);
             const ok = Array.isArray(res) && res[0]?.exists !== false;
@@ -283,9 +289,10 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         if (!(await gateSafetyOrDefer())) return;
         // presence apropriado pro tipo
         const presence = mediatype === "audio" ? "recording" : "composing";
-        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, presence, 1500); } catch {}
+        const target = toEvolutionTarget(run.contact_phone);
+        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, presence, 1500); } catch {}
         await new Promise((r) => setTimeout(r, 1500));
-        await sendMedia({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, {
+        await sendMedia({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, {
           mediatype, media: url, caption, fileName,
         });
         await bumpCounters(supabaseAdmin, inst);
@@ -301,7 +308,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       const presence = (String(data.presence ?? "composing")) as "composing" | "recording";
       const secs = Math.max(1, Math.min(15, Number(data.seconds ?? 3)));
       if (srv && inst && inst.status === "connected") {
-        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, presence, secs * 1000); } catch {}
+        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, toEvolutionTarget(run.contact_phone), presence, secs * 1000); } catch {}
       }
       await logStep("completed", undefined, { presence, secs });
       const until = new Date(Date.now() + secs * 1000).toISOString();
