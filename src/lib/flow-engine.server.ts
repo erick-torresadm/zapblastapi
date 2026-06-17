@@ -7,7 +7,6 @@ import {
   sendMedia,
   sendPresence,
   typingDurationMs,
-  pickHumanDelayMs,
   isInQuietHours,
   checkWhatsappNumbers,
 } from "@/lib/evolution.server";
@@ -35,6 +34,25 @@ type InstanceRow = {
   last_sent_at: string | null;
   evolution_servers: { base_url: string; api_key: string } | null;
 };
+
+function isLidIdentifier(value: string | null | undefined): boolean {
+  const raw = String(value ?? "");
+  const user = raw.includes("@") ? raw.split("@")[0] : raw;
+  return raw.endsWith("@lid") || /^\d{15,}$/.test(user.replace(/\D/g, ""));
+}
+
+function extractRealPhone(value: unknown): string | null {
+  if (!value) return null;
+  const raw = String(value);
+  const user = raw.includes("@") ? raw.split("@")[0] : raw;
+  const digits = user.replace(/\D/g, "");
+  return digits.length >= 8 && digits.length <= 14 ? digits : null;
+}
+
+function toEvolutionTarget(value: string): string {
+  if (value.includes("@")) return value;
+  return isLidIdentifier(value) ? `${value}@lid` : value;
+}
 
 function renderTemplate(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => vars[k] ?? "");
@@ -213,13 +231,32 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     return false;
   }
 
+  async function resolveEvolutionTarget(): Promise<string> {
+    if (!isLidIdentifier(run.contact_phone)) return toEvolutionTarget(run.contact_phone);
+    const { data: recent } = await supabaseAdmin.from("incoming_messages")
+      .select("raw_payload")
+      .eq("user_id", run.user_id)
+      .eq("instance_id", run.instance_id)
+      .eq("from_phone", run.contact_phone)
+      .order("received_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const raw = (recent?.raw_payload ?? {}) as { sender?: unknown; data?: { sender?: unknown; key?: { senderPn?: unknown; participantPn?: unknown } } };
+    const phone = extractRealPhone(raw.sender)
+      ?? extractRealPhone(raw.data?.sender)
+      ?? extractRealPhone(raw.data?.key?.senderPn)
+      ?? extractRealPhone(raw.data?.key?.participantPn);
+    if (phone) {
+      console.log("[flow] LID target resolved from webhook sender", { runId, lid: run.contact_phone, target: phone });
+      return phone;
+    }
+    console.warn("[flow] LID target unresolved; falling back to @lid", { runId, lid: run.contact_phone });
+    return toEvolutionTarget(run.contact_phone);
+  }
+
   async function sendTextSafely(text: string) {
     if (!srv || !inst || inst.status !== "connected") return;
-    // Se o "phone" do contato é um LID (Baileys gera identificadores de 15+ dígitos),
-    // a Evolution precisa receber o JID completo "<lid>@lid" para encaminhar.
-    const target = run.contact_phone.length >= 15
-      ? `${run.contact_phone}@lid`
-      : run.contact_phone;
+    const target = await resolveEvolutionTarget();
     if (inst.typing_enabled) {
       const dur = typingDurationMs(text, inst.typing_wpm);
       try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, "composing", dur); } catch {}
@@ -243,7 +280,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         if (!(await gateSafetyOrDefer())) return;
         // valida número uma vez por run, opcional — agora só AVISA e segue.
         // (a Evolution rejeita com 400 se for inválido de fato e o erro é tratado abaixo.)
-        if (inst.validate_numbers && !run.variables?.__validated && srv) {
+        if (inst.validate_numbers && !run.variables?.__validated && srv && !isLidIdentifier(run.contact_phone)) {
           try {
             const res = await checkWhatsappNumbers({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, [run.contact_phone]);
             const ok = Array.isArray(res) && res[0]?.exists !== false;
@@ -283,9 +320,10 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         if (!(await gateSafetyOrDefer())) return;
         // presence apropriado pro tipo
         const presence = mediatype === "audio" ? "recording" : "composing";
-        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, presence, 1500); } catch {}
+        const target = await resolveEvolutionTarget();
+        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, presence, 1500); } catch {}
         await new Promise((r) => setTimeout(r, 1500));
-        await sendMedia({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, {
+        await sendMedia({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, {
           mediatype, media: url, caption, fileName,
         });
         await bumpCounters(supabaseAdmin, inst);
@@ -301,7 +339,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       const presence = (String(data.presence ?? "composing")) as "composing" | "recording";
       const secs = Math.max(1, Math.min(15, Number(data.seconds ?? 3)));
       if (srv && inst && inst.status === "connected") {
-        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, presence, secs * 1000); } catch {}
+        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, await resolveEvolutionTarget(), presence, secs * 1000); } catch {}
       }
       await logStep("completed", undefined, { presence, secs });
       const until = new Date(Date.now() + secs * 1000).toISOString();

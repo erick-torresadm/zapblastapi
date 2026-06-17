@@ -61,6 +61,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           const fromMe = !!key?.fromMe;
           const remoteJid = key?.remoteJid ?? "";
           const senderPn = String((key as { senderPn?: string } | undefined)?.senderPn ?? "");
+          const payloadSender = (payload as { sender?: string }).sender;
 
           const jidDomain = remoteJid.includes("@") ? remoteJid.split("@")[1] : "";
           const jidUser = remoteJid.includes("@") ? remoteJid.split("@")[0] : remoteJid;
@@ -82,10 +83,13 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           };
           if (chatType === "lid") {
             const participantPn = (key as { participantPn?: string } | undefined)?.participantPn;
-            const dataPn = (data as { senderPn?: string; participantPn?: string; pn?: string });
+            const dataPn = (data as { senderPn?: string; participantPn?: string; pn?: string; sender?: string });
             const pn =
               tryPn(senderPn) ?? tryPn(participantPn) ?? tryPn(dataPn.senderPn)
-              ?? tryPn(dataPn.participantPn) ?? tryPn(dataPn.pn);
+              ?? tryPn(dataPn.participantPn) ?? tryPn(dataPn.pn) ?? tryPn(dataPn.sender)
+              // Em payloads Evolution com @lid, o telefone real costuma vir no topo como "sender".
+              // Só usamos isso em mensagens recebidas; em fromMe pode ser o próprio chip.
+              ?? (!fromMe ? tryPn(payloadSender) : null);
             if (pn) {
               chatType = "user";
               resolvedUser = pn;
