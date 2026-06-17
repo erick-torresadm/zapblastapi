@@ -227,9 +227,18 @@ export const testKeywordTriggerFn = createServerFn({ method: "POST" })
       from_me: false,
     });
     for (const runId of result.runs) {
+      const started = Date.now();
       for (let i = 0; i < 20; i++) {
-        const { data: cur } = await supabaseAdmin.from("flow_runs").select("status").eq("id", runId).maybeSingle();
-        if (!cur || (cur as { status: string }).status !== "pending") break;
+        const { data: cur } = await supabaseAdmin.from("flow_runs").select("status, wait_until").eq("id", runId).maybeSingle();
+        if (!cur) break;
+        const state = cur as { status: string; wait_until: string | null };
+        if (state.status === "waiting" && state.wait_until) {
+          const waitMs = new Date(state.wait_until).getTime() - Date.now();
+          if (waitMs > 0) {
+            if (Date.now() - started + waitMs > 25_000) break;
+            await new Promise((r) => setTimeout(r, waitMs + 50));
+          }
+        } else if (state.status !== "pending") break;
         await advanceFlowRun(supabaseAdmin, runId);
       }
     }
