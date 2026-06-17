@@ -408,14 +408,94 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       return;
     }
 
-    if (node.type === "tag" || node.type === "ai") {
-      await logStep("completed");
+    if (node.type === "tag") {
+      const tag = String(data.tag ?? "").trim();
+      if (tag) {
+        const { data: c } = await supabaseAdmin.from("contacts").select("variables").eq("id", run.contact_id).maybeSingle();
+        const cv = (c?.variables ?? {}) as Record<string, unknown>;
+        const tagsRaw = Array.isArray(cv._tags) ? (cv._tags as string[]) : [];
+        const tagsSet = new Set([...tagsRaw, tag]);
+        await supabaseAdmin.from("contacts").update({ variables: { ...cv, _tags: Array.from(tagsSet) } }).eq("id", run.contact_id);
+      }
+      await logStep("completed", undefined, { tag });
+      await goNext();
+      return;
+    }
+
+    if (node.type === "webhook") {
+      const url = String(data.webhookUrl ?? "");
+      if (url) {
+        try {
+          const resp = await fetch(url, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              run_id: runId, flow_id: run.flow_id, contact_id: run.contact_id,
+              phone: run.contact_phone, variables: vars,
+            }),
+          });
+          let body: unknown = null;
+          try { body = await resp.json(); } catch { body = await resp.text(); }
+          // Se a resposta for objeto, mescla nas variables
+          if (body && typeof body === "object" && !Array.isArray(body)) {
+            const merged = { ...vars, ...(body as Record<string, string>) };
+            await supabaseAdmin.from("flow_runs").update({ variables: merged }).eq("id", runId);
+          }
+          await logStep("completed", undefined, { status: resp.status });
+        } catch (e) {
+          await logStep("failed", (e as Error).message);
+        }
+      } else {
+        await logStep("skipped", "URL vazia");
+      }
+      await goNext();
+      return;
+    }
+
+    if (node.type === "ai") {
+      const sys = String(data.systemPrompt ?? "Você é um atendente educado e direto.");
+      const userInput = renderTemplate(String(data.userInput ?? ""), vars);
+      const apiKey = process.env.LOVABLE_API_KEY;
+      let reply = "";
+      if (apiKey && userInput) {
+        try {
+          const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [{ role: "system", content: sys }, { role: "user", content: userInput }],
+            }),
+          });
+          const j = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
+          reply = j.choices?.[0]?.message?.content?.trim() ?? "";
+        } catch (e) {
+          await logStep("failed", (e as Error).message);
+        }
+      }
+      if (reply && inst) {
+        if (!(await gateSafetyOrDefer())) return;
+        try { await sendTextSafely(reply); } catch (e) { await logStep("failed", (e as Error).message); }
+      }
+      await logStep("completed", undefined, { sent: !!reply, reply: reply.slice(0, 200) });
       await goNext();
       return;
     }
 
     if (node.type === "transfer_human") {
-      await logStep("completed");
+      const tpl = String(data.message ?? "").trim();
+      if (tpl && inst) {
+        if (!(await gateSafetyOrDefer())) return;
+        try { await sendTextSafely(renderTemplate(tpl, vars)); } catch (e) {
+          await logStep("failed", (e as Error).message);
+        }
+      }
+      // Abre conversa no CRM como "open" e remove o agente atribuído pra fila do time
+      await supabaseAdmin.from("crm_conversations")
+        .update({ status: "open", assigned_agent_id: null, updated_at: new Date().toISOString() })
+        .eq("owner_user_id", run.user_id)
+        .eq("contact_phone", run.contact_phone);
+      await logStep("completed", undefined, { handed_off: true });
       await supabaseAdmin.from("flow_runs").update({ status: "completed", finished_at: new Date().toISOString(), current_node_id: null }).eq("id", runId);
       return;
     }
