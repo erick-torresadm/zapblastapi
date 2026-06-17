@@ -383,7 +383,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         }).eq("id", runId);
       } else {
         await supabaseAdmin.from("flow_runs").update({
-          status: "completed",
+          status: "done",
           finished_at: new Date().toISOString(),
           current_node_id: null,
           wait_until: null,
@@ -496,7 +496,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         .eq("owner_user_id", run.user_id)
         .eq("contact_phone", run.contact_phone);
       await logStep("completed", undefined, { handed_off: true });
-      await supabaseAdmin.from("flow_runs").update({ status: "completed", finished_at: new Date().toISOString(), current_node_id: null }).eq("id", runId);
+      await supabaseAdmin.from("flow_runs").update({ status: "done", finished_at: new Date().toISOString(), current_node_id: null }).eq("id", runId);
       return;
     }
 
@@ -533,7 +533,7 @@ export async function resumeFlowRunsForReply(
       waiting_for: null,
       status: "pending",
       current_node_id: edge?.target ?? null,
-      ...(edge ? {} : { finished_at: new Date().toISOString(), status: "completed" }),
+      ...(edge ? {} : { finished_at: new Date().toISOString(), status: "done" }),
     }).eq("id", r.id);
   }
 }
