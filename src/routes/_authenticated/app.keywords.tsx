@@ -45,6 +45,8 @@ function KeywordsPage() {
   const delFn = useServerFn(deleteKeywordTriggerFn);
   const recentFn = useServerFn(listRecentFlowRunsFn);
   const testFn = useServerFn(testKeywordTriggerFn);
+  const cancelRunFn = useServerFn(cancelFlowRunFn);
+  const cancelAllFn = useServerFn(cancelAllFlowRunsFn);
 
   const { data: list, isLoading } = useQuery({ queryKey: ["kw-triggers"], queryFn: () => listFn() });
   const { data: opts } = useQuery({ queryKey: ["kw-opts"], queryFn: () => optsFn() });
