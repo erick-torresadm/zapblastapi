@@ -370,7 +370,21 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     if (node.type === "delay") {
       const secs = Number(data.delaySeconds ?? 60);
       const until = new Date(Date.now() + secs * 1000).toISOString();
-      await supabaseAdmin.from("flow_runs").update({ status: "waiting", wait_until: until }).eq("id", runId);
+      const edge = nextEdge(flow!, node!.id);
+      if (edge) {
+        await supabaseAdmin.from("flow_runs").update({
+          current_node_id: edge.target,
+          status: "waiting",
+          wait_until: until,
+        }).eq("id", runId);
+      } else {
+        await supabaseAdmin.from("flow_runs").update({
+          status: "completed",
+          finished_at: new Date().toISOString(),
+          current_node_id: null,
+          wait_until: null,
+        }).eq("id", runId);
+      }
       await logStep("completed", undefined, { wait_until: until });
       return;
     }
