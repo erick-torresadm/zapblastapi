@@ -563,7 +563,18 @@ function FlowsInner() {
                   )}
 
                   {t === "transfer_human" && (
-                    <p className="text-xs text-muted-foreground">Esse passo encerra a automação e notifica seu time para assumir a conversa.</p>
+                    <>
+                      <div>
+                        <Label htmlFor="th-msg">Mensagem de transferência (opcional)</Label>
+                        <Textarea
+                          id="th-msg" rows={4}
+                          value={d.message ?? ""}
+                          onChange={(e) => updateSelected({ message: e.target.value })}
+                          placeholder="Um atendente vai continuar daqui, {{nome}}. Só um momento 🙂"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Envia a mensagem (se preenchida), abre a conversa no CRM como “aberta” para o time assumir e encerra a automação para este contato.</p>
+                    </>
                   )}
 
 
