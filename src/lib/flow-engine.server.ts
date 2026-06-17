@@ -176,7 +176,7 @@ async function bumpCounters(supabaseAdmin: any, inst: InstanceRow) {
 // Executa um único passo do run.
 export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise<void> {
   const { data: run } = await supabaseAdmin.from("flow_runs").select("*").eq("id", runId).maybeSingle();
-  if (!run || run.status === "completed" || run.status === "failed" || run.status === "stopped") return;
+  if (!run || run.status === "done" || run.status === "failed" || run.status === "stopped") return;
 
   const flow = await loadFlow(supabaseAdmin, run.flow_id);
   if (!flow) {
@@ -186,7 +186,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
 
   const node = flow.nodes.find((n) => n.id === run.current_node_id);
   if (!node) {
-    await supabaseAdmin.from("flow_runs").update({ status: "completed", finished_at: new Date().toISOString() }).eq("id", runId);
+    await supabaseAdmin.from("flow_runs").update({ status: "done", finished_at: new Date().toISOString() }).eq("id", runId);
     return;
   }
 
@@ -212,7 +212,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   async function goNext(handle?: string) {
     const edge = nextEdge(flow!, node!.id, handle);
     if (!edge) {
-      await supabaseAdmin.from("flow_runs").update({ status: "completed", finished_at: new Date().toISOString(), current_node_id: null }).eq("id", runId);
+      await supabaseAdmin.from("flow_runs").update({ status: "done", finished_at: new Date().toISOString(), current_node_id: null }).eq("id", runId);
     } else {
       await supabaseAdmin.from("flow_runs").update({
         current_node_id: edge.target, status: "pending", waiting_for: null, wait_until: null,
