@@ -12,11 +12,12 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Bot, Pencil, Clock, User, PlayCircle, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Bot, Pencil, Clock, User, PlayCircle, RefreshCw, Square, StopCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   listKeywordTriggersFn, upsertKeywordTriggerFn, toggleKeywordTriggerFn,
   deleteKeywordTriggerFn, listFlowsForKeywordsFn, listRecentFlowRunsFn, testKeywordTriggerFn,
+  cancelFlowRunFn, cancelAllFlowRunsFn,
 } from "@/lib/keywords.functions";
 
 export const Route = createFileRoute("/_authenticated/app/keywords")({
@@ -44,6 +45,8 @@ function KeywordsPage() {
   const delFn = useServerFn(deleteKeywordTriggerFn);
   const recentFn = useServerFn(listRecentFlowRunsFn);
   const testFn = useServerFn(testKeywordTriggerFn);
+  const cancelRunFn = useServerFn(cancelFlowRunFn);
+  const cancelAllFn = useServerFn(cancelAllFlowRunsFn);
 
   const { data: list, isLoading } = useQuery({ queryKey: ["kw-triggers"], queryFn: () => listFn() });
   const { data: opts } = useQuery({ queryKey: ["kw-opts"], queryFn: () => optsFn() });
@@ -139,6 +142,24 @@ function KeywordsPage() {
     },
   });
 
+  const cancelRunMut = useMutation({
+    mutationFn: (id: string) => cancelRunFn({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Execução cancelada");
+      qc.invalidateQueries({ queryKey: ["kw-recent"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const cancelAllMut = useMutation({
+    mutationFn: () => cancelAllFn(),
+    onSuccess: (r: { canceled: number }) => {
+      toast.success(`${r.canceled} execução(ões) cancelada(s)`);
+      qc.invalidateQueries({ queryKey: ["kw-recent"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-start justify-between gap-4">
@@ -228,16 +249,30 @@ function KeywordsPage() {
             </CardTitle>
             <CardDescription>Últimos fluxos disparados — atualiza a cada 5s.</CardDescription>
           </div>
-          <Button size="sm" variant="outline" onClick={() => refetchRecent()}>
-            <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => {
+                if (confirm("Cancelar TODAS as execuções em andamento?")) cancelAllMut.mutate();
+              }}
+              disabled={cancelAllMut.isPending}
+            >
+              <StopCircle className="h-4 w-4 mr-2" /> Parar todos
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => refetchRecent()}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y">
             {(recent?.items ?? []).length === 0 && (
               <div className="p-4 text-sm text-muted-foreground">Nenhum disparo ainda.</div>
             )}
-            {(recent?.items ?? []).map((r) => (
+            {(recent?.items ?? []).map((r) => {
+              const isActive = r.status === "pending" || r.status === "waiting" || r.status === "running";
+              return (
               <div key={r.id} className="flex items-center justify-between gap-3 p-3 text-sm">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -248,23 +283,37 @@ function KeywordsPage() {
                   </div>
                   {r.error && <div className="text-xs text-destructive mt-1 truncate">{r.error}</div>}
                 </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <Badge
-                    variant={
-                      r.status === "completed" ? "secondary"
-                      : r.status === "failed" ? "destructive"
-                      : "outline"
-                    }
-                    className="text-xs capitalize"
-                  >
-                    {r.status}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {r.started_at ? new Date(r.started_at).toLocaleString("pt-BR") : "—"}
-                  </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge
+                      variant={
+                        r.status === "completed" ? "secondary"
+                        : r.status === "failed" ? "destructive"
+                        : r.status === "canceled" ? "outline"
+                        : "outline"
+                      }
+                      className="text-xs capitalize"
+                    >
+                      {r.status}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {r.started_at ? new Date(r.started_at).toLocaleString("pt-BR") : "—"}
+                    </span>
+                  </div>
+                  {isActive && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Parar esta execução"
+                      onClick={() => cancelRunMut.mutate(r.id)}
+                      disabled={cancelRunMut.isPending}
+                    >
+                      <Square className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               </div>
-            ))}
+            );})}
           </div>
         </CardContent>
       </Card>

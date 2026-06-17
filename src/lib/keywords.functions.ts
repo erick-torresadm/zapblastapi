@@ -245,3 +245,33 @@ export const testKeywordTriggerFn = createServerFn({ method: "POST" })
     return { ok: true, matched: result.matched, runs: result.runs };
   });
 
+// Cancela uma execução individual de fluxo (qualquer estado não-final).
+export const cancelFlowRunFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const admin = await isAdmin(supabase, userId);
+    const q = supabase.from("flow_runs" as any)
+      .update({ status: "canceled", finished_at: new Date().toISOString(), wait_until: null, waiting_for: null, error: "Cancelado pelo usuário" })
+      .in("status", ["pending", "waiting", "running"])
+      .eq("id", data.id);
+    const { error } = admin ? await q : await q.eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Cancela todas as execuções em andamento do usuário (ou todas, se admin).
+export const cancelAllFlowRunsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const admin = await isAdmin(supabase, userId);
+    const q = supabase.from("flow_runs" as any)
+      .update({ status: "canceled", finished_at: new Date().toISOString(), wait_until: null, waiting_for: null, error: "Cancelado em lote" })
+      .in("status", ["pending", "waiting", "running"]);
+    const { data, error } = admin ? await q.select("id") : await q.eq("user_id", userId).select("id");
+    if (error) throw new Error(error.message);
+    return { ok: true, canceled: (data ?? []).length };
+  });
+
