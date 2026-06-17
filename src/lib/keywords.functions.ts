@@ -213,7 +213,7 @@ export const testKeywordTriggerFn = createServerFn({ method: "POST" })
     const { data: trigger } = admin ? await tQ.maybeSingle() : await tQ.eq("user_id", userId).maybeSingle();
     if (!trigger) throw new Error("Gatilho não encontrado");
 
-    const tr = trigger as { user_id: string; keywords: string[]; instance_id: string | null };
+    const tr = trigger as unknown as { user_id: string; keywords: string[]; instance_id: string | null };
     const sampleKeyword = (tr.keywords?.[0] ?? "teste").toString();
     const phone = data.phone.replace(/[^0-9]/g, "");
 
