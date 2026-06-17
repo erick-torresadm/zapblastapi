@@ -12,11 +12,12 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Bot, Pencil, Clock, User, PlayCircle, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Bot, Pencil, Clock, User, PlayCircle, RefreshCw, Square, StopCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   listKeywordTriggersFn, upsertKeywordTriggerFn, toggleKeywordTriggerFn,
   deleteKeywordTriggerFn, listFlowsForKeywordsFn, listRecentFlowRunsFn, testKeywordTriggerFn,
+  cancelFlowRunFn, cancelAllFlowRunsFn,
 } from "@/lib/keywords.functions";
 
 export const Route = createFileRoute("/_authenticated/app/keywords")({
