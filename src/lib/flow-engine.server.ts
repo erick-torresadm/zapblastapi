@@ -215,14 +215,20 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
 
   async function sendTextSafely(text: string) {
     if (!srv || !inst || inst.status !== "connected") return;
+    // Se o "phone" do contato é um LID (Baileys gera identificadores de 15+ dígitos),
+    // a Evolution precisa receber o JID completo "<lid>@lid" para encaminhar.
+    const target = run.contact_phone.length >= 15
+      ? `${run.contact_phone}@lid`
+      : run.contact_phone;
     if (inst.typing_enabled) {
       const dur = typingDurationMs(text, inst.typing_wpm);
-      try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, "composing", dur); } catch {}
+      try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, "composing", dur); } catch {}
       await new Promise((r) => setTimeout(r, dur));
     }
-    await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, run.contact_phone, text);
+    await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, text);
     await bumpCounters(supabaseAdmin, inst);
   }
+
 
   try {
     if (node.type === "start") {
