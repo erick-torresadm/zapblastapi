@@ -178,17 +178,34 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
             });
             console.log("[webhook] triggerKeywordFlows result", r);
 
-            // Se algum run foi criado, tenta avançar imediatamente para não depender do cron
+            // Avança o run inline, respeitando exatamente os delays configurados.
+            // Para delays curtos (<= 25s) aguardamos in-process; acima disso o cron assume.
             if (r.runs.length) {
               const { advanceFlowRun } = await import("@/lib/flow-engine.server");
+              const MAX_TOTAL_MS = 25000;
               for (const runId of r.runs) {
-                for (let i = 0; i < 10; i++) {
-                  const { data: cur } = await supabaseAdmin.from("flow_runs").select("status").eq("id", runId).maybeSingle();
-                  if (!cur || cur.status !== "pending") break;
-                  await advanceFlowRun(supabaseAdmin, runId);
+                const started = Date.now();
+                for (let i = 0; i < 50; i++) {
+                  const { data: cur } = await supabaseAdmin.from("flow_runs")
+                    .select("status, wait_until").eq("id", runId).maybeSingle();
+                  if (!cur) break;
+                  if (cur.status === "pending") {
+                    await advanceFlowRun(supabaseAdmin, runId);
+                    continue;
+                  }
+                  if (cur.status === "waiting" && cur.wait_until) {
+                    const waitMs = new Date(cur.wait_until).getTime() - Date.now();
+                    if (waitMs <= 0) { await advanceFlowRun(supabaseAdmin, runId); continue; }
+                    if (Date.now() - started + waitMs > MAX_TOTAL_MS) break;
+                    await new Promise((r) => setTimeout(r, waitMs + 50));
+                    await advanceFlowRun(supabaseAdmin, runId);
+                    continue;
+                  }
+                  break; // waiting_for resposta, completed, failed, etc.
                 }
               }
             }
+
           } catch (e) {
             console.error("[webhook] triggerKeywordFlows failed", e);
           }
