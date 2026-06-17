@@ -249,16 +249,30 @@ function KeywordsPage() {
             </CardTitle>
             <CardDescription>Últimos fluxos disparados — atualiza a cada 5s.</CardDescription>
           </div>
-          <Button size="sm" variant="outline" onClick={() => refetchRecent()}>
-            <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => {
+                if (confirm("Cancelar TODAS as execuções em andamento?")) cancelAllMut.mutate();
+              }}
+              disabled={cancelAllMut.isPending}
+            >
+              <StopCircle className="h-4 w-4 mr-2" /> Parar todos
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => refetchRecent()}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y">
             {(recent?.items ?? []).length === 0 && (
               <div className="p-4 text-sm text-muted-foreground">Nenhum disparo ainda.</div>
             )}
-            {(recent?.items ?? []).map((r) => (
+            {(recent?.items ?? []).map((r) => {
+              const isActive = r.status === "pending" || r.status === "waiting" || r.status === "running";
+              return (
               <div key={r.id} className="flex items-center justify-between gap-3 p-3 text-sm">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -269,23 +283,37 @@ function KeywordsPage() {
                   </div>
                   {r.error && <div className="text-xs text-destructive mt-1 truncate">{r.error}</div>}
                 </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <Badge
-                    variant={
-                      r.status === "completed" ? "secondary"
-                      : r.status === "failed" ? "destructive"
-                      : "outline"
-                    }
-                    className="text-xs capitalize"
-                  >
-                    {r.status}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {r.started_at ? new Date(r.started_at).toLocaleString("pt-BR") : "—"}
-                  </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge
+                      variant={
+                        r.status === "completed" ? "secondary"
+                        : r.status === "failed" ? "destructive"
+                        : r.status === "canceled" ? "outline"
+                        : "outline"
+                      }
+                      className="text-xs capitalize"
+                    >
+                      {r.status}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {r.started_at ? new Date(r.started_at).toLocaleString("pt-BR") : "—"}
+                    </span>
+                  </div>
+                  {isActive && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Parar esta execução"
+                      onClick={() => cancelRunMut.mutate(r.id)}
+                      disabled={cancelRunMut.isPending}
+                    >
+                      <Square className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               </div>
-            ))}
+            );})}
           </div>
         </CardContent>
       </Card>
