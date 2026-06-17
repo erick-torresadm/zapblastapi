@@ -291,20 +291,10 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         await bumpCounters(supabaseAdmin, inst);
       }
       await logStep("completed", undefined, { sent: !!url, mediatype });
-      if (inst) {
-        const wait = pickHumanDelayMs(inst.min_delay_ms, inst.max_delay_ms);
-        const edge = nextEdge(flow!, node!.id);
-        if (edge) {
-          await supabaseAdmin.from("flow_runs").update({
-            current_node_id: edge.target, status: "waiting",
-            wait_until: new Date(Date.now() + wait).toISOString(),
-          }).eq("id", runId);
-          return;
-        }
-      }
       await goNext();
       return;
     }
+
 
     if (node.type === "typing") {
       // Mostra "digitando" ou "gravando" sem enviar nada. Útil pra dar realismo entre mensagens.
