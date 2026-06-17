@@ -13,11 +13,19 @@ export const Route = createFileRoute("/api/public/flow-worker")({
         const { advanceFlowRun } = await import("@/lib/flow-engine.server");
 
         // 1) Pega lote de runs prontos: pending ou waiting com wait_until vencido.
-        const { data: runs } = await supabaseAdmin.from("flow_runs")
+        const { data: pendingRuns } = await supabaseAdmin.from("flow_runs")
           .select("id")
-          .or(`status.eq.pending,and(status.eq.waiting,waiting_for.is.null,wait_until.lte.${new Date().toISOString()})`)
+          .eq("status", "pending")
           .order("updated_at", { ascending: true })
-          .limit(50);
+          .limit(25);
+        const { data: waitingRuns } = await supabaseAdmin.from("flow_runs")
+          .select("id")
+          .eq("status", "waiting")
+          .is("waiting_for", null)
+          .lte("wait_until", new Date().toISOString())
+          .order("wait_until", { ascending: true })
+          .limit(25);
+        const runs = [...(pendingRuns ?? []), ...(waitingRuns ?? [])];
 
         let processed = 0;
         for (const r of runs ?? []) {
