@@ -149,3 +149,90 @@ export const listFlowsForKeywordsFn = createServerFn({ method: "GET" })
     }
     return { isAdmin: admin, flows: flows ?? [], instances: instances ?? [], users };
   });
+
+// Lista os últimos disparos do usuário (fila do painel Bot).
+export const listRecentFlowRunsFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const admin = await isAdmin(supabase, userId);
+    const q = supabase.from("flow_runs" as any)
+      .select("id, flow_id, contact_phone, instance_id, status, error, started_at, finished_at, wait_until, variables")
+      .order("started_at", { ascending: false, nullsFirst: false })
+      .limit(50);
+    const { data: runs, error } = admin ? await q : await q.eq("user_id", userId);
+    if (error) throw new Error(error.message);
+
+    const flowIds = Array.from(new Set((runs ?? []).map((r: any) => r.flow_id)));
+    const instIds = Array.from(new Set((runs ?? []).map((r: any) => r.instance_id).filter(Boolean)));
+    const [flows, instances] = await Promise.all([
+      flowIds.length
+        ? supabase.from("flows" as any).select("id,name").in("id", flowIds).then((r: any) => r.data ?? [])
+        : Promise.resolve([]),
+      instIds.length
+        ? supabase.from("whatsapp_instances" as any).select("id,instance_name").in("id", instIds).then((r: any) => r.data ?? [])
+        : Promise.resolve([]),
+    ]);
+    const flowMap = Object.fromEntries((flows as any[]).map((f) => [f.id, f.name]));
+    const instMap = Object.fromEntries((instances as any[]).map((i) => [i.id, i.instance_name]));
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayCount = (runs ?? []).filter((r: any) => r.started_at && new Date(r.started_at) >= today).length;
+
+    return {
+      todayCount,
+      items: (runs ?? []).map((r: any) => ({
+        id: r.id,
+        flow_name: flowMap[r.flow_id] ?? "—",
+        instance_name: r.instance_id ? instMap[r.instance_id] ?? "—" : "—",
+        contact_phone: r.contact_phone,
+        status: r.status,
+        error: r.error,
+        started_at: r.started_at,
+        finished_at: r.finished_at,
+        wait_until: r.wait_until,
+        keyword: (r.variables ?? {}).__trigger_keyword ?? null,
+      })),
+    };
+  });
+
+// Testa um gatilho disparando o fluxo manualmente. Usa o telefone do contato fornecido.
+export const testKeywordTriggerFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    trigger_id: z.string().uuid(),
+    phone: z.string().min(8).max(20),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const admin = await isAdmin(supabase, userId);
+
+    const tQ = supabase.from("flow_keyword_triggers" as any)
+      .select("user_id, keywords, instance_id")
+      .eq("id", data.trigger_id);
+    const { data: trigger } = admin ? await tQ.maybeSingle() : await tQ.eq("user_id", userId).maybeSingle();
+    if (!trigger) throw new Error("Gatilho não encontrado");
+
+    const tr = trigger as { user_id: string; keywords: string[]; instance_id: string | null };
+    const sampleKeyword = (tr.keywords?.[0] ?? "teste").toString();
+    const phone = data.phone.replace(/[^0-9]/g, "");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { triggerKeywordFlows, advanceFlowRun } = await import("@/lib/flow-engine.server");
+    const result = await triggerKeywordFlows(supabaseAdmin, {
+      user_id: tr.user_id,
+      instance_id: tr.instance_id,
+      phone,
+      text: sampleKeyword,
+      from_me: false,
+    });
+    for (const runId of result.runs) {
+      for (let i = 0; i < 20; i++) {
+        const { data: cur } = await supabaseAdmin.from("flow_runs").select("status").eq("id", runId).maybeSingle();
+        if (!cur || (cur as { status: string }).status !== "pending") break;
+        await advanceFlowRun(supabaseAdmin, runId);
+      }
+    }
+    return { ok: true, matched: result.matched, runs: result.runs };
+  });
+
