@@ -266,21 +266,13 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         }
       }
       await logStep("completed", undefined, { sent: !!tpl });
-      // agenda próximo com delay humano
-      if (inst) {
-        const wait = pickHumanDelayMs(inst.min_delay_ms, inst.max_delay_ms);
-        const edge = nextEdge(flow!, node!.id);
-        if (edge) {
-          await supabaseAdmin.from("flow_runs").update({
-            current_node_id: edge.target, status: "waiting",
-            wait_until: new Date(Date.now() + wait).toISOString(),
-          }).eq("id", runId);
-          return;
-        }
-      }
+      // Avança imediatamente para o próximo nó. Esperas devem ser explícitas
+      // via nós "delay" ou "typing"; assim o tempo configurado é exatamente
+      // o tempo percebido pelo contato (sem soma de delay anti-ban entre mensagens).
       await goNext();
       return;
     }
+
 
     if (node.type === "media") {
       const mediatype = (String(data.mediatype ?? "image")) as "image" | "video" | "audio" | "document";
@@ -299,20 +291,10 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         await bumpCounters(supabaseAdmin, inst);
       }
       await logStep("completed", undefined, { sent: !!url, mediatype });
-      if (inst) {
-        const wait = pickHumanDelayMs(inst.min_delay_ms, inst.max_delay_ms);
-        const edge = nextEdge(flow!, node!.id);
-        if (edge) {
-          await supabaseAdmin.from("flow_runs").update({
-            current_node_id: edge.target, status: "waiting",
-            wait_until: new Date(Date.now() + wait).toISOString(),
-          }).eq("id", runId);
-          return;
-        }
-      }
       await goNext();
       return;
     }
+
 
     if (node.type === "typing") {
       // Mostra "digitando" ou "gravando" sem enviar nada. Útil pra dar realismo entre mensagens.
