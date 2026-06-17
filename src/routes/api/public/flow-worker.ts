@@ -12,17 +12,10 @@ export const Route = createFileRoute("/api/public/flow-worker")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { advanceFlowRun } = await import("@/lib/flow-engine.server");
 
-        // 1) Promove runs em 'waiting' cujo wait_until já passou
-        await supabaseAdmin.from("flow_runs")
-          .update({ status: "pending", wait_until: null })
-          .eq("status", "waiting")
-          .is("waiting_for", null)
-          .lte("wait_until", new Date().toISOString());
-
-        // 2) Pega lote de runs pending
+        // 1) Pega lote de runs prontos: pending ou waiting com wait_until vencido.
         const { data: runs } = await supabaseAdmin.from("flow_runs")
           .select("id")
-          .eq("status", "pending")
+          .or(`status.eq.pending,and(status.eq.waiting,waiting_for.is.null,wait_until.lte.${new Date().toISOString()})`)
           .order("updated_at", { ascending: true })
           .limit(50);
 
@@ -30,8 +23,10 @@ export const Route = createFileRoute("/api/public/flow-worker")({
         for (const r of runs ?? []) {
           // Avança até 10 nodes por run em uma execução (para fluir nodes "rápidos" como start/condition/tag)
           for (let i = 0; i < 10; i++) {
-            const { data: cur } = await supabaseAdmin.from("flow_runs").select("status").eq("id", r.id).maybeSingle();
-            if (!cur || cur.status !== "pending") break;
+            const { data: cur } = await supabaseAdmin.from("flow_runs").select("status, wait_until").eq("id", r.id).maybeSingle();
+            if (!cur) break;
+            const readyWaiting = cur.status === "waiting" && cur.wait_until && new Date(cur.wait_until).getTime() <= Date.now();
+            if (cur.status !== "pending" && !readyWaiting) break;
             await advanceFlowRun(supabaseAdmin, r.id);
           }
           processed++;
