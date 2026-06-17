@@ -231,6 +231,24 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     return false;
   }
 
+  async function resolveEvolutionTarget(): Promise<string> {
+    if (!isLidIdentifier(run.contact_phone)) return toEvolutionTarget(run.contact_phone);
+    const { data: recent } = await supabaseAdmin.from("incoming_messages")
+      .select("raw_payload")
+      .eq("user_id", run.user_id)
+      .eq("instance_id", run.instance_id)
+      .eq("from_phone", run.contact_phone)
+      .order("received_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const raw = (recent?.raw_payload ?? {}) as { sender?: unknown; data?: { sender?: unknown; key?: { senderPn?: unknown; participantPn?: unknown } } };
+    const phone = extractRealPhone(raw.sender)
+      ?? extractRealPhone(raw.data?.sender)
+      ?? extractRealPhone(raw.data?.key?.senderPn)
+      ?? extractRealPhone(raw.data?.key?.participantPn);
+    return phone ?? toEvolutionTarget(run.contact_phone);
+  }
+
   async function sendTextSafely(text: string) {
     if (!srv || !inst || inst.status !== "connected") return;
     const target = await resolveEvolutionTarget();
