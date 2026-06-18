@@ -25,7 +25,15 @@ export const Route = createFileRoute("/api/public/flow-worker")({
           .lte("wait_until", new Date().toISOString())
           .order("wait_until", { ascending: true })
           .limit(25);
-        const runs = [...(pendingRuns ?? []), ...(waitingRuns ?? [])];
+        const { data: safetyBlockedRows } = await supabaseAdmin.from("flow_run_steps")
+          .select("run_id, output, flow_runs!inner(id, status, waiting_for)")
+          .eq("status", "skipped")
+          .in("output->>reason", ["anti-ban", "rate-limit"])
+          .eq("flow_runs.status", "waiting")
+          .is("flow_runs.waiting_for", null)
+          .order("created_at", { ascending: false })
+          .limit(25);
+        const runs = [...(pendingRuns ?? []), ...(waitingRuns ?? []), ...((safetyBlockedRows ?? []).map((r: any) => ({ id: r.run_id })))];
 
         let processed = 0;
         for (const r of runs ?? []) {
