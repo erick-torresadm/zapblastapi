@@ -221,7 +221,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   }
   if (!["pending", "waiting"].includes(run.status)) return;
 
-  let claim = supabaseAdmin.from("flow_runs").update({ status: "processing" }).eq("id", runId).eq("status", run.status);
+  let claim = supabaseAdmin.from("flow_runs").update({ status: "running" }).eq("id", runId).eq("status", run.status);
   if (run.status === "waiting" && !allowSafetyReprocess) claim = claim.lte("wait_until", new Date().toISOString()).is("waiting_for", null);
   const { data: claimed } = await claim.select("id").maybeSingle();
   if (!claimed) return;
@@ -290,6 +290,13 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   // Ex: 5511981738903 (13 dígitos) <-> 551181738903 (12 dígitos)
   function brazilianPhoneVariants(phone: string): string[] {
     const out = new Set<string>([phone]);
+    const local = phone.match(/^(\d{2})(9?)(\d{8})$/);
+    if (local) {
+      const [, ddd, nine, rest] = local;
+      out.add(`55${ddd}${nine}${rest}`);
+      out.add(`55${ddd}${rest}`);
+      if (!nine) out.add(`55${ddd}9${rest}`);
+    }
     const m = phone.match(/^55(\d{2})(9?)(\d{8})$/);
     if (m) {
       const [, ddd, nine, rest] = m;
@@ -428,7 +435,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         let response: Record<string, unknown>;
         if (mediatype === "audio") {
           // PTT voice note (waveform UI). Evolution transcodes to OGG/Opus.
-          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: true });
+          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: false });
         } else {
           response = await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
         }
