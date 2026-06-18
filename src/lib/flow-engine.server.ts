@@ -15,6 +15,7 @@ import {
 type Node = { id: string; type: string; data?: Record<string, unknown> };
 type Edge = { id: string; source: string; target: string; sourceHandle?: string };
 type Flow = { nodes: Node[]; edges: Edge[] };
+type SendAttemptResult = { target: string; response: Record<string, unknown> | null };
 
 type InstanceRow = {
   id: string;
@@ -58,6 +59,11 @@ function extractPersonalJid(value: unknown): string | null {
   if (!user || user === "status") return null;
   if (!["s.whatsapp.net", "c.us"].includes(domain)) return null;
   return raw;
+}
+
+function toPhoneJid(value: string): string | null {
+  const phone = extractRealPhone(value);
+  return phone ? `${phone}@s.whatsapp.net` : null;
 }
 
 function uniq(values: Array<string | null | undefined>): string[] {
