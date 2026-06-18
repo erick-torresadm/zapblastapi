@@ -335,7 +335,7 @@ export async function checkWhatsappNumbers(
   instanceName: string,
   numbers: string[],
 ): Promise<WhatsappCheck[]> {
-  const res = await evoFetch(server, `/chat/whatsappNumbers/${encodeURIComponent(instanceName)}`, {
+  const res = await evoFetchRaw(server, `/chat/whatsappNumbers/${encodeURIComponent(instanceName)}`, {
     method: "POST",
     body: JSON.stringify({ numbers }),
   });
