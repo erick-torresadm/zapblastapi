@@ -67,7 +67,10 @@ function findEntryNode(flow: Flow): Node | undefined {
   const start = flow.nodes.find((n) => n.type === "start");
   if (start) {
     const next = nextEdge(flow, start.id);
-    return next ? flow.nodes.find((n) => n.id === next.target) : undefined;
+    if (next) return flow.nodes.find((n) => n.id === next.target);
+    // Fallback: start sem conexão — usa o primeiro nó não-start (fluxo "esquecido" de ligar)
+    const fallback = flow.nodes.find((n) => n.type !== "start");
+    if (fallback) return fallback;
   }
   const targets = new Set(flow.edges.map((e) => e.target));
   return flow.nodes.find((n) => !targets.has(n.id) && n.type !== "start");
@@ -88,10 +91,10 @@ export async function createFlowRun(
   args: { flow_id: string; user_id: string; contact_id: string; contact_phone: string; instance_id: string; initial_vars?: Record<string, string> },
 ): Promise<string | null> {
   const flow = await loadFlow(supabaseAdmin, args.flow_id);
-  if (!flow) return null;
+  if (!flow) { console.warn("[flow] createFlowRun: flow não encontrado", args.flow_id); return null; }
   const entry = findEntryNode(flow);
-  if (!entry) return null;
-  const { data } = await supabaseAdmin.from("flow_runs").insert({
+  if (!entry) { console.warn("[flow] createFlowRun: sem nó de entrada (verifique conexões)", args.flow_id); return null; }
+  const { data, error } = await supabaseAdmin.from("flow_runs").insert({
     flow_id: args.flow_id,
     user_id: args.user_id,
     contact_id: args.contact_id,
@@ -102,6 +105,7 @@ export async function createFlowRun(
     variables: args.initial_vars ?? {},
     started_at: new Date().toISOString(),
   }).select("id").single();
+  if (error) console.error("[flow] createFlowRun insert error", error);
   return data?.id ?? null;
 }
 
