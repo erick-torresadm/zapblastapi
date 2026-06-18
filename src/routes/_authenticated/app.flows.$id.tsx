@@ -741,6 +741,86 @@ function FlowsInner() {
                     </div>
                   )}
 
+                  {t === "sticker" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="sticker-url">URL do sticker (WebP)</Label>
+                      <Input id="sticker-url" value={d.stickerUrl ?? ""} onChange={(e) => updateSelected({ stickerUrl: e.target.value })} placeholder="https://…/sticker.webp" />
+                      <p className="text-[11px] text-muted-foreground">Use um WebP estático ou animado. PNG/JPG não funcionam como sticker.</p>
+                    </div>
+                  )}
+
+                  {t === "location" && (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="lat">Latitude</Label>
+                          <Input id="lat" type="number" step="any" value={d.latitude ?? ""} onChange={(e) => updateSelected({ latitude: e.target.value === "" ? undefined : Number(e.target.value) })} placeholder="-23.5505" />
+                        </div>
+                        <div>
+                          <Label htmlFor="lng">Longitude</Label>
+                          <Input id="lng" type="number" step="any" value={d.longitude ?? ""} onChange={(e) => updateSelected({ longitude: e.target.value === "" ? undefined : Number(e.target.value) })} placeholder="-46.6333" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="loc-name">Nome (opcional)</Label>
+                        <Input id="loc-name" value={d.locationName ?? ""} onChange={(e) => updateSelected({ locationName: e.target.value })} placeholder="Nossa loja" />
+                      </div>
+                      <div>
+                        <Label htmlFor="loc-addr">Endereço (opcional)</Label>
+                        <Input id="loc-addr" value={d.locationAddress ?? ""} onChange={(e) => updateSelected({ locationAddress: e.target.value })} placeholder="Av. Paulista, 1000" />
+                      </div>
+                    </div>
+                  )}
+
+                  {t === "contact_card" && (
+                    <div className="space-y-2">
+                      <div>
+                        <Label htmlFor="c-name">Nome completo</Label>
+                        <Input id="c-name" value={d.contactName ?? ""} onChange={(e) => updateSelected({ contactName: e.target.value })} placeholder="João da Silva" />
+                      </div>
+                      <div>
+                        <Label htmlFor="c-phone">Telefone (com DDI)</Label>
+                        <Input id="c-phone" value={d.contactPhone ?? ""} onChange={(e) => updateSelected({ contactPhone: e.target.value })} placeholder="5511999999999" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="c-org">Empresa</Label>
+                          <Input id="c-org" value={d.contactOrg ?? ""} onChange={(e) => updateSelected({ contactOrg: e.target.value })} />
+                        </div>
+                        <div>
+                          <Label htmlFor="c-email">E-mail</Label>
+                          <Input id="c-email" value={d.contactEmail ?? ""} onChange={(e) => updateSelected({ contactEmail: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {t === "poll" && (
+                    <div className="space-y-2">
+                      <div>
+                        <Label htmlFor="poll-q">Pergunta</Label>
+                        <Input id="poll-q" value={d.pollQuestion ?? ""} onChange={(e) => updateSelected({ pollQuestion: e.target.value })} placeholder="Qual horário fica melhor?" />
+                      </div>
+                      <div>
+                        <Label htmlFor="poll-opts">Opções (uma por linha)</Label>
+                        <Textarea id="poll-opts" rows={4} value={d.pollOptions ?? ""} onChange={(e) => updateSelected({ pollOptions: e.target.value })} placeholder={"Manhã\nTarde\nNoite"} />
+                      </div>
+                      <div>
+                        <Label htmlFor="poll-sel">Quantas opções o contato pode escolher</Label>
+                        <Input id="poll-sel" type="number" min={1} value={d.pollSelectable ?? 1} onChange={(e) => updateSelected({ pollSelectable: Math.max(1, Number(e.target.value) || 1) })} />
+                      </div>
+                    </div>
+                  )}
+
+                  {t === "reaction" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="emoji">Emoji</Label>
+                      <Input id="emoji" value={d.emoji ?? "👍"} onChange={(e) => updateSelected({ emoji: e.target.value })} placeholder="👍" maxLength={4} />
+                      <p className="text-[11px] text-muted-foreground">Reage à última mensagem que o contato enviou. Deixe vazio para remover uma reação.</p>
+                    </div>
+                  )}
+
+
                   {t !== "start" && (
                     <Button variant="destructive" className="w-full" onClick={deleteSelected}>
                       <Trash2 className="mr-2 h-4 w-4" />Remover passo
