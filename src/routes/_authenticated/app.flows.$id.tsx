@@ -119,6 +119,11 @@ const STEP_META: Record<StepType, {
   ai:             { label: "IA",                icon: SparklesIcon,   color: "#ec4899",              description: "Resposta gerada por IA" },
   transfer_human: { label: "Transferir humano", icon: UserCog,        color: "#6366f1",              description: "Encaminha conversa para atendimento humano" },
   webhook:        { label: "Webhook",           icon: Webhook,        color: "#ef4444",              description: "Chama uma URL externa" },
+  sticker:        { label: "Sticker",            icon: Smile,          color: "#f97316",              description: "Envia um sticker (WebP estático ou animado)" },
+  location:       { label: "Localização",        icon: MapPin,         color: "#22c55e",              description: "Envia coordenadas / endereço" },
+  contact_card:   { label: "Cartão de contato",  icon: ContactIcon,    color: "#0891b2",              description: "Compartilha um vCard de contato" },
+  poll:           { label: "Enquete",            icon: BarChart3,      color: "#8b5cf6",              description: "Envia uma enquete com até N opções" },
+  reaction:       { label: "Reação",             icon: Heart,          color: "#e11d48",              description: "Reage com emoji à última mensagem recebida" },
 
 };
 
