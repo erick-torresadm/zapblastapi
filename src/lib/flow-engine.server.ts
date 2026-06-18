@@ -258,12 +258,19 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   // Para nodes que enviam mensagem, verifica anti-ban
   async function gateSafetyOrDefer(): Promise<boolean> {
     if (!inst) return true;
-    const wait = safetyWaitMs(inst);
+    const hasSentInThisRun = !!run.variables?.__flow_has_sent;
+    const wait = safetyWaitMs(inst, { respectQuietHours: !hasSentInThisRun, respectHumanDelay: !hasSentInThisRun });
     if (wait <= 0) return true;
     const until = new Date(Date.now() + wait).toISOString();
     await supabaseAdmin.from("flow_runs").update({ status: "waiting", wait_until: until }).eq("id", runId);
-    await logStep("skipped", undefined, { deferred_until: until, reason: "anti-ban" });
+    await logStep("skipped", undefined, { deferred_until: until, reason: hasSentInThisRun ? "rate-limit" : "anti-ban" });
     return false;
+  }
+
+  async function markFlowSent() {
+    if (vars.__flow_has_sent) return;
+    vars.__flow_has_sent = "1";
+    await supabaseAdmin.from("flow_runs").update({ variables: vars }).eq("id", runId);
   }
 
   // Brasil: alguns números têm o "9" extra que o WhatsApp não armazena.
