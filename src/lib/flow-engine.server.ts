@@ -55,8 +55,12 @@ function extractPersonalJid(value: unknown): string | null {
   if (!raw.includes("@")) return null;
   const [user, domain] = raw.split("@");
   if (!user || user === "status") return null;
-  if (!["s.whatsapp.net", "c.us", "lid"].includes(domain)) return null;
+  if (!["s.whatsapp.net", "c.us"].includes(domain)) return null;
   return raw;
+}
+
+function uniq(values: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(values.filter(Boolean) as string[]));
 }
 
 function toEvolutionTarget(value: string): string {
