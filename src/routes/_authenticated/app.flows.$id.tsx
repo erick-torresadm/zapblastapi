@@ -203,6 +203,11 @@ const nodeTypes = {
   ai: StepNode,
   transfer_human: StepNode,
   webhook: StepNode,
+  sticker: StepNode,
+  location: StepNode,
+  contact_card: StepNode,
+  poll: StepNode,
+  reaction: StepNode,
 };
 
 
