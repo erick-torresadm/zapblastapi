@@ -206,7 +206,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   const vars = (run.variables ?? {}) as Record<string, string>;
   const data = (node.data ?? {}) as Record<string, unknown>;
 
-  async function logStep(status: "completed" | "failed" | "skipped", error?: string, output?: Record<string, unknown>) {
+  async function logStep(status: "ok" | "error" | "skipped", error?: string, output?: Record<string, unknown>) {
     await supabaseAdmin.from("flow_run_steps").insert({
       run_id: runId, flow_id: run.flow_id, user_id: run.user_id,
       node_id: node!.id, node_type: node!.type, status, error: error ?? null, output: output ?? null,
@@ -273,7 +273,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
 
   try {
     if (node.type === "start") {
-      await logStep("completed");
+      await logStep("ok");
       await goNext();
       return;
     }
@@ -301,12 +301,12 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         } catch (e) {
           const msg = (e as Error).message;
           console.error("[flow] sendText failed", msg);
-          await logStep("failed", msg);
+          await logStep("error", msg);
           await supabaseAdmin.from("flow_runs").update({ status: "failed", error: msg.slice(0, 500), finished_at: new Date().toISOString() }).eq("id", runId);
           return;
         }
       }
-      await logStep("completed", undefined, { sent: !!tpl });
+      await logStep("ok", undefined, { sent: !!tpl });
       // Avança imediatamente para o próximo nó. Esperas devem ser explícitas
       // via nós "delay" ou "typing"; assim o tempo configurado é exatamente
       // o tempo percebido pelo contato (sem soma de delay anti-ban entre mensagens).
@@ -332,7 +332,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         });
         await bumpCounters(supabaseAdmin, inst);
       }
-      await logStep("completed", undefined, { sent: !!url, mediatype });
+      await logStep("ok", undefined, { sent: !!url, mediatype });
       await goNext();
       return;
     }
@@ -345,7 +345,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       if (srv && inst && inst.status === "connected") {
         try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, await resolveEvolutionTarget(), presence, secs * 1000); } catch {}
       }
-      await logStep("completed", undefined, { presence, secs });
+      await logStep("ok", undefined, { presence, secs });
       const until = new Date(Date.now() + secs * 1000).toISOString();
       const edge = nextEdge(flow!, node!.id);
       if (edge) {
@@ -367,7 +367,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       await supabaseAdmin.from("flow_runs").update({
         status: "waiting", waiting_for: String(data.variable ?? "resposta"),
       }).eq("id", runId);
-      await logStep("completed", undefined, { waiting_for: String(data.variable ?? "resposta") });
+      await logStep("ok", undefined, { waiting_for: String(data.variable ?? "resposta") });
       return;
     }
 
@@ -393,7 +393,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           wait_until: null,
         }).eq("id", runId);
       }
-      await logStep("completed", undefined, { wait_until: until });
+      await logStep("ok", undefined, { wait_until: until });
       return;
     }
 
@@ -407,7 +407,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       else if (op === "lte") yes = Number(v) <= Number(equals);
       else if (op === "gte") yes = Number(v) >= Number(equals);
       else if (op === "contains") yes = v.toLowerCase().includes(equals.toLowerCase());
-      await logStep("completed", undefined, { result: yes });
+      await logStep("ok", undefined, { result: yes });
       await goNext(yes ? "yes" : "no");
       return;
     }
@@ -421,7 +421,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         const tagsSet = new Set([...tagsRaw, tag]);
         await supabaseAdmin.from("contacts").update({ variables: { ...cv, _tags: Array.from(tagsSet) } }).eq("id", run.contact_id);
       }
-      await logStep("completed", undefined, { tag });
+      await logStep("ok", undefined, { tag });
       await goNext();
       return;
     }
@@ -445,9 +445,9 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
             const merged = { ...vars, ...(body as Record<string, string>) };
             await supabaseAdmin.from("flow_runs").update({ variables: merged }).eq("id", runId);
           }
-          await logStep("completed", undefined, { status: resp.status });
+          await logStep("ok", undefined, { status: resp.status });
         } catch (e) {
-          await logStep("failed", (e as Error).message);
+          await logStep("error", (e as Error).message);
         }
       } else {
         await logStep("skipped", "URL vazia");
@@ -474,14 +474,14 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           const j = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
           reply = j.choices?.[0]?.message?.content?.trim() ?? "";
         } catch (e) {
-          await logStep("failed", (e as Error).message);
+          await logStep("error", (e as Error).message);
         }
       }
       if (reply && inst) {
         if (!(await gateSafetyOrDefer())) return;
-        try { await sendTextSafely(reply); } catch (e) { await logStep("failed", (e as Error).message); }
+        try { await sendTextSafely(reply); } catch (e) { await logStep("error", (e as Error).message); }
       }
-      await logStep("completed", undefined, { sent: !!reply, reply: reply.slice(0, 200) });
+      await logStep("ok", undefined, { sent: !!reply, reply: reply.slice(0, 200) });
       await goNext();
       return;
     }
@@ -491,7 +491,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       if (tpl && inst) {
         if (!(await gateSafetyOrDefer())) return;
         try { await sendTextSafely(renderTemplate(tpl, vars)); } catch (e) {
-          await logStep("failed", (e as Error).message);
+          await logStep("error", (e as Error).message);
         }
       }
       // Abre conversa no CRM como "open" e remove o agente atribuído pra fila do time
@@ -499,16 +499,16 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         .update({ status: "open", assigned_agent_id: null, updated_at: new Date().toISOString() })
         .eq("owner_user_id", run.user_id)
         .eq("contact_phone", run.contact_phone);
-      await logStep("completed", undefined, { handed_off: true });
+      await logStep("ok", undefined, { handed_off: true });
       await supabaseAdmin.from("flow_runs").update({ status: "done", finished_at: new Date().toISOString(), current_node_id: null }).eq("id", runId);
       return;
     }
 
-    await logStep("completed");
+    await logStep("ok");
     await goNext();
   } catch (e) {
     const msg = (e as Error).message;
-    await logStep("failed", msg);
+    await logStep("error", msg);
     await supabaseAdmin.from("flow_runs").update({ status: "failed", error: msg.slice(0, 500), finished_at: new Date().toISOString() }).eq("id", runId);
   }
 }
@@ -625,7 +625,7 @@ export async function triggerKeywordFlows(
       // Step "triggered" para aparecer na fila do painel imediatamente
       await supabaseAdmin.from("flow_run_steps").insert({
         run_id: runId, flow_id: t.flow_id, user_id: args.user_id,
-        node_id: "__trigger__", node_type: "trigger", status: "completed",
+        node_id: "__trigger__", node_type: "trigger", status: "ok",
         output: { keyword: lower, trigger_id: t.id, phone: args.phone, from_me: !!args.from_me },
       });
 
