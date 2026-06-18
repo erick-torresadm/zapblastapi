@@ -396,8 +396,11 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     console.log("[flow] sendText targets", { runId, phone: run.contact_phone, targets });
     if (inst.typing_enabled) {
       const dur = typingDurationMs(text, inst.typing_wpm);
+      // Evolution's /chat/sendPresence holds the request for `delay` ms while
+      // the presence is visible to the recipient, then returns. Awaiting it
+      // is enough — do NOT add an extra local sleep or the indicator clears
+      // before the message arrives.
       try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, primary, "composing", dur); } catch {}
-      await new Promise((r) => setTimeout(r, dur));
     }
     let lastErr: Error | null = null;
     for (const t of targets) {
@@ -426,8 +429,10 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     const targets = await resolveEvolutionTargets();
     const primary = targets[0]!;
     const presence = mediatype === "audio" ? "recording" : "composing";
-    try { await sendPresence(evoSrv, inst.instance_name, primary, presence, 1500); } catch {}
-    await new Promise((r) => setTimeout(r, 1500));
+    // Show "recording audio" / "typing" for ~2.5s (audio) or ~1.5s (others).
+    // Evolution holds the presence open for `delay` ms — await is enough.
+    const presenceMs = mediatype === "audio" ? 2500 : 1500;
+    try { await sendPresence(evoSrv, inst.instance_name, primary, presence, presenceMs); } catch {}
 
     let lastErr: Error | null = null;
     for (const t of targets) {
