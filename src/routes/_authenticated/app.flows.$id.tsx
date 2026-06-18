@@ -468,16 +468,12 @@ function FlowsInner() {
             onInit={(inst) => { rfRef.current = inst; }}
             onNodeClick={(_, n) => setSelectedId(n.id)}
             onPaneClick={() => setSelectedId(null)}
-            onEdgeClick={(_, edge) => {
-              if (window.confirm("Remover esta conexão?")) {
-                setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-              }
-            }}
             edgesFocusable
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             fitView
             proOptions={{ hideAttribution: true }}
-            defaultEdgeOptions={{ animated: true, markerEnd: { type: MarkerType.ArrowClosed }, style: { strokeWidth: 2 } }}
+            defaultEdgeOptions={{ type: "deletable", animated: true, markerEnd: { type: MarkerType.ArrowClosed }, style: { strokeWidth: 2 } }}
             connectionLineStyle={{ strokeWidth: 2, stroke: "var(--color-primary)" }}
           >
             <Background gap={20} size={1.5} color="color-mix(in oklab, var(--color-foreground) 12%, transparent)" />
