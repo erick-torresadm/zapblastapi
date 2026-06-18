@@ -155,10 +155,10 @@ async function refreshCounters(supabaseAdmin: any, inst: InstanceRow): Promise<I
 }
 
 // Verifica se pode enviar agora. Retorna número de ms a aguardar (0 = pode enviar).
-function safetyWaitMs(inst: InstanceRow): number {
+function safetyWaitMs(inst: InstanceRow, opts: { respectQuietHours?: boolean; respectHumanDelay?: boolean } = {}): number {
   const now = Date.now();
   // 1) quiet hours
-  if (isInQuietHours(inst.quiet_start_hour, inst.quiet_end_hour)) {
+  if (opts.respectQuietHours && isInQuietHours(inst.quiet_start_hour, inst.quiet_end_hour)) {
     // adia até a hora final
     const d = new Date();
     const targetH = inst.quiet_end_hour;
@@ -177,7 +177,7 @@ function safetyWaitMs(inst: InstanceRow): number {
     return Math.max(60_000, 3600_000 - elapsed);
   }
   // 3) delay humano desde último envio
-  if (inst.last_sent_at) {
+  if (opts.respectHumanDelay && inst.last_sent_at) {
     const minWait = inst.min_delay_ms;
     const since = now - new Date(inst.last_sent_at).getTime();
     if (since < minWait) return minWait - since;
@@ -202,6 +202,29 @@ async function bumpCounters(supabaseAdmin: any, inst: InstanceRow) {
 export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise<void> {
   const { data: run } = await supabaseAdmin.from("flow_runs").select("*").eq("id", runId).maybeSingle();
   if (!run || run.status === "done" || run.status === "failed" || run.status === "stopped") return;
+  let allowSafetyReprocess = false;
+  if (run.status === "waiting") {
+    if (run.waiting_for) return;
+    if (run.wait_until && new Date(run.wait_until).getTime() > Date.now()) {
+      const { data: lastSafetyStep } = await supabaseAdmin.from("flow_run_steps")
+        .select("id, output")
+        .eq("run_id", runId)
+        .eq("node_id", run.current_node_id)
+        .eq("status", "skipped")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const reason = String((lastSafetyStep?.output as { reason?: unknown } | null)?.reason ?? "");
+      allowSafetyReprocess = reason === "anti-ban" || reason === "rate-limit";
+      if (!allowSafetyReprocess) return;
+    }
+  }
+  if (!["pending", "waiting"].includes(run.status)) return;
+
+  let claim = supabaseAdmin.from("flow_runs").update({ status: "processing" }).eq("id", runId).eq("status", run.status);
+  if (run.status === "waiting" && !allowSafetyReprocess) claim = claim.lte("wait_until", new Date().toISOString()).is("waiting_for", null);
+  const { data: claimed } = await claim.select("id").maybeSingle();
+  if (!claimed) return;
 
   const flow = await loadFlow(supabaseAdmin, run.flow_id);
   if (!flow) {
@@ -248,12 +271,19 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   // Para nodes que enviam mensagem, verifica anti-ban
   async function gateSafetyOrDefer(): Promise<boolean> {
     if (!inst) return true;
-    const wait = safetyWaitMs(inst);
+    const hasSentInThisRun = !!run.variables?.__flow_has_sent;
+    const wait = safetyWaitMs(inst, { respectQuietHours: false, respectHumanDelay: !hasSentInThisRun });
     if (wait <= 0) return true;
     const until = new Date(Date.now() + wait).toISOString();
     await supabaseAdmin.from("flow_runs").update({ status: "waiting", wait_until: until }).eq("id", runId);
-    await logStep("skipped", undefined, { deferred_until: until, reason: "anti-ban" });
+    await logStep("skipped", undefined, { deferred_until: until, reason: hasSentInThisRun ? "rate-limit" : "anti-ban" });
     return false;
+  }
+
+  async function markFlowSent() {
+    if (vars.__flow_has_sent) return;
+    vars.__flow_has_sent = "1";
+    await supabaseAdmin.from("flow_runs").update({ variables: vars }).eq("id", runId);
   }
 
   // Brasil: alguns números têm o "9" extra que o WhatsApp não armazena.
@@ -367,6 +397,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       try {
         const response = await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, t, text);
         await bumpCounters(supabaseAdmin, inst);
+        await markFlowSent();
         console.log("[flow] sendText ok", { runId, phone: run.contact_phone, target: t, response });
         return { target: t, response };
       } catch (e) {
@@ -402,6 +433,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           response = await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
         }
         await bumpCounters(supabaseAdmin, inst);
+        await markFlowSent();
         console.log("[flow] sendMedia ok", { runId, mediatype, target: t, response });
         return { target: t, response };
       } catch (e) {
