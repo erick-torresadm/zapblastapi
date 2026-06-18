@@ -12,7 +12,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Send, Search, MessageCircle, UserPlus, CheckCircle2, Clock, MoreVertical, StickyNote, Inbox as InboxIcon } from "lucide-react";
+import { Send, Search, MessageCircle, UserPlus, CheckCircle2, Clock, MoreVertical, StickyNote, ArrowLeft, Inbox as InboxIcon } from "lucide-react";
 import { toast } from "sonner";
 import { getConversationMessagesFn, sendChatMessageFn, listChatInstancesFn } from "@/lib/chat.functions";
 import {
