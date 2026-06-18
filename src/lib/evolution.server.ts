@@ -23,7 +23,7 @@ async function evoFetch(
   server: EvolutionServer,
   path: string,
   init: RequestInit = {},
-): Promise<unknown> {
+): Promise<Record<string, unknown>> {
   const url = server.base_url.replace(/\/$/, "") + path;
   const headers: Record<string, string> = {
     apikey: server.api_key,
