@@ -259,20 +259,21 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       .limit(1)
       .maybeSingle();
     const raw = (recent?.raw_payload ?? {}) as { sender?: unknown; data?: { sender?: unknown; key?: { remoteJid?: unknown; senderPn?: unknown; participantPn?: unknown } } };
-    const jid = extractPersonalJid(raw.data?.key?.remoteJid);
-    if (jid) {
-      console.log("[flow] target resolved from inbound remoteJid", { runId, phone: run.contact_phone, target: jid });
-      return jid;
-    }
-    const phone = extractRealPhone(raw.sender)
-      ?? extractRealPhone(raw.data?.sender)
-      ?? extractRealPhone(raw.data?.key?.senderPn)
-      ?? extractRealPhone(raw.data?.key?.participantPn);
-    if (phone && isLidIdentifier(run.contact_phone)) {
-      console.log("[flow] LID target resolved from webhook sender", { runId, lid: run.contact_phone, target: phone });
-      return phone;
-    }
-    if (!isLidIdentifier(run.contact_phone)) return toEvolutionTarget(run.contact_phone);
+    const jid = extractPersonalJid(raw.sender)
+      ?? extractPersonalJid(raw.data?.sender)
+      ?? extractPersonalJid(raw.data?.key?.senderPn)
+      ?? extractPersonalJid(raw.data?.key?.participantPn)
+      ?? extractPersonalJid(raw.data?.key?.remoteJid);
+    if (jid) return jid;
+    const candidatePhones = uniq([
+      extractRealPhone(raw.sender),
+      extractRealPhone(raw.data?.sender),
+      extractRealPhone(raw.data?.key?.senderPn),
+      extractRealPhone(raw.data?.key?.participantPn),
+      extractRealPhone(run.contact_phone),
+    ]);
+    const bestPhone = candidatePhones.find((phone) => !isLidIdentifier(phone)) ?? null;
+    if (bestPhone) return bestPhone;
     console.warn("[flow] LID target unresolved; falling back to @lid", { runId, lid: run.contact_phone });
     return toEvolutionTarget(run.contact_phone);
   }
