@@ -249,7 +249,20 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     return false;
   }
 
-  async function resolveEvolutionTarget(): Promise<string> {
+  // Brasil: alguns números têm o "9" extra que o WhatsApp não armazena.
+  // Ex: 5511981738903 (13 dígitos) <-> 551181738903 (12 dígitos)
+  function brazilianPhoneVariants(phone: string): string[] {
+    const out = new Set<string>([phone]);
+    const m = phone.match(/^55(\d{2})(9?)(\d{8})$/);
+    if (m) {
+      const [, ddd, nine, rest] = m;
+      out.add(`55${ddd}${rest}`);
+      if (!nine) out.add(`55${ddd}9${rest}`);
+    }
+    return Array.from(out);
+  }
+
+  async function resolveEvolutionTargets(): Promise<string[]> {
     const { data: recent } = await supabaseAdmin.from("incoming_messages")
       .select("raw_payload")
       .eq("user_id", run.user_id)
@@ -258,36 +271,66 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       .order("received_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const raw = (recent?.raw_payload ?? {}) as { sender?: unknown; data?: { sender?: unknown; key?: { remoteJid?: unknown; senderPn?: unknown; participantPn?: unknown } } };
-    const jid = extractPersonalJid(raw.sender)
-      ?? extractPersonalJid(raw.data?.sender)
-      ?? extractPersonalJid(raw.data?.key?.senderPn)
-      ?? extractPersonalJid(raw.data?.key?.participantPn)
-      ?? extractPersonalJid(raw.data?.key?.remoteJid);
-    if (jid) return jid;
-    const candidatePhones = uniq([
+    const raw = (recent?.raw_payload ?? {}) as {
+      sender?: unknown;
+      data?: { sender?: unknown; key?: { remoteJid?: unknown; senderPn?: unknown; participantPn?: unknown } };
+    };
+
+    const phones = uniq([
       extractRealPhone(raw.sender),
       extractRealPhone(raw.data?.sender),
       extractRealPhone(raw.data?.key?.senderPn),
       extractRealPhone(raw.data?.key?.participantPn),
       extractRealPhone(run.contact_phone),
     ]);
-    const bestPhone = candidatePhones.find((phone) => !isLidIdentifier(phone)) ?? null;
-    if (bestPhone) return bestPhone;
-    console.warn("[flow] LID target unresolved; falling back to @lid", { runId, lid: run.contact_phone });
-    return toEvolutionTarget(run.contact_phone);
+
+    const targets: string[] = [];
+    for (const p of phones) {
+      for (const v of brazilianPhoneVariants(p)) {
+        targets.push(`${v}@s.whatsapp.net`);
+      }
+    }
+
+    // Último recurso: tenta o remoteJid LID (chips com migração LID).
+    const lid = String(raw.data?.key?.remoteJid ?? "");
+    if (lid.endsWith("@lid")) targets.push(lid);
+
+    if (targets.length === 0) targets.push(toEvolutionTarget(run.contact_phone));
+    return uniq(targets);
+  }
+
+  async function resolveEvolutionTarget(): Promise<string> {
+    const list = await resolveEvolutionTargets();
+    return list[0]!;
+  }
+
+  function isExistsFalseError(msg: string): boolean {
+    return msg.includes('"exists":false') || msg.includes('exists\\":false');
   }
 
   async function sendTextSafely(text: string) {
     if (!srv || !inst || inst.status !== "connected") return;
-    const target = await resolveEvolutionTarget();
+    const targets = await resolveEvolutionTargets();
+    const primary = targets[0]!;
     if (inst.typing_enabled) {
       const dur = typingDurationMs(text, inst.typing_wpm);
-      try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, "composing", dur); } catch {}
+      try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, primary, "composing", dur); } catch {}
       await new Promise((r) => setTimeout(r, dur));
     }
-    await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, text);
-    await bumpCounters(supabaseAdmin, inst);
+    let lastErr: Error | null = null;
+    for (const t of targets) {
+      try {
+        await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, t, text);
+        await bumpCounters(supabaseAdmin, inst);
+        return;
+      } catch (e) {
+        const err = e as Error;
+        lastErr = err;
+        if (!isExistsFalseError(err.message)) throw err;
+        console.warn("[flow] sendText exists:false, trying next target", { tried: t });
+      }
+    }
+    throw lastErr ?? new Error("Falha ao enviar mensagem");
   }
 
 
