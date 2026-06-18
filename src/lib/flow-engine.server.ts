@@ -384,6 +384,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       try {
         const response = await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, t, text);
         await bumpCounters(supabaseAdmin, inst);
+        await markFlowSent();
         console.log("[flow] sendText ok", { runId, phone: run.contact_phone, target: t, response });
         return { target: t, response };
       } catch (e) {
@@ -419,6 +420,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           response = await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
         }
         await bumpCounters(supabaseAdmin, inst);
+        await markFlowSent();
         console.log("[flow] sendMedia ok", { runId, mediatype, target: t, response });
         return { target: t, response };
       } catch (e) {
