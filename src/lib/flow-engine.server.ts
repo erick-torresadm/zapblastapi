@@ -345,13 +345,45 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         console.log("[flow] sendText ok", { runId, phone: run.contact_phone, target: t });
         return;
       } catch (e) {
-        const err = e as Error;
-        lastErr = err;
-        if (!isExistsFalseError(err.message)) throw err;
-        console.warn("[flow] sendText exists:false, trying next target", { tried: t });
+        lastErr = e as Error;
+        console.warn("[flow] sendText failed, trying next target", { tried: t, err: lastErr.message });
       }
     }
-    throw lastErr ?? new Error("Falha ao enviar mensagem");
+    throw lastErr ?? new Error("Falha ao enviar mensagem (nenhum alvo válido)");
+  }
+
+  async function sendMediaSafely(
+    mediatype: "image" | "video" | "audio" | "document",
+    url: string,
+    caption?: string,
+    fileName?: string,
+  ) {
+    if (!srv || !inst || inst.status !== "connected") return;
+    const evoSrv = { base_url: srv.base_url, api_key: srv.api_key };
+    const targets = await resolveEvolutionTargets();
+    const primary = targets[0]!;
+    const presence = mediatype === "audio" ? "recording" : "composing";
+    try { await sendPresence(evoSrv, inst.instance_name, primary, presence, 1500); } catch {}
+    await new Promise((r) => setTimeout(r, 1500));
+
+    let lastErr: Error | null = null;
+    for (const t of targets) {
+      try {
+        if (mediatype === "audio") {
+          // PTT voice note (waveform UI). Evolution transcodes to OGG/Opus.
+          await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: true });
+        } else {
+          await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
+        }
+        await bumpCounters(supabaseAdmin, inst);
+        console.log("[flow] sendMedia ok", { runId, mediatype, target: t });
+        return;
+      } catch (e) {
+        lastErr = e as Error;
+        console.warn("[flow] sendMedia failed, trying next target", { tried: t, err: lastErr.message });
+      }
+    }
+    throw lastErr ?? new Error("Falha ao enviar mídia (nenhum alvo válido)");
   }
 
 
