@@ -147,6 +147,11 @@ function StepNode({ data, selected, type }: NodeProps) {
   : stepType === "condition"      ? `Se "${d.conditionField || "campo"}" = "${d.conditionEquals || "valor"}"`
   : stepType === "tag"            ? `Adicionar tag: ${d.tag || "—"}`
   : stepType === "webhook"        ? (d.webhookUrl || "Configure a URL")
+  : stepType === "sticker"        ? (d.stickerUrl ? `Sticker: ${d.stickerUrl.slice(0, 36)}…` : "Configure o sticker…")
+  : stepType === "location"       ? (Number.isFinite(d.latitude) && Number.isFinite(d.longitude) ? `📍 ${d.latitude}, ${d.longitude}` : "Configure a localização…")
+  : stepType === "contact_card"   ? (d.contactName ? `${d.contactName} • ${d.contactPhone ?? "—"}` : "Configure o contato…")
+  : stepType === "poll"           ? (d.pollQuestion ? `Enquete: ${d.pollQuestion}` : "Configure a enquete…")
+  : stepType === "reaction"       ? `Reagir com ${d.emoji ?? "👍"}`
   : "Ponto de entrada — o fluxo começa aqui";
 
 
