@@ -67,7 +67,10 @@ function findEntryNode(flow: Flow): Node | undefined {
   const start = flow.nodes.find((n) => n.type === "start");
   if (start) {
     const next = nextEdge(flow, start.id);
-    return next ? flow.nodes.find((n) => n.id === next.target) : undefined;
+    if (next) return flow.nodes.find((n) => n.id === next.target);
+    // Fallback: start sem conexão — usa o primeiro nó não-start (fluxo "esquecido" de ligar)
+    const fallback = flow.nodes.find((n) => n.type !== "start");
+    if (fallback) return fallback;
   }
   const targets = new Set(flow.edges.map((e) => e.target));
   return flow.nodes.find((n) => !targets.has(n.id) && n.type !== "start");
