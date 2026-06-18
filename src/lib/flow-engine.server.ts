@@ -323,9 +323,6 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     return list[0]!;
   }
 
-  function isExistsFalseError(msg: string): boolean {
-    return msg.includes('"exists":false') || msg.includes('exists\\":false');
-  }
 
   async function sendTextSafely(text: string) {
     if (!srv || !inst || inst.status !== "connected") return;
