@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Play, MessageSquare, Clock, GitBranch, Tag, Webhook, Trash2, Save, Download, Plus,
   ArrowLeft, Rocket, CheckCircle2, Loader2, Image as ImageIcon, Keyboard,
+  Smile, MapPin, Contact as ContactIcon, BarChart3, Heart,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -51,7 +52,10 @@ export const Route = createFileRoute("/_authenticated/app/flows/$id")({
 /* =========================================================
    Tipos de nó disponíveis no fluxo
    ========================================================= */
-type StepType = "start" | "message" | "media" | "typing" | "delay" | "condition" | "tag" | "webhook" | "ask" | "ai" | "transfer_human";
+type StepType =
+  | "start" | "message" | "media" | "typing" | "delay" | "condition" | "tag"
+  | "webhook" | "ask" | "ai" | "transfer_human"
+  | "sticker" | "location" | "contact_card" | "poll" | "reaction";
 
 type StepData = {
   label: string;
@@ -74,6 +78,24 @@ type StepData = {
   // typing/recording
   presence?: "composing" | "recording";
   seconds?: number;
+  // sticker
+  stickerUrl?: string;
+  // location
+  latitude?: number;
+  longitude?: number;
+  locationName?: string;
+  locationAddress?: string;
+  // contact card
+  contactName?: string;
+  contactPhone?: string;
+  contactOrg?: string;
+  contactEmail?: string;
+  // poll
+  pollQuestion?: string;
+  pollOptions?: string;
+  pollSelectable?: number;
+  // reaction
+  emoji?: string;
   [key: string]: unknown;
 };
 
@@ -97,6 +119,11 @@ const STEP_META: Record<StepType, {
   ai:             { label: "IA",                icon: SparklesIcon,   color: "#ec4899",              description: "Resposta gerada por IA" },
   transfer_human: { label: "Transferir humano", icon: UserCog,        color: "#6366f1",              description: "Encaminha conversa para atendimento humano" },
   webhook:        { label: "Webhook",           icon: Webhook,        color: "#ef4444",              description: "Chama uma URL externa" },
+  sticker:        { label: "Sticker",            icon: Smile,          color: "#f97316",              description: "Envia um sticker (WebP estático ou animado)" },
+  location:       { label: "Localização",        icon: MapPin,         color: "#22c55e",              description: "Envia coordenadas / endereço" },
+  contact_card:   { label: "Cartão de contato",  icon: ContactIcon,    color: "#0891b2",              description: "Compartilha um vCard de contato" },
+  poll:           { label: "Enquete",            icon: BarChart3,      color: "#8b5cf6",              description: "Envia uma enquete com até N opções" },
+  reaction:       { label: "Reação",             icon: Heart,          color: "#e11d48",              description: "Reage com emoji à última mensagem recebida" },
 
 };
 
@@ -120,6 +147,11 @@ function StepNode({ data, selected, type }: NodeProps) {
   : stepType === "condition"      ? `Se "${d.conditionField || "campo"}" = "${d.conditionEquals || "valor"}"`
   : stepType === "tag"            ? `Adicionar tag: ${d.tag || "—"}`
   : stepType === "webhook"        ? (d.webhookUrl || "Configure a URL")
+  : stepType === "sticker"        ? (d.stickerUrl ? `Sticker: ${d.stickerUrl.slice(0, 36)}…` : "Configure o sticker…")
+  : stepType === "location"       ? (Number.isFinite(d.latitude) && Number.isFinite(d.longitude) ? `📍 ${d.latitude}, ${d.longitude}` : "Configure a localização…")
+  : stepType === "contact_card"   ? (d.contactName ? `${d.contactName} • ${d.contactPhone ?? "—"}` : "Configure o contato…")
+  : stepType === "poll"           ? (d.pollQuestion ? `Enquete: ${d.pollQuestion}` : "Configure a enquete…")
+  : stepType === "reaction"       ? `Reagir com ${d.emoji ?? "👍"}`
   : "Ponto de entrada — o fluxo começa aqui";
 
 
@@ -176,6 +208,11 @@ const nodeTypes = {
   ai: StepNode,
   transfer_human: StepNode,
   webhook: StepNode,
+  sticker: StepNode,
+  location: StepNode,
+  contact_card: StepNode,
+  poll: StepNode,
+  reaction: StepNode,
 };
 
 
@@ -703,6 +740,86 @@ function FlowsInner() {
                       <Input id="url" value={d.webhookUrl ?? ""} onChange={(e) => updateSelected({ webhookUrl: e.target.value })} placeholder="https://meu-sistema.com/hook" />
                     </div>
                   )}
+
+                  {t === "sticker" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="sticker-url">URL do sticker (WebP)</Label>
+                      <Input id="sticker-url" value={d.stickerUrl ?? ""} onChange={(e) => updateSelected({ stickerUrl: e.target.value })} placeholder="https://…/sticker.webp" />
+                      <p className="text-[11px] text-muted-foreground">Use um WebP estático ou animado. PNG/JPG não funcionam como sticker.</p>
+                    </div>
+                  )}
+
+                  {t === "location" && (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="lat">Latitude</Label>
+                          <Input id="lat" type="number" step="any" value={d.latitude ?? ""} onChange={(e) => updateSelected({ latitude: e.target.value === "" ? undefined : Number(e.target.value) })} placeholder="-23.5505" />
+                        </div>
+                        <div>
+                          <Label htmlFor="lng">Longitude</Label>
+                          <Input id="lng" type="number" step="any" value={d.longitude ?? ""} onChange={(e) => updateSelected({ longitude: e.target.value === "" ? undefined : Number(e.target.value) })} placeholder="-46.6333" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="loc-name">Nome (opcional)</Label>
+                        <Input id="loc-name" value={d.locationName ?? ""} onChange={(e) => updateSelected({ locationName: e.target.value })} placeholder="Nossa loja" />
+                      </div>
+                      <div>
+                        <Label htmlFor="loc-addr">Endereço (opcional)</Label>
+                        <Input id="loc-addr" value={d.locationAddress ?? ""} onChange={(e) => updateSelected({ locationAddress: e.target.value })} placeholder="Av. Paulista, 1000" />
+                      </div>
+                    </div>
+                  )}
+
+                  {t === "contact_card" && (
+                    <div className="space-y-2">
+                      <div>
+                        <Label htmlFor="c-name">Nome completo</Label>
+                        <Input id="c-name" value={d.contactName ?? ""} onChange={(e) => updateSelected({ contactName: e.target.value })} placeholder="João da Silva" />
+                      </div>
+                      <div>
+                        <Label htmlFor="c-phone">Telefone (com DDI)</Label>
+                        <Input id="c-phone" value={d.contactPhone ?? ""} onChange={(e) => updateSelected({ contactPhone: e.target.value })} placeholder="5511999999999" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="c-org">Empresa</Label>
+                          <Input id="c-org" value={d.contactOrg ?? ""} onChange={(e) => updateSelected({ contactOrg: e.target.value })} />
+                        </div>
+                        <div>
+                          <Label htmlFor="c-email">E-mail</Label>
+                          <Input id="c-email" value={d.contactEmail ?? ""} onChange={(e) => updateSelected({ contactEmail: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {t === "poll" && (
+                    <div className="space-y-2">
+                      <div>
+                        <Label htmlFor="poll-q">Pergunta</Label>
+                        <Input id="poll-q" value={d.pollQuestion ?? ""} onChange={(e) => updateSelected({ pollQuestion: e.target.value })} placeholder="Qual horário fica melhor?" />
+                      </div>
+                      <div>
+                        <Label htmlFor="poll-opts">Opções (uma por linha)</Label>
+                        <Textarea id="poll-opts" rows={4} value={d.pollOptions ?? ""} onChange={(e) => updateSelected({ pollOptions: e.target.value })} placeholder={"Manhã\nTarde\nNoite"} />
+                      </div>
+                      <div>
+                        <Label htmlFor="poll-sel">Quantas opções o contato pode escolher</Label>
+                        <Input id="poll-sel" type="number" min={1} value={d.pollSelectable ?? 1} onChange={(e) => updateSelected({ pollSelectable: Math.max(1, Number(e.target.value) || 1) })} />
+                      </div>
+                    </div>
+                  )}
+
+                  {t === "reaction" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="emoji">Emoji</Label>
+                      <Input id="emoji" value={d.emoji ?? "👍"} onChange={(e) => updateSelected({ emoji: e.target.value })} placeholder="👍" maxLength={4} />
+                      <p className="text-[11px] text-muted-foreground">Reage à última mensagem que o contato enviou. Deixe vazio para remover uma reação.</p>
+                    </div>
+                  )}
+
 
                   {t !== "start" && (
                     <Button variant="destructive" className="w-full" onClick={deleteSelected}>

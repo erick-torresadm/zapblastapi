@@ -7,6 +7,11 @@ import {
   sendMedia,
   sendWhatsAppAudio,
   sendPresence,
+  sendSticker,
+  sendLocation,
+  sendContact,
+  sendReaction,
+  sendPoll,
   typingDurationMs,
   isInQuietHours,
   checkWhatsappNumbers,
@@ -440,7 +445,9 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         let response: Record<string, unknown>;
         if (mediatype === "audio") {
           // PTT voice note (waveform UI). Evolution transcodes to OGG/Opus.
-          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: false });
+          // encoding:true (default) → Evolution transcoda MP3/M4A/WAV/OGG para OGG/Opus PTT.
+          // Sem isso, uploads não-OGG (a maioria) chegam quebrados ou não rodam como áudio.
+          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: true });
         } else {
           response = await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
         }
@@ -672,6 +679,137 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         try { await sendTextSafely(reply); } catch (e) { await logStep("error", (e as Error).message); }
       }
       await logStep("ok", undefined, { sent: !!reply, reply: reply.slice(0, 200) });
+      await goNext();
+      return;
+    }
+
+    if (node.type === "sticker") {
+      const url = String(data.stickerUrl ?? "");
+      if (url && srv && inst && inst.status === "connected") {
+        if (!(await gateSafetyOrDefer())) return;
+        try {
+          const t = await resolveEvolutionTarget();
+          const resp = await sendSticker({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, t, url);
+          await bumpCounters(supabaseAdmin, inst);
+          await markFlowSent();
+          await logStep("ok", undefined, { sent: true, target: t, response: resp });
+        } catch (e) {
+          await logStep("error", (e as Error).message);
+        }
+      } else {
+        await logStep("skipped", "Sticker sem URL ou instância desconectada");
+      }
+      await goNext();
+      return;
+    }
+
+    if (node.type === "location") {
+      const lat = Number(data.latitude);
+      const lng = Number(data.longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lng) && srv && inst && inst.status === "connected") {
+        if (!(await gateSafetyOrDefer())) return;
+        try {
+          const t = await resolveEvolutionTarget();
+          const resp = await sendLocation({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, t, {
+            name: data.locationName ? String(data.locationName) : undefined,
+            address: data.locationAddress ? String(data.locationAddress) : undefined,
+            latitude: lat,
+            longitude: lng,
+          });
+          await bumpCounters(supabaseAdmin, inst);
+          await markFlowSent();
+          await logStep("ok", undefined, { sent: true, target: t, response: resp });
+        } catch (e) {
+          await logStep("error", (e as Error).message);
+        }
+      } else {
+        await logStep("skipped", "Localização sem coordenadas");
+      }
+      await goNext();
+      return;
+    }
+
+    if (node.type === "contact_card") {
+      const fullName = String(data.contactName ?? "").trim();
+      const phone = String(data.contactPhone ?? "").replace(/\D/g, "");
+      if (fullName && phone && srv && inst && inst.status === "connected") {
+        if (!(await gateSafetyOrDefer())) return;
+        try {
+          const t = await resolveEvolutionTarget();
+          const resp = await sendContact({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, t, [{
+            fullName,
+            wuid: phone,
+            phoneNumber: phone,
+            organization: data.contactOrg ? String(data.contactOrg) : undefined,
+            email: data.contactEmail ? String(data.contactEmail) : undefined,
+          }]);
+          await bumpCounters(supabaseAdmin, inst);
+          await markFlowSent();
+          await logStep("ok", undefined, { sent: true, target: t, response: resp });
+        } catch (e) {
+          await logStep("error", (e as Error).message);
+        }
+      } else {
+        await logStep("skipped", "Cartão de contato incompleto");
+      }
+      await goNext();
+      return;
+    }
+
+    if (node.type === "poll") {
+      const name = renderTemplate(String(data.pollQuestion ?? ""), vars).trim();
+      const raw = String(data.pollOptions ?? "");
+      const values = raw.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+      const selectable = Math.max(1, Math.min(values.length || 1, Number(data.pollSelectable ?? 1)));
+      if (name && values.length >= 2 && srv && inst && inst.status === "connected") {
+        if (!(await gateSafetyOrDefer())) return;
+        try {
+          const t = await resolveEvolutionTarget();
+          const resp = await sendPoll({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, t, {
+            name, values, selectableCount: selectable,
+          });
+          await bumpCounters(supabaseAdmin, inst);
+          await markFlowSent();
+          await logStep("ok", undefined, { sent: true, target: t, response: resp });
+        } catch (e) {
+          await logStep("error", (e as Error).message);
+        }
+      } else {
+        await logStep("skipped", "Enquete precisa de pergunta + 2 opções");
+      }
+      await goNext();
+      return;
+    }
+
+    if (node.type === "reaction") {
+      // Reage à ÚLTIMA mensagem recebida do contato (chat_messages direction='in').
+      const emoji = String(data.emoji ?? "👍");
+      if (srv && inst && inst.status === "connected") {
+        const { data: last } = await supabaseAdmin
+          .from("chat_messages")
+          .select("evolution_message_id, contact_jid, contact_phone")
+          .eq("user_id", run.user_id)
+          .eq("contact_phone", run.contact_phone)
+          .eq("direction", "in")
+          .not("evolution_message_id", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (last?.evolution_message_id) {
+          try {
+            const remoteJid = last.contact_jid ?? `${(last.contact_phone ?? "").replace(/\D/g, "")}@s.whatsapp.net`;
+            const resp = await sendReaction({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name,
+              { remoteJid, fromMe: false, id: last.evolution_message_id }, emoji);
+            await logStep("ok", undefined, { reacted: true, emoji, response: resp });
+          } catch (e) {
+            await logStep("error", (e as Error).message);
+          }
+        } else {
+          await logStep("skipped", "Sem mensagem do contato para reagir");
+        }
+      } else {
+        await logStep("skipped", "Instância desconectada");
+      }
       await goNext();
       return;
     }
