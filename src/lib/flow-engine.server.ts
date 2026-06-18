@@ -429,8 +429,10 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     const targets = await resolveEvolutionTargets();
     const primary = targets[0]!;
     const presence = mediatype === "audio" ? "recording" : "composing";
-    try { await sendPresence(evoSrv, inst.instance_name, primary, presence, 1500); } catch {}
-    await new Promise((r) => setTimeout(r, 1500));
+    // Show "recording audio" / "typing" for ~2.5s (audio) or ~1.5s (others).
+    // Evolution holds the presence open for `delay` ms — await is enough.
+    const presenceMs = mediatype === "audio" ? 2500 : 1500;
+    try { await sendPresence(evoSrv, inst.instance_name, primary, presence, presenceMs); } catch {}
 
     let lastErr: Error | null = null;
     for (const t of targets) {
