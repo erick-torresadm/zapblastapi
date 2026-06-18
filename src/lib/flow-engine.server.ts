@@ -202,14 +202,27 @@ async function bumpCounters(supabaseAdmin: any, inst: InstanceRow) {
 export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise<void> {
   const { data: run } = await supabaseAdmin.from("flow_runs").select("*").eq("id", runId).maybeSingle();
   if (!run || run.status === "done" || run.status === "failed" || run.status === "stopped") return;
+  let allowSafetyReprocess = false;
   if (run.status === "waiting") {
     if (run.waiting_for) return;
-    if (run.wait_until && new Date(run.wait_until).getTime() > Date.now()) return;
+    if (run.wait_until && new Date(run.wait_until).getTime() > Date.now()) {
+      const { data: lastSafetyStep } = await supabaseAdmin.from("flow_run_steps")
+        .select("id, output")
+        .eq("run_id", runId)
+        .eq("node_id", run.current_node_id)
+        .eq("status", "skipped")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const reason = String((lastSafetyStep?.output as { reason?: unknown } | null)?.reason ?? "");
+      allowSafetyReprocess = reason === "anti-ban" || reason === "rate-limit";
+      if (!allowSafetyReprocess) return;
+    }
   }
   if (!["pending", "waiting"].includes(run.status)) return;
 
   let claim = supabaseAdmin.from("flow_runs").update({ status: "processing" }).eq("id", runId).eq("status", run.status);
-  if (run.status === "waiting") claim = claim.lte("wait_until", new Date().toISOString()).is("waiting_for", null);
+  if (run.status === "waiting" && !allowSafetyReprocess) claim = claim.lte("wait_until", new Date().toISOString()).is("waiting_for", null);
   const { data: claimed } = await claim.select("id").maybeSingle();
   if (!claimed) return;
 
