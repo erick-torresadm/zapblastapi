@@ -307,7 +307,11 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           uniq(phoneVariants),
         );
         for (const row of checked) {
-          if (row?.exists) validatedTargets.push(extractRealPhone(row.jid) ?? extractRealPhone(row.number) ?? row.number);
+          if (!row?.exists) continue;
+          const jid = extractPersonalJid(row.jid);
+          const phone = extractRealPhone(row.jid) ?? extractRealPhone(row.number);
+          if (jid) validatedTargets.push(jid);
+          if (phone) validatedTargets.push(phone);
         }
       } catch (e) {
         console.warn("[flow] target validation failed", (e as Error).message);
@@ -316,9 +320,18 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
 
     const targets: string[] = [];
     for (const t of [...validatedTargets, ...phoneVariants]) {
+      const jid = extractPersonalJid(t);
+      if (jid) {
+        targets.push(jid);
+        const phoneJid = toPhoneJid(jid);
+        if (phoneJid && phoneJid !== jid) targets.push(phoneJid);
+        const phone = extractRealPhone(jid);
+        if (phone) targets.push(phone);
+        continue;
+      }
       const phone = extractRealPhone(t);
       if (!phone) continue;
-      targets.push(phone, `${phone}@s.whatsapp.net`);
+      targets.push(`${phone}@s.whatsapp.net`, phone);
     }
 
     // Último recurso: tenta o remoteJid LID (chips com migração LID).
