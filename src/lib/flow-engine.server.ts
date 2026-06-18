@@ -155,10 +155,10 @@ async function refreshCounters(supabaseAdmin: any, inst: InstanceRow): Promise<I
 }
 
 // Verifica se pode enviar agora. Retorna número de ms a aguardar (0 = pode enviar).
-function safetyWaitMs(inst: InstanceRow): number {
+function safetyWaitMs(inst: InstanceRow, opts: { respectQuietHours?: boolean; respectHumanDelay?: boolean } = {}): number {
   const now = Date.now();
   // 1) quiet hours
-  if (isInQuietHours(inst.quiet_start_hour, inst.quiet_end_hour)) {
+  if (opts.respectQuietHours && isInQuietHours(inst.quiet_start_hour, inst.quiet_end_hour)) {
     // adia até a hora final
     const d = new Date();
     const targetH = inst.quiet_end_hour;
@@ -177,7 +177,7 @@ function safetyWaitMs(inst: InstanceRow): number {
     return Math.max(60_000, 3600_000 - elapsed);
   }
   // 3) delay humano desde último envio
-  if (inst.last_sent_at) {
+  if (opts.respectHumanDelay && inst.last_sent_at) {
     const minWait = inst.min_delay_ms;
     const since = now - new Date(inst.last_sent_at).getTime();
     if (since < minWait) return minWait - since;
@@ -202,6 +202,16 @@ async function bumpCounters(supabaseAdmin: any, inst: InstanceRow) {
 export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise<void> {
   const { data: run } = await supabaseAdmin.from("flow_runs").select("*").eq("id", runId).maybeSingle();
   if (!run || run.status === "done" || run.status === "failed" || run.status === "stopped") return;
+  if (run.status === "waiting") {
+    if (run.waiting_for) return;
+    if (run.wait_until && new Date(run.wait_until).getTime() > Date.now()) return;
+  }
+  if (!["pending", "waiting"].includes(run.status)) return;
+
+  let claim = supabaseAdmin.from("flow_runs").update({ status: "processing" }).eq("id", runId).eq("status", run.status);
+  if (run.status === "waiting") claim = claim.lte("wait_until", new Date().toISOString()).is("waiting_for", null);
+  const { data: claimed } = await claim.select("id").maybeSingle();
+  if (!claimed) return;
 
   const flow = await loadFlow(supabaseAdmin, run.flow_id);
   if (!flow) {
