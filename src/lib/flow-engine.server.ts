@@ -428,7 +428,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         let response: Record<string, unknown>;
         if (mediatype === "audio") {
           // PTT voice note (waveform UI). Evolution transcodes to OGG/Opus.
-          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: true });
+          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: false });
         } else {
           response = await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
         }
