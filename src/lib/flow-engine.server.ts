@@ -425,7 +425,8 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           }
         }
         try {
-          await sendTextSafely(renderTemplate(tpl, vars));
+          const sent = await sendTextSafely(renderTemplate(tpl, vars));
+          await logStep("ok", undefined, { sent: !!sent, target: sent?.target, response: sent?.response });
         } catch (e) {
           const msg = (e as Error).message;
           console.error("[flow] sendText failed", msg);
@@ -433,8 +434,9 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           await supabaseAdmin.from("flow_runs").update({ status: "failed", error: msg.slice(0, 500), finished_at: new Date().toISOString() }).eq("id", runId);
           return;
         }
+      } else {
+        await logStep("ok", undefined, { sent: false });
       }
-      await logStep("ok", undefined, { sent: !!tpl });
       // Avança imediatamente para o próximo nó. Esperas devem ser explícitas
       // via nós "delay" ou "typing"; assim o tempo configurado é exatamente
       // o tempo percebido pelo contato (sem soma de delay anti-ban entre mensagens).
@@ -451,7 +453,8 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       if (url && srv && inst && inst.status === "connected") {
         if (!(await gateSafetyOrDefer())) return;
         try {
-          await sendMediaSafely(mediatype, url, caption, fileName);
+          const sent = await sendMediaSafely(mediatype, url, caption, fileName);
+          await logStep("ok", undefined, { sent: !!sent, mediatype, target: sent?.target, response: sent?.response });
         } catch (e) {
           const msg = (e as Error).message;
           console.error("[flow] sendMedia failed", msg);
@@ -459,8 +462,9 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           await supabaseAdmin.from("flow_runs").update({ status: "failed", error: msg.slice(0, 500), finished_at: new Date().toISOString() }).eq("id", runId);
           return;
         }
+      } else {
+        await logStep("ok", undefined, { sent: false, mediatype });
       }
-      await logStep("ok", undefined, { sent: !!url, mediatype });
       await goNext();
       return;
     }
