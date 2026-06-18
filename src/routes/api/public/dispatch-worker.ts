@@ -127,12 +127,21 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
                   try { await sendPresence(chip.server, chip.instance_name, msg.phone, presence, 1500); } catch {}
                   await new Promise((r) => setTimeout(r, 1500));
                 }
-                evoRes = await sendMedia(chip.server, chip.instance_name, msg.phone, {
-                  mediatype: mt,
-                  media: camp.media_url,
-                  caption: msg.rendered_message ?? undefined,
-                  fileName: camp.media_filename ?? undefined,
-                });
+                if (mt === "audio") {
+                  // Voice note (PTT) with proper waveform UI
+                  evoRes = await sendWhatsAppAudio(chip.server, chip.instance_name, msg.phone, camp.media_url, { encoding: true });
+                  // Caption isn't supported on voice notes — send as a separate text after if present
+                  if (msg.rendered_message) {
+                    try { await sendText(chip.server, chip.instance_name, msg.phone, msg.rendered_message); } catch {}
+                  }
+                } else {
+                  evoRes = await sendMedia(chip.server, chip.instance_name, msg.phone, {
+                    mediatype: mt,
+                    media: camp.media_url,
+                    caption: msg.rendered_message ?? undefined,
+                    fileName: camp.media_filename ?? undefined,
+                  });
+                }
               } else {
                 const text = msg.rendered_message ?? "";
                 if (chip.typing_enabled && text) {
