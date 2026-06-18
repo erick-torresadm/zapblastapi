@@ -435,15 +435,15 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       const fileName = data.fileName ? String(data.fileName) : undefined;
       if (url && srv && inst && inst.status === "connected") {
         if (!(await gateSafetyOrDefer())) return;
-        // presence apropriado pro tipo
-        const presence = mediatype === "audio" ? "recording" : "composing";
-        const target = await resolveEvolutionTarget();
-        try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, presence, 1500); } catch {}
-        await new Promise((r) => setTimeout(r, 1500));
-        await sendMedia({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, target, {
-          mediatype, media: url, caption, fileName,
-        });
-        await bumpCounters(supabaseAdmin, inst);
+        try {
+          await sendMediaSafely(mediatype, url, caption, fileName);
+        } catch (e) {
+          const msg = (e as Error).message;
+          console.error("[flow] sendMedia failed", msg);
+          await logStep("error", msg);
+          await supabaseAdmin.from("flow_runs").update({ status: "failed", error: msg.slice(0, 500), finished_at: new Date().toISOString() }).eq("id", runId);
+          return;
+        }
       }
       await logStep("ok", undefined, { sent: !!url, mediatype });
       await goNext();
