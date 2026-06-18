@@ -19,17 +19,16 @@ export type EvolutionServer = { base_url: string; api_key: string };
 
 // ----- core fetch ------------------------------------------------------------
 
-async function evoFetch(
+async function evoFetchRaw(
   server: EvolutionServer,
   path: string,
   init: RequestInit = {},
-): Promise<Record<string, unknown>> {
+): Promise<unknown> {
   const url = server.base_url.replace(/\/$/, "") + path;
   const headers: Record<string, string> = {
     apikey: server.api_key,
     ...((init.headers as Record<string, string>) || {}),
   };
-  // Only set Content-Type for JSON bodies (FormData sets its own boundary).
   if (init.body && !(init.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
@@ -49,7 +48,16 @@ async function evoFetch(
     })();
     throw new Error(`Evolution API ${res.status}: ${msg}`);
   }
-  return (body && typeof body === "object" ? body : { value: body }) as Record<string, unknown>;
+  return body;
+}
+
+async function evoFetch(
+  server: EvolutionServer,
+  path: string,
+  init: RequestInit = {},
+): Promise<Record<string, unknown>> {
+  const body = await evoFetchRaw(server, path, init);
+  return (body && typeof body === "object" && !Array.isArray(body) ? body : { value: body }) as Record<string, unknown>;
 }
 
 // ============================================================================
