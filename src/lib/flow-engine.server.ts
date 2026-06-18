@@ -272,7 +272,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   async function gateSafetyOrDefer(): Promise<boolean> {
     if (!inst) return true;
     const hasSentInThisRun = !!run.variables?.__flow_has_sent;
-    const wait = safetyWaitMs(inst, { respectQuietHours: !hasSentInThisRun, respectHumanDelay: !hasSentInThisRun });
+    const wait = safetyWaitMs(inst, { respectQuietHours: false, respectHumanDelay: !hasSentInThisRun });
     if (wait <= 0) return true;
     const until = new Date(Date.now() + wait).toISOString();
     await supabaseAdmin.from("flow_runs").update({ status: "waiting", wait_until: until }).eq("id", runId);
