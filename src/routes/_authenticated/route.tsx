@@ -19,7 +19,7 @@ function AuthedLayout() {
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
-        <main className="relative flex-1 overflow-y-auto">
+        <main className="relative flex w-full min-w-0 flex-1 flex-col overflow-y-auto">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[420px] opacity-60"
@@ -29,7 +29,7 @@ function AuthedLayout() {
             }}
           />
           <AppTopbar />
-          <div className="relative container mx-auto max-w-7xl p-6">
+          <div className="relative container mx-auto w-full max-w-7xl p-3 sm:p-4 md:p-6">
             <Outlet />
           </div>
         </main>

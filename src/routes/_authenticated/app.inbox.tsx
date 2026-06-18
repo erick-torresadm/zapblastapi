@@ -12,7 +12,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Send, Search, MessageCircle, UserPlus, CheckCircle2, Clock, MoreVertical, StickyNote, Inbox as InboxIcon } from "lucide-react";
+import { Send, Search, MessageCircle, UserPlus, CheckCircle2, Clock, MoreVertical, StickyNote, ArrowLeft, Inbox as InboxIcon } from "lucide-react";
 import { toast } from "sonner";
 import { getConversationMessagesFn, sendChatMessageFn, listChatInstancesFn } from "@/lib/chat.functions";
 import {
@@ -215,8 +215,8 @@ function Inbox() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden rounded-lg border bg-card">
-      {/* Coluna esquerda */}
-      <aside className="flex w-96 flex-col border-r">
+      {/* Lista de conversas — em mobile, esconde quando há conversa aberta */}
+      <aside className={`flex w-full flex-col border-r md:w-96 md:shrink-0 ${selectedId ? "hidden md:flex" : "flex"}`}>
         <div className="space-y-3 border-b p-3">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-primary" />
@@ -307,8 +307,8 @@ function Inbox() {
         </div>
       </aside>
 
-      {/* Painel direito */}
-      <section className="flex flex-1 flex-col bg-muted/20">
+      {/* Painel direito — em mobile, ocupa tudo e some quando não há conversa */}
+      <section className={`flex flex-1 flex-col bg-muted/20 ${selectedId ? "flex" : "hidden md:flex"}`}>
         {!current ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
             <InboxIcon className="h-10 w-10 opacity-40" />
@@ -316,8 +316,11 @@ function Inbox() {
           </div>
         ) : (
           <>
-            <header className="flex items-center gap-3 border-b bg-card p-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary/70 to-primary-glow/70 text-xs font-bold text-primary-foreground">
+            <header className="flex items-center gap-2 border-b bg-card p-3 sm:gap-3">
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 md:hidden" onClick={() => setSelectedId(null)} aria-label="Voltar">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/70 to-primary-glow/70 text-xs font-bold text-primary-foreground">
                 {(current.contact_name ?? current.contact_phone).slice(-2)}
               </div>
               <div className="min-w-0 flex-1">
