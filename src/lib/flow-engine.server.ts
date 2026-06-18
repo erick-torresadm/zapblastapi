@@ -444,10 +444,30 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       try {
         let response: Record<string, unknown>;
         if (mediatype === "audio") {
-          // PTT voice note (waveform UI). Evolution transcodes to OGG/Opus.
-          // encoding:true (default) → Evolution transcoda MP3/M4A/WAV/OGG para OGG/Opus PTT.
-          // Sem isso, uploads não-OGG (a maioria) chegam quebrados ou não rodam como áudio.
-          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: true });
+          // PTT voice note (waveform UI).
+          // Evolution's transcoder (encoding:true) falha com 400 quando recebe
+          // URL de OGG/Opus já no formato final (tenta re-encodar e quebra).
+          // Estratégia: se já é .ogg/.oga, baixamos e mandamos em base64 sem encoding;
+          // outros formatos (mp3/m4a/wav) → deixa Evolution baixar + transcodar.
+          const isOgg = /\.(ogg|oga|opus)(\?|$)/i.test(url);
+          let audioPayload = url;
+          let encoding = true;
+          if (isOgg) {
+            encoding = false;
+            try {
+              const r = await fetch(url);
+              if (r.ok) {
+                const buf = new Uint8Array(await r.arrayBuffer());
+                let bin = "";
+                for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+                audioPayload = btoa(bin);
+              }
+            } catch (e) {
+              console.warn("[flow] failed to prefetch ogg, falling back to URL", (e as Error).message);
+            }
+          }
+          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, audioPayload, { encoding });
+
         } else {
           response = await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
         }
