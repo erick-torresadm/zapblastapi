@@ -440,7 +440,9 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         let response: Record<string, unknown>;
         if (mediatype === "audio") {
           // PTT voice note (waveform UI). Evolution transcodes to OGG/Opus.
-          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: false });
+          // encoding:true (default) → Evolution transcoda MP3/M4A/WAV/OGG para OGG/Opus PTT.
+          // Sem isso, uploads não-OGG (a maioria) chegam quebrados ou não rodam como áudio.
+          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: true });
         } else {
           response = await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
         }
