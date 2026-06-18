@@ -284,12 +284,30 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       extractRealPhone(run.contact_phone),
     ]);
 
-    const targets: string[] = [];
+    const phoneVariants: string[] = [];
     for (const p of phones) {
       for (const v of brazilianPhoneVariants(p)) {
-        targets.push(`${v}@s.whatsapp.net`);
+        phoneVariants.push(v);
       }
     }
+
+    const validatedTargets: string[] = [];
+    if (srv && inst && phoneVariants.length > 0) {
+      try {
+        const checked = await checkWhatsappNumbers(
+          { base_url: srv.base_url, api_key: srv.api_key },
+          inst.instance_name,
+          uniq(phoneVariants),
+        );
+        for (const row of checked) {
+          if (row?.exists) validatedTargets.push(extractRealPhone(row.jid) ?? extractRealPhone(row.number) ?? row.number);
+        }
+      } catch (e) {
+        console.warn("[flow] target validation failed", (e as Error).message);
+      }
+    }
+
+    const targets: string[] = [...validatedTargets, ...phoneVariants];
 
     // Último recurso: tenta o remoteJid LID (chips com migração LID).
     const lid = String(raw.data?.key?.remoteJid ?? "");
@@ -312,6 +330,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     if (!srv || !inst || inst.status !== "connected") return;
     const targets = await resolveEvolutionTargets();
     const primary = targets[0]!;
+    console.log("[flow] sendText targets", { runId, phone: run.contact_phone, targets });
     if (inst.typing_enabled) {
       const dur = typingDurationMs(text, inst.typing_wpm);
       try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, primary, "composing", dur); } catch {}
@@ -322,6 +341,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       try {
         await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, t, text);
         await bumpCounters(supabaseAdmin, inst);
+        console.log("[flow] sendText ok", { runId, phone: run.contact_phone, target: t });
         return;
       } catch (e) {
         const err = e as Error;
