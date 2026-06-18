@@ -37,9 +37,18 @@ export function AppTopbar() {
   });
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border/60 bg-background/70 px-3 backdrop-blur-xl sm:gap-3 sm:px-4">
       <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-      <nav className="flex min-w-0 items-center gap-1.5 text-sm">
+      {/* Mobile: só o último segmento, truncado */}
+      <nav className="flex min-w-0 flex-1 items-center gap-1.5 text-sm sm:hidden">
+        {parts.length > 0 && (
+          <span className="truncate font-medium text-foreground">
+            {LABELS[parts[parts.length - 1]] ?? parts[parts.length - 1]}
+          </span>
+        )}
+      </nav>
+      {/* sm+: breadcrumb completo */}
+      <nav className="hidden min-w-0 flex-1 items-center gap-1.5 text-sm sm:flex">
         {parts.map((p, i) => {
           const to = "/" + parts.slice(0, i + 1).join("/");
           const last = i === parts.length - 1;
@@ -56,15 +65,15 @@ export function AppTopbar() {
           );
         })}
       </nav>
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <Link
           to="/app/wallet"
-          className="hidden items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary sm:flex"
+          className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary sm:px-3"
         >
           <Wallet className="h-3.5 w-3.5 text-primary" />
-          R$ {((wallet ?? 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          <span className="tabular-nums">R$ {((wallet ?? 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
         </Link>
-        <Link to="/app/billing">
+        <Link to="/app/billing" className="hidden sm:block">
           <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary hover:bg-primary/20">
             <Sparkles className="mr-1 h-3 w-3" /> Upgrade
           </Badge>
