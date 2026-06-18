@@ -290,6 +290,13 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   // Ex: 5511981738903 (13 dígitos) <-> 551181738903 (12 dígitos)
   function brazilianPhoneVariants(phone: string): string[] {
     const out = new Set<string>([phone]);
+    const local = phone.match(/^(\d{2})(9?)(\d{8})$/);
+    if (local) {
+      const [, ddd, nine, rest] = local;
+      out.add(`55${ddd}${nine}${rest}`);
+      out.add(`55${ddd}${rest}`);
+      if (!nine) out.add(`55${ddd}9${rest}`);
+    }
     const m = phone.match(/^55(\d{2})(9?)(\d{8})$/);
     if (m) {
       const [, ddd, nine, rest] = m;
