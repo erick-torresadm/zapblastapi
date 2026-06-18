@@ -314,13 +314,22 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       }
     }
 
-    const targets: string[] = [...validatedTargets, ...phoneVariants];
+    const targets: string[] = [];
+    for (const t of [...validatedTargets, ...phoneVariants]) {
+      const phone = extractRealPhone(t);
+      if (!phone) continue;
+      targets.push(phone, `${phone}@s.whatsapp.net`);
+    }
 
     // Último recurso: tenta o remoteJid LID (chips com migração LID).
     const lid = String(raw.data?.key?.remoteJid ?? "");
     if (lid.endsWith("@lid")) targets.push(lid);
 
-    if (targets.length === 0) targets.push(toEvolutionTarget(run.contact_phone));
+    if (targets.length === 0) {
+      const fallback = extractRealPhone(run.contact_phone);
+      if (fallback) targets.push(fallback, `${fallback}@s.whatsapp.net`);
+      else targets.push(toEvolutionTarget(run.contact_phone));
+    }
     return uniq(targets);
   }
 
@@ -330,8 +339,8 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   }
 
 
-  async function sendTextSafely(text: string) {
-    if (!srv || !inst || inst.status !== "connected") return;
+  async function sendTextSafely(text: string): Promise<SendAttemptResult | null> {
+    if (!srv || !inst || inst.status !== "connected") return null;
     const targets = await resolveEvolutionTargets();
     const primary = targets[0]!;
     console.log("[flow] sendText targets", { runId, phone: run.contact_phone, targets });
@@ -343,10 +352,10 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     let lastErr: Error | null = null;
     for (const t of targets) {
       try {
-        await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, t, text);
+        const response = await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, t, text);
         await bumpCounters(supabaseAdmin, inst);
-        console.log("[flow] sendText ok", { runId, phone: run.contact_phone, target: t });
-        return;
+        console.log("[flow] sendText ok", { runId, phone: run.contact_phone, target: t, response });
+        return { target: t, response };
       } catch (e) {
         lastErr = e as Error;
         console.warn("[flow] sendText failed, trying next target", { tried: t, err: lastErr.message });
@@ -360,8 +369,8 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     url: string,
     caption?: string,
     fileName?: string,
-  ) {
-    if (!srv || !inst || inst.status !== "connected") return;
+  ): Promise<SendAttemptResult | null> {
+    if (!srv || !inst || inst.status !== "connected") return null;
     const evoSrv = { base_url: srv.base_url, api_key: srv.api_key };
     const targets = await resolveEvolutionTargets();
     const primary = targets[0]!;
@@ -380,7 +389,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
         }
         await bumpCounters(supabaseAdmin, inst);
         console.log("[flow] sendMedia ok", { runId, mediatype, target: t });
-        return;
+        return { target: t, response: null };
       } catch (e) {
         lastErr = e as Error;
         console.warn("[flow] sendMedia failed, trying next target", { tried: t, err: lastErr.message });
