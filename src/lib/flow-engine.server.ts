@@ -787,19 +787,19 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       if (srv && inst && inst.status === "connected") {
         const { data: last } = await supabaseAdmin
           .from("chat_messages")
-          .select("message_id, contact_jid, contact_phone")
+          .select("evolution_message_id, contact_jid, contact_phone")
           .eq("user_id", run.user_id)
           .eq("contact_phone", run.contact_phone)
           .eq("direction", "in")
-          .not("message_id", "is", null)
+          .not("evolution_message_id", "is", null)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        if (last?.message_id) {
+        if (last?.evolution_message_id) {
           try {
             const remoteJid = last.contact_jid ?? `${(last.contact_phone ?? "").replace(/\D/g, "")}@s.whatsapp.net`;
             const resp = await sendReaction({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name,
-              { remoteJid, fromMe: false, id: last.message_id }, emoji);
+              { remoteJid, fromMe: false, id: last.evolution_message_id }, emoji);
             await logStep("ok", undefined, { reacted: true, emoji, response: resp });
           } catch (e) {
             await logStep("error", (e as Error).message);
