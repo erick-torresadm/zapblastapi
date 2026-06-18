@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getFlowFn, saveFlowDraftFn, publishFlowFn } from "@/lib/flows.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/app/flows/$id")({
   component: FlowsPage,
