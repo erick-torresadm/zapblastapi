@@ -52,7 +52,10 @@ export const Route = createFileRoute("/_authenticated/app/flows/$id")({
 /* =========================================================
    Tipos de nó disponíveis no fluxo
    ========================================================= */
-type StepType = "start" | "message" | "media" | "typing" | "delay" | "condition" | "tag" | "webhook" | "ask" | "ai" | "transfer_human";
+type StepType =
+  | "start" | "message" | "media" | "typing" | "delay" | "condition" | "tag"
+  | "webhook" | "ask" | "ai" | "transfer_human"
+  | "sticker" | "location" | "contact_card" | "poll" | "reaction";
 
 type StepData = {
   label: string;
@@ -75,6 +78,24 @@ type StepData = {
   // typing/recording
   presence?: "composing" | "recording";
   seconds?: number;
+  // sticker
+  stickerUrl?: string;
+  // location
+  latitude?: number;
+  longitude?: number;
+  locationName?: string;
+  locationAddress?: string;
+  // contact card
+  contactName?: string;
+  contactPhone?: string;
+  contactOrg?: string;
+  contactEmail?: string;
+  // poll
+  pollQuestion?: string;
+  pollOptions?: string;
+  pollSelectable?: number;
+  // reaction
+  emoji?: string;
   [key: string]: unknown;
 };
 
