@@ -320,6 +320,7 @@ function FlowsInner() {
   const onConnect = useCallback((c: Connection) => {
     setEdges((eds) => addEdge({
       ...c,
+      type: "deletable",
       animated: true,
       markerEnd: { type: MarkerType.ArrowClosed },
       style: { strokeWidth: 2 },
