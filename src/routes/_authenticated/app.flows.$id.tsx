@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getFlowFn, saveFlowDraftFn, publishFlowFn } from "@/lib/flows.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/app/flows/$id")({
   component: FlowsPage,
@@ -506,7 +507,44 @@ function FlowsInner() {
                       <div>
                         <Label htmlFor="media-url">URL ou base64 da mídia</Label>
                         <Input id="media-url" value={d.mediaUrl ?? ""} onChange={(e) => updateSelected({ mediaUrl: e.target.value })} placeholder="https://… ou data:image/png;base64,…" />
-                        <p className="mt-1 text-[11px] text-muted-foreground">URL pública (faça upload no menu Campanhas → Mídia) ou data URI.</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <input
+                            id="media-upload"
+                            type="file"
+                            className="hidden"
+                            accept={
+                              d.mediatype === "image" ? "image/*"
+                              : d.mediatype === "video" ? "video/*"
+                              : d.mediatype === "audio" ? "audio/*"
+                              : "*/*"
+                            }
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                const { data: { user } } = await supabase.auth.getUser();
+                                if (!user) { toast.error("Faça login para enviar mídia"); return; }
+                                const ext = file.name.split(".").pop() ?? "bin";
+                                const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+                                const { error: upErr } = await supabase.storage.from("campaign-media").upload(path, file);
+                                if (upErr) { toast.error(upErr.message); return; }
+                                const { data: signed } = await supabase.storage.from("campaign-media").createSignedUrl(path, 60 * 60 * 24 * 365);
+                                if (signed?.signedUrl) {
+                                  updateSelected({ mediaUrl: signed.signedUrl, fileName: file.name });
+                                  toast.success("Mídia enviada");
+                                }
+                              } catch (err) {
+                                toast.error((err as Error).message);
+                              } finally {
+                                (e.target as HTMLInputElement).value = "";
+                              }
+                            }}
+                          />
+                          <Button type="button" size="sm" variant="outline" onClick={() => document.getElementById("media-upload")?.click()}>
+                            Enviar arquivo
+                          </Button>
+                          <p className="text-[11px] text-muted-foreground">Ou cole uma URL pública / data URI acima.</p>
+                        </div>
                       </div>
                       {(d.mediatype === "document") && (
                         <div>
