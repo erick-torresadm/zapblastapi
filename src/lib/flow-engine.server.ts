@@ -49,6 +49,16 @@ function extractRealPhone(value: unknown): string | null {
   return digits.length >= 8 && digits.length <= 14 ? digits : null;
 }
 
+function extractPersonalJid(value: unknown): string | null {
+  if (!value) return null;
+  const raw = String(value).trim();
+  if (!raw.includes("@")) return null;
+  const [user, domain] = raw.split("@");
+  if (!user || user === "status") return null;
+  if (!["s.whatsapp.net", "c.us", "lid"].includes(domain)) return null;
+  return raw;
+}
+
 function toEvolutionTarget(value: string): string {
   if (value.includes("@")) return value;
   return isLidIdentifier(value) ? `${value}@lid` : value;
@@ -236,7 +246,6 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   }
 
   async function resolveEvolutionTarget(): Promise<string> {
-    if (!isLidIdentifier(run.contact_phone)) return toEvolutionTarget(run.contact_phone);
     const { data: recent } = await supabaseAdmin.from("incoming_messages")
       .select("raw_payload")
       .eq("user_id", run.user_id)
@@ -245,15 +254,21 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       .order("received_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const raw = (recent?.raw_payload ?? {}) as { sender?: unknown; data?: { sender?: unknown; key?: { senderPn?: unknown; participantPn?: unknown } } };
+    const raw = (recent?.raw_payload ?? {}) as { sender?: unknown; data?: { sender?: unknown; key?: { remoteJid?: unknown; senderPn?: unknown; participantPn?: unknown } } };
+    const jid = extractPersonalJid(raw.data?.key?.remoteJid);
+    if (jid) {
+      console.log("[flow] target resolved from inbound remoteJid", { runId, phone: run.contact_phone, target: jid });
+      return jid;
+    }
     const phone = extractRealPhone(raw.sender)
       ?? extractRealPhone(raw.data?.sender)
       ?? extractRealPhone(raw.data?.key?.senderPn)
       ?? extractRealPhone(raw.data?.key?.participantPn);
-    if (phone) {
+    if (phone && isLidIdentifier(run.contact_phone)) {
       console.log("[flow] LID target resolved from webhook sender", { runId, lid: run.contact_phone, target: phone });
       return phone;
     }
+    if (!isLidIdentifier(run.contact_phone)) return toEvolutionTarget(run.contact_phone);
     console.warn("[flow] LID target unresolved; falling back to @lid", { runId, lid: run.contact_phone });
     return toEvolutionTarget(run.contact_phone);
   }
