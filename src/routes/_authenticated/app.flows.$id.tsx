@@ -441,20 +441,54 @@ function FlowsInner() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportJson}><Download className="mr-2 h-4 w-4" />Exportar</Button>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="md:hidden">
+                <Plus className="mr-1 h-4 w-4" />Bloco
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <SheetHeader className="border-b p-3">
+                <SheetTitle className="text-sm">Blocos</SheetTitle>
+                <SheetDescription className="text-xs">Toque para adicionar ao canvas</SheetDescription>
+              </SheetHeader>
+              <div className="space-y-2 overflow-y-auto p-3" style={{ maxHeight: "calc(100vh - 80px)" }}>
+                {(Object.keys(STEP_META) as StepType[]).filter((t) => t !== "start").map((t) => {
+                  const m = STEP_META[t]; const Icon = m.icon;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => addNode(t)}
+                      className="flex w-full items-center gap-2.5 rounded-lg border border-border/60 bg-card p-2.5 text-left transition-all hover:border-primary/50"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: m.color }}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium leading-tight">{m.label}</div>
+                        <div className="truncate text-[10px] text-muted-foreground">{m.description}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
+          <Button variant="outline" size="sm" onClick={exportJson} className="hidden sm:inline-flex"><Download className="mr-2 h-4 w-4" />Exportar</Button>
           <Button variant="outline" size="sm" onClick={() => saveMut.mutate(false)} disabled={saveMut.isPending}>
-            <Save className="mr-2 h-4 w-4" />Salvar
+            <Save className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Salvar</span>
           </Button>
           <Button size="sm" onClick={() => publishMut.mutate()} disabled={publishMut.isPending}>
-            <Rocket className="mr-2 h-4 w-4" />Publicar
+            <Rocket className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Publicar</span>
           </Button>
         </div>
       </div>
 
 
       <div className="flex flex-1 gap-3 overflow-hidden">
-        {/* Palette */}
-        <Card className="w-60 shrink-0 overflow-y-auto">
+        {/* Palette inline — só em md+ */}
+        <Card className="hidden w-60 shrink-0 overflow-y-auto md:block">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm">Blocos</CardTitle>
             <CardDescription className="text-xs">Arraste para o canvas</CardDescription>
