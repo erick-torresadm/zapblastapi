@@ -381,15 +381,16 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     let lastErr: Error | null = null;
     for (const t of targets) {
       try {
+        let response: Record<string, unknown>;
         if (mediatype === "audio") {
           // PTT voice note (waveform UI). Evolution transcodes to OGG/Opus.
-          await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: true });
+          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: true });
         } else {
-          await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
+          response = await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
         }
         await bumpCounters(supabaseAdmin, inst);
-        console.log("[flow] sendMedia ok", { runId, mediatype, target: t });
-        return { target: t, response: null };
+        console.log("[flow] sendMedia ok", { runId, mediatype, target: t, response });
+        return { target: t, response };
       } catch (e) {
         lastErr = e as Error;
         console.warn("[flow] sendMedia failed, trying next target", { tried: t, err: lastErr.message });
