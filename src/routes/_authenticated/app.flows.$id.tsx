@@ -9,11 +9,17 @@ import {
   addEdge,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   Handle,
   Position,
   MarkerType,
+  BaseEdge,
+  EdgeLabelRenderer,
+  getBezierPath,
   type Node,
   type Edge,
+  type EdgeProps,
+  type EdgeTypes,
   type Connection,
   type NodeProps,
   type ReactFlowInstance,
@@ -174,6 +180,46 @@ const nodeTypes = {
 
 
 /* =========================================================
+   Aresta customizada: 1 clique seleciona + mostra botão "Desconectar".
+   Duplo clique remove direto.
+   ========================================================= */
+function DeletableEdge(props: EdgeProps) {
+  const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, style, selected } = props;
+  const { setEdges } = useReactFlow();
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition,
+  });
+  const remove = () => setEdges((eds) => eds.filter((e) => e.id !== id));
+  return (
+    <>
+      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />
+      {/* Hit area mais grossa para facilitar o clique */}
+      <path d={edgePath} fill="none" stroke="transparent" strokeWidth={24} style={{ cursor: "pointer" }} onDoubleClick={remove} />
+      {selected && (
+        <EdgeLabelRenderer>
+          <div
+            style={{ position: "absolute", transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`, pointerEvents: "all" }}
+            className="nodrag nopan"
+          >
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); remove(); }}
+              className="flex items-center gap-1 rounded-full bg-destructive px-2.5 py-1 text-xs font-medium text-destructive-foreground shadow-md hover:opacity-90"
+              title="Remover conexão"
+            >
+              <Trash2 className="h-3 w-3" />
+              Desconectar
+            </button>
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
+}
+
+const edgeTypes: EdgeTypes = { deletable: DeletableEdge };
+
+/* =========================================================
    Estado inicial
    ========================================================= */
 const initialNodes: Node[] = [];
@@ -274,6 +320,7 @@ function FlowsInner() {
   const onConnect = useCallback((c: Connection) => {
     setEdges((eds) => addEdge({
       ...c,
+      type: "deletable",
       animated: true,
       markerEnd: { type: MarkerType.ArrowClosed },
       style: { strokeWidth: 2 },
@@ -422,16 +469,12 @@ function FlowsInner() {
             onInit={(inst) => { rfRef.current = inst; }}
             onNodeClick={(_, n) => setSelectedId(n.id)}
             onPaneClick={() => setSelectedId(null)}
-            onEdgeClick={(_, edge) => {
-              if (window.confirm("Remover esta conexão?")) {
-                setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-              }
-            }}
             edgesFocusable
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             fitView
             proOptions={{ hideAttribution: true }}
-            defaultEdgeOptions={{ animated: true, markerEnd: { type: MarkerType.ArrowClosed }, style: { strokeWidth: 2 } }}
+            defaultEdgeOptions={{ type: "deletable", animated: true, markerEnd: { type: MarkerType.ArrowClosed }, style: { strokeWidth: 2 } }}
             connectionLineStyle={{ strokeWidth: 2, stroke: "var(--color-primary)" }}
           >
             <Background gap={20} size={1.5} color="color-mix(in oklab, var(--color-foreground) 12%, transparent)" />
