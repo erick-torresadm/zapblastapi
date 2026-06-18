@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Play, MessageSquare, Clock, GitBranch, Tag, Webhook, Trash2, Save, Download, Plus,
   ArrowLeft, Rocket, CheckCircle2, Loader2, Image as ImageIcon, Keyboard,
+  Smile, MapPin, Contact as ContactIcon, BarChart3, Heart,
 } from "lucide-react";
 
 import { toast } from "sonner";
