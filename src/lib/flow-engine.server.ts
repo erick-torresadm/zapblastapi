@@ -221,7 +221,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   }
   if (!["pending", "waiting"].includes(run.status)) return;
 
-  let claim = supabaseAdmin.from("flow_runs").update({ status: "processing" }).eq("id", runId).eq("status", run.status);
+  let claim = supabaseAdmin.from("flow_runs").update({ status: "running" }).eq("id", runId).eq("status", run.status);
   if (run.status === "waiting" && !allowSafetyReprocess) claim = claim.lte("wait_until", new Date().toISOString()).is("waiting_for", null);
   const { data: claimed } = await claim.select("id").maybeSingle();
   if (!claimed) return;
