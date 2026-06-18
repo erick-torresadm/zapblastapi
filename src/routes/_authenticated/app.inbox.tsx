@@ -215,8 +215,8 @@ function Inbox() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden rounded-lg border bg-card">
-      {/* Coluna esquerda */}
-      <aside className="flex w-96 flex-col border-r">
+      {/* Lista de conversas — em mobile, esconde quando há conversa aberta */}
+      <aside className={`flex w-full flex-col border-r md:w-96 md:shrink-0 ${selectedId ? "hidden md:flex" : "flex"}`}>
         <div className="space-y-3 border-b p-3">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-primary" />
