@@ -56,6 +56,8 @@ async function evoFetch(
 // 1) Instance management
 // ============================================================================
 
+type JsonObj = Record<string, unknown>;
+
 export async function createInstance(
   server: EvolutionServer,
   instanceName: string,
