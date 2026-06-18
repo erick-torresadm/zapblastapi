@@ -49,7 +49,7 @@ async function evoFetch(
     })();
     throw new Error(`Evolution API ${res.status}: ${msg}`);
   }
-  return body;
+  return (body && typeof body === "object" ? body : { value: body }) as Record<string, unknown>;
 }
 
 // ============================================================================
