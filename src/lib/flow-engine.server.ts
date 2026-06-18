@@ -5,6 +5,7 @@
 import {
   sendText,
   sendMedia,
+  sendWhatsAppAudio,
   sendPresence,
   typingDurationMs,
   isInQuietHours,
