@@ -15,6 +15,7 @@ import {
 type Node = { id: string; type: string; data?: Record<string, unknown> };
 type Edge = { id: string; source: string; target: string; sourceHandle?: string };
 type Flow = { nodes: Node[]; edges: Edge[] };
+type SendAttemptResult = { target: string; response: Record<string, unknown> | null };
 
 type InstanceRow = {
   id: string;
@@ -58,6 +59,11 @@ function extractPersonalJid(value: unknown): string | null {
   if (!user || user === "status") return null;
   if (!["s.whatsapp.net", "c.us"].includes(domain)) return null;
   return raw;
+}
+
+function toPhoneJid(value: string): string | null {
+  const phone = extractRealPhone(value);
+  return phone ? `${phone}@s.whatsapp.net` : null;
 }
 
 function uniq(values: Array<string | null | undefined>): string[] {
@@ -301,20 +307,42 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           uniq(phoneVariants),
         );
         for (const row of checked) {
-          if (row?.exists) validatedTargets.push(extractRealPhone(row.jid) ?? extractRealPhone(row.number) ?? row.number);
+          if (!row?.exists) continue;
+          const jid = extractPersonalJid(row.jid);
+          const phone = extractRealPhone(row.jid) ?? extractRealPhone(row.number);
+          if (jid) validatedTargets.push(jid);
+          if (phone) validatedTargets.push(phone);
         }
       } catch (e) {
         console.warn("[flow] target validation failed", (e as Error).message);
       }
     }
 
-    const targets: string[] = [...validatedTargets, ...phoneVariants];
+    const targets: string[] = [];
+    for (const t of [...validatedTargets, ...phoneVariants]) {
+      const jid = extractPersonalJid(t);
+      if (jid) {
+        targets.push(jid);
+        const phoneJid = toPhoneJid(jid);
+        if (phoneJid && phoneJid !== jid) targets.push(phoneJid);
+        const phone = extractRealPhone(jid);
+        if (phone) targets.push(phone);
+        continue;
+      }
+      const phone = extractRealPhone(t);
+      if (!phone) continue;
+      targets.push(`${phone}@s.whatsapp.net`, phone);
+    }
 
     // Último recurso: tenta o remoteJid LID (chips com migração LID).
     const lid = String(raw.data?.key?.remoteJid ?? "");
     if (lid.endsWith("@lid")) targets.push(lid);
 
-    if (targets.length === 0) targets.push(toEvolutionTarget(run.contact_phone));
+    if (targets.length === 0) {
+      const fallback = extractRealPhone(run.contact_phone);
+      if (fallback) targets.push(fallback, `${fallback}@s.whatsapp.net`);
+      else targets.push(toEvolutionTarget(run.contact_phone));
+    }
     return uniq(targets);
   }
 
@@ -324,8 +352,8 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   }
 
 
-  async function sendTextSafely(text: string) {
-    if (!srv || !inst || inst.status !== "connected") return;
+  async function sendTextSafely(text: string): Promise<SendAttemptResult | null> {
+    if (!srv || !inst || inst.status !== "connected") return null;
     const targets = await resolveEvolutionTargets();
     const primary = targets[0]!;
     console.log("[flow] sendText targets", { runId, phone: run.contact_phone, targets });
@@ -337,10 +365,10 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     let lastErr: Error | null = null;
     for (const t of targets) {
       try {
-        await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, t, text);
+        const response = await sendText({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, t, text);
         await bumpCounters(supabaseAdmin, inst);
-        console.log("[flow] sendText ok", { runId, phone: run.contact_phone, target: t });
-        return;
+        console.log("[flow] sendText ok", { runId, phone: run.contact_phone, target: t, response });
+        return { target: t, response };
       } catch (e) {
         lastErr = e as Error;
         console.warn("[flow] sendText failed, trying next target", { tried: t, err: lastErr.message });
@@ -354,8 +382,8 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     url: string,
     caption?: string,
     fileName?: string,
-  ) {
-    if (!srv || !inst || inst.status !== "connected") return;
+  ): Promise<SendAttemptResult | null> {
+    if (!srv || !inst || inst.status !== "connected") return null;
     const evoSrv = { base_url: srv.base_url, api_key: srv.api_key };
     const targets = await resolveEvolutionTargets();
     const primary = targets[0]!;
@@ -366,15 +394,16 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     let lastErr: Error | null = null;
     for (const t of targets) {
       try {
+        let response: Record<string, unknown>;
         if (mediatype === "audio") {
           // PTT voice note (waveform UI). Evolution transcodes to OGG/Opus.
-          await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: true });
+          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, url, { encoding: true });
         } else {
-          await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
+          response = await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
         }
         await bumpCounters(supabaseAdmin, inst);
-        console.log("[flow] sendMedia ok", { runId, mediatype, target: t });
-        return;
+        console.log("[flow] sendMedia ok", { runId, mediatype, target: t, response });
+        return { target: t, response };
       } catch (e) {
         lastErr = e as Error;
         console.warn("[flow] sendMedia failed, trying next target", { tried: t, err: lastErr.message });
@@ -410,7 +439,8 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           }
         }
         try {
-          await sendTextSafely(renderTemplate(tpl, vars));
+          const sent = await sendTextSafely(renderTemplate(tpl, vars));
+          await logStep("ok", undefined, { sent: !!sent, target: sent?.target, response: sent?.response });
         } catch (e) {
           const msg = (e as Error).message;
           console.error("[flow] sendText failed", msg);
@@ -418,8 +448,9 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           await supabaseAdmin.from("flow_runs").update({ status: "failed", error: msg.slice(0, 500), finished_at: new Date().toISOString() }).eq("id", runId);
           return;
         }
+      } else {
+        await logStep("ok", undefined, { sent: false });
       }
-      await logStep("ok", undefined, { sent: !!tpl });
       // Avança imediatamente para o próximo nó. Esperas devem ser explícitas
       // via nós "delay" ou "typing"; assim o tempo configurado é exatamente
       // o tempo percebido pelo contato (sem soma de delay anti-ban entre mensagens).
@@ -436,7 +467,8 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       if (url && srv && inst && inst.status === "connected") {
         if (!(await gateSafetyOrDefer())) return;
         try {
-          await sendMediaSafely(mediatype, url, caption, fileName);
+          const sent = await sendMediaSafely(mediatype, url, caption, fileName);
+          await logStep("ok", undefined, { sent: !!sent, mediatype, target: sent?.target, response: sent?.response });
         } catch (e) {
           const msg = (e as Error).message;
           console.error("[flow] sendMedia failed", msg);
@@ -444,8 +476,9 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           await supabaseAdmin.from("flow_runs").update({ status: "failed", error: msg.slice(0, 500), finished_at: new Date().toISOString() }).eq("id", runId);
           return;
         }
+      } else {
+        await logStep("ok", undefined, { sent: false, mediatype });
       }
-      await logStep("ok", undefined, { sent: !!url, mediatype });
       await goNext();
       return;
     }
