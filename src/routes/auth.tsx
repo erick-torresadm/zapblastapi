@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { Meteors } from "@/components/magicui/meteors";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar — Perseidas" }, { name: "description", content: "Acesse sua conta Perseidas" }] }),
@@ -98,7 +99,10 @@ function AuthPage() {
   }
 
   return (
-    <div className="relative grid min-h-screen lg:grid-cols-2">
+    <div className="relative grid min-h-screen overflow-hidden lg:grid-cols-2">
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <Meteors number={20} />
+      </div>
       {/* Decorative panel */}
       <div className="relative hidden overflow-hidden lg:block" style={{ background: "var(--gradient-hero)" }}>
         <div className="absolute inset-0 opacity-40" style={{
@@ -129,7 +133,7 @@ function AuthPage() {
       </div>
 
       {/* Form */}
-      <div className="flex items-center justify-center px-4 py-12">
+      <div className="relative z-10 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="mb-6 flex justify-center lg:hidden">
             <Logo to="/" size="lg" />
