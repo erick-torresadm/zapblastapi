@@ -47,6 +47,15 @@ export const createInstanceFn = createServerFn({ method: "POST" })
     }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
+    // Enforcement de plano
+    const { data: limits } = await supabase.rpc("get_user_plan_limits" as never, { _user_id: userId } as never);
+    const l = limits as unknown as { can_act?: boolean; limits?: { max_chips: number }; usage?: { chips: number } } | null;
+    if (!l?.can_act) throw new Error("Teste grátis expirado. Assine pra conectar novos chips.");
+    if (l.limits && l.usage && l.limits.max_chips !== -1 && l.usage.chips >= l.limits.max_chips) {
+      throw new Error(`Limite do seu plano: ${l.limits.max_chips} chip(s). Faça upgrade pra conectar mais.`);
+    }
+
     const resolved = await resolveServer(data.server_id, supabase);
     if (!resolved) throw new Error("Servidor não encontrado");
     const { server } = resolved;
