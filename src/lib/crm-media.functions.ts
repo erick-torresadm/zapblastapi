@@ -173,13 +173,13 @@ export const updateContactFn = createServerFn({ method: "POST" })
     custom_fields: z.record(z.string(), z.string().max(500)).optional(),
   }).parse(d))
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
+    const patch: any = {};
     if (data.contact_name !== undefined) patch.contact_name = data.contact_name;
     if (data.contact_email !== undefined) patch.contact_email = data.contact_email || null;
     if (data.contact_company !== undefined) patch.contact_company = data.contact_company;
     if (data.tags !== undefined) patch.tags = data.tags;
     if (data.custom_fields !== undefined) patch.custom_fields = data.custom_fields;
-    const { error } = await context.supabase.from("crm_conversations")
+    const { error } = await (context.supabase.from("crm_conversations") as any)
       .update(patch).eq("id", data.conversation_id);
     if (error) throw new Error(error.message);
     return { ok: true };
