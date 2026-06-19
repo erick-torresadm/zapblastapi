@@ -187,6 +187,7 @@ export type Database = {
           contact_jid: string | null
           contact_phone: string
           created_at: string
+          deleted_at: string | null
           direction: string
           duration_seconds: number | null
           evolution_message_id: string | null
@@ -200,8 +201,11 @@ export type Database = {
           media_url: string | null
           quoted_text: string | null
           reaction: string | null
+          reactions: Json
           read_at: string | null
+          reply_to_id: string | null
           sent_by_agent_id: string | null
+          starred: boolean
           status: string
           text: string | null
           user_id: string
@@ -212,6 +216,7 @@ export type Database = {
           contact_jid?: string | null
           contact_phone: string
           created_at?: string
+          deleted_at?: string | null
           direction: string
           duration_seconds?: number | null
           evolution_message_id?: string | null
@@ -225,8 +230,11 @@ export type Database = {
           media_url?: string | null
           quoted_text?: string | null
           reaction?: string | null
+          reactions?: Json
           read_at?: string | null
+          reply_to_id?: string | null
           sent_by_agent_id?: string | null
+          starred?: boolean
           status?: string
           text?: string | null
           user_id: string
@@ -237,6 +245,7 @@ export type Database = {
           contact_jid?: string | null
           contact_phone?: string
           created_at?: string
+          deleted_at?: string | null
           direction?: string
           duration_seconds?: number | null
           evolution_message_id?: string | null
@@ -250,8 +259,11 @@ export type Database = {
           media_url?: string | null
           quoted_text?: string | null
           reaction?: string | null
+          reactions?: Json
           read_at?: string | null
+          reply_to_id?: string | null
           sent_by_agent_id?: string | null
+          starred?: boolean
           status?: string
           text?: string | null
           user_id?: string
@@ -262,6 +274,13 @@ export type Database = {
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -480,6 +499,7 @@ export type Database = {
       }
       crm_conversations: {
         Row: {
+          archived_at: string | null
           assigned_agent_id: string | null
           chat_type: string
           contact_about: string | null
@@ -497,7 +517,10 @@ export type Database = {
           last_message_direction: string | null
           last_message_text: string | null
           last_message_type: string | null
+          last_seen_at: string | null
+          muted_until: string | null
           owner_user_id: string
+          pinned_at: string | null
           presence: string | null
           presence_at: string | null
           profile_synced_at: string | null
@@ -507,6 +530,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           assigned_agent_id?: string | null
           chat_type?: string
           contact_about?: string | null
@@ -524,7 +548,10 @@ export type Database = {
           last_message_direction?: string | null
           last_message_text?: string | null
           last_message_type?: string | null
+          last_seen_at?: string | null
+          muted_until?: string | null
           owner_user_id: string
+          pinned_at?: string | null
           presence?: string | null
           presence_at?: string | null
           profile_synced_at?: string | null
@@ -534,6 +561,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           assigned_agent_id?: string | null
           chat_type?: string
           contact_about?: string | null
@@ -551,7 +579,10 @@ export type Database = {
           last_message_direction?: string | null
           last_message_text?: string | null
           last_message_type?: string | null
+          last_seen_at?: string | null
+          muted_until?: string | null
           owner_user_id?: string
+          pinned_at?: string | null
           presence?: string | null
           presence_at?: string | null
           profile_synced_at?: string | null
