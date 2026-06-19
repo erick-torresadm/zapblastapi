@@ -197,6 +197,16 @@ function BillingPage() {
           onSuccess={() => qc.invalidateQueries({ queryKey: ["billing"] })}
         />
       )}
+
+      {pixPlan && (
+        <PixAnnualDialog
+          open={!!pixPlan}
+          onOpenChange={(o) => !o && setPixPlan(null)}
+          planId={pixPlan.id}
+          planName={pixPlan.name}
+          annualCents={pixPlan.annual}
+        />
+      )}
     </div>
   );
 }
