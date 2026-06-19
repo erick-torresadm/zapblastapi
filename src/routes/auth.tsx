@@ -133,7 +133,7 @@ function AuthPage() {
       </div>
 
       {/* Form */}
-      <div className="flex items-center justify-center px-4 py-12">
+      <div className="relative z-10 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="mb-6 flex justify-center lg:hidden">
             <Logo to="/" size="lg" />
