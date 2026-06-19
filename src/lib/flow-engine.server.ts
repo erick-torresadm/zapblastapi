@@ -680,39 +680,96 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       return;
     }
 
-    if (node.type === "webhook") {
-      const url = String(data.webhookUrl ?? "");
-      if (url) {
-        try {
-          const resp = await fetch(url, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              run_id: runId, flow_id: run.flow_id, contact_id: run.contact_id,
-              phone: run.contact_phone, variables: vars,
-            }),
+    if (node.type === "webhook" || node.type === "http_request") {
+      const url = renderTemplate(String(data.webhookUrl ?? data.url ?? ""), vars);
+      const method = String(data.method ?? "POST").toUpperCase();
+      const retries = Math.max(0, Math.min(5, Number(data.retries ?? (node.type === "webhook" ? 2 : 0))));
+      const savePath = String(data.savePath ?? "").trim(); // ex: "data.items.0.id"
+      const saveVar = String(data.saveVar ?? "").trim();
+      let headers: Record<string, string> = { "content-type": "application/json" };
+      try {
+        const hraw = data.headers;
+        if (typeof hraw === "string" && hraw.trim()) Object.assign(headers, JSON.parse(renderTemplate(hraw, vars)));
+        else if (hraw && typeof hraw === "object") Object.assign(headers, hraw as Record<string, string>);
+      } catch { /* ignora json inválido */ }
+      let bodyStr: string | undefined;
+      if (method !== "GET" && method !== "HEAD") {
+        if (data.body !== undefined && data.body !== null && String(data.body).length) {
+          bodyStr = renderTemplate(String(data.body), vars);
+        } else {
+          bodyStr = JSON.stringify({
+            run_id: runId, flow_id: run.flow_id, contact_id: run.contact_id,
+            phone: run.contact_phone, variables: vars,
           });
+        }
+      }
+      if (!url) {
+        await logStep("skipped", "URL vazia");
+        await goNext();
+        return;
+      }
+      let attempt = 0;
+      let lastErr: string | null = null;
+      let succeeded = false;
+      while (attempt <= retries && !succeeded) {
+        attempt++;
+        try {
+          const resp = await fetch(url, { method, headers, body: bodyStr });
           let body: unknown = null;
-          try { body = await resp.json(); } catch { body = await resp.text(); }
-          // Se a resposta for objeto, mescla nas variables
-          if (body && typeof body === "object" && !Array.isArray(body)) {
+          const ct = resp.headers.get("content-type") ?? "";
+          if (ct.includes("application/json")) {
+            try { body = await resp.json(); } catch { body = await resp.text(); }
+          } else {
+            try { body = await resp.text(); } catch { body = null; }
+          }
+          if (!resp.ok) {
+            lastErr = `HTTP ${resp.status}`;
+            // 5xx: retry; 4xx: não retry
+            if (resp.status < 500 || attempt > retries) {
+              await logStep("error", lastErr, { status: resp.status, body });
+              await goNext("error");
+              return;
+            }
+            await new Promise((r) => setTimeout(r, Math.min(2000, 250 * attempt)));
+            continue;
+          }
+          // mescla resposta nas variáveis (compatibilidade)
+          if (body && typeof body === "object" && !Array.isArray(body) && !saveVar) {
             const merged = { ...vars, ...(body as Record<string, string>) };
             await supabaseAdmin.from("flow_runs").update({ variables: merged }).eq("id", runId);
           }
-          await logStep("ok", undefined, { status: resp.status });
+          // savePath: extrai campo aninhado e salva em saveVar
+          if (saveVar) {
+            let value: unknown = body;
+            if (savePath) {
+              for (const seg of savePath.split(".")) {
+                if (value == null) break;
+                value = (value as Record<string, unknown>)[seg];
+              }
+            }
+            const merged = { ...vars, [saveVar]: value == null ? "" : (typeof value === "object" ? JSON.stringify(value) : String(value)) };
+            await supabaseAdmin.from("flow_runs").update({ variables: merged }).eq("id", runId);
+          }
+          await logStep("ok", undefined, { status: resp.status, attempts: attempt });
+          succeeded = true;
         } catch (e) {
-          await logStep("error", (e as Error).message);
+          lastErr = (e as Error).message;
+          if (attempt > retries) {
+            await logStep("error", lastErr);
+            await goNext("error");
+            return;
+          }
+          await new Promise((r) => setTimeout(r, Math.min(2000, 250 * attempt)));
         }
-      } else {
-        await logStep("skipped", "URL vazia");
       }
-      await goNext();
+      await goNext(succeeded ? "ok" : "error");
       return;
     }
 
     if (node.type === "ai") {
       const sys = String(data.systemPrompt ?? "Você é um atendente educado e direto.");
       const userInput = renderTemplate(String(data.userInput ?? ""), vars);
+      const model = String(data.model ?? "google/gemini-3-flash-preview");
       const apiKey = process.env.LOVABLE_API_KEY;
       let reply = "";
       if (apiKey && userInput) {
@@ -721,7 +778,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
             method: "POST",
             headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
+              model,
               messages: [{ role: "system", content: sys }, { role: "user", content: userInput }],
             }),
           });
@@ -731,13 +788,20 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           await logStep("error", (e as Error).message);
         }
       }
-      if (reply && inst) {
+      const saveVar = String(data.saveVar ?? "").trim();
+      if (saveVar && reply) {
+        await supabaseAdmin.from("flow_runs").update({ variables: { ...vars, [saveVar]: reply } }).eq("id", runId);
+      }
+      const shouldSend = data.send === false ? false : true;
+      if (reply && shouldSend && inst) {
         if (!(await gateSafetyOrDefer())) return;
         try { await sendTextSafely(reply); } catch (e) { await logStep("error", (e as Error).message); }
       }
-      await logStep("ok", undefined, { sent: !!reply, reply: reply.slice(0, 200) });
+      await logStep("ok", undefined, { sent: !!reply && shouldSend, model, reply: reply.slice(0, 200) });
       await goNext();
       return;
+    }
+
     }
 
     if (node.type === "sticker") {
