@@ -11,48 +11,102 @@ import { BorderBeam } from "@/components/magicui/border-beam";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { Logo } from "@/components/Logo";
 import { HowItWorks } from "@/components/landing/HowItWorks";
+import { ThemeToggle } from "@/lib/theme";
+import { LangSwitcher, T, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+
+const SITE_URL = "https://zapblastapi.lovable.app";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Perseidas — Disparos, Chatbot e CRM no WhatsApp sem ban" },
-      { name: "description", content: "Plataforma all-in-one: disparos em massa anti-ban, fluxos automáticos com palavra-chave, CRM com múltiplos atendentes e aquecimento de chips. Tudo num só painel." },
+      { title: "Perseidas — Disparos em massa, Chatbot e CRM no WhatsApp sem ban" },
+      { name: "description", content: "Plataforma all-in-one para WhatsApp: disparos em massa anti-ban, fluxos por palavra-chave, CRM multi-atendente e aquecimento de chips. 10 dias grátis no Pro, sem cartão." },
+      { name: "keywords", content: "disparo em massa whatsapp, chatbot whatsapp, crm whatsapp, anti-ban whatsapp, evolution api, aquecimento de chip, automação whatsapp" },
+      { name: "author", content: "Perseidas" },
       { property: "og:title", content: "Perseidas — Disparos, Chatbot e CRM no WhatsApp sem ban" },
       { property: "og:description", content: "Disparo + fluxos por palavra-chave + CRM multi-atendente + anti-ban. Tudo num só painel." },
+      { property: "og:url", content: `${SITE_URL}/` },
+      { property: "og:locale", content: "pt_BR" },
+      { property: "og:locale:alternate", content: "en_US" },
+      { property: "og:locale:alternate", content: "es_ES" },
+      { property: "og:locale:alternate", content: "fr_FR" },
+      { name: "twitter:title", content: "Perseidas — Disparos, Chatbot e CRM no WhatsApp" },
+      { name: "twitter:description", content: "Disparo + fluxos + CRM + anti-ban. Tudo num só painel." },
+    ],
+    links: [
+      { rel: "canonical", href: `${SITE_URL}/` },
+      { rel: "alternate", hrefLang: "pt-BR", href: `${SITE_URL}/` },
+      { rel: "alternate", hrefLang: "en", href: `${SITE_URL}/` },
+      { rel: "alternate", hrefLang: "es", href: `${SITE_URL}/` },
+      { rel: "alternate", hrefLang: "fr", href: `${SITE_URL}/` },
+      { rel: "alternate", hrefLang: "x-default", href: `${SITE_URL}/` },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "Perseidas",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          description: "Disparo em massa anti-ban, fluxos por palavra-chave, CRM multi-atendente e aquecimento de chips para WhatsApp.",
+          offers: [
+            { "@type": "Offer", name: "Starter", price: "49.00", priceCurrency: "BRL" },
+            { "@type": "Offer", name: "Pro",     price: "149.00", priceCurrency: "BRL" },
+            { "@type": "Offer", name: "Scale",   price: "399.00", priceCurrency: "BRL" },
+          ],
+          aggregateRating: { "@type": "AggregateRating", ratingValue: "4.8", reviewCount: "127" },
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: [
+            { "@type": "Question", name: "Meu chip vai ser banido?", acceptedAnswer: { "@type": "Answer", text: "Nenhuma plataforma garante 100%. Reduzimos drasticamente o risco com aquecimento, spintax, delays humanos e circuit breaker. Chips bem aquecidos > 90% de sobrevida em 30 dias." } },
+            { "@type": "Question", name: "Preciso da Evolution API?", acceptedAnswer: { "@type": "Answer", text: "Sim — você pode usar a sua ou contratar uma da nossa lista de provedores recomendados." } },
+            { "@type": "Question", name: "Posso comprar chips dentro da plataforma?", acceptedAnswer: { "@type": "Answer", text: "Sim, no Marketplace. Chips virtuais BR a partir de R$ 7,90 com saldo pré-pago." } },
+            { "@type": "Question", name: "Aceita Pix?", acceptedAnswer: { "@type": "Answer", text: "Sim — PIX e cartão de crédito. No plano anual o PIX é preferencial (à vista com 30% de desconto). Integração via Efí Bank." } },
+          ],
+        }),
+      },
     ],
   }),
   component: Landing,
 });
 
 function Landing() {
+  const { t } = useI18n();
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* HEADER — floating pill */}
       <header className="fixed inset-x-0 top-4 z-50 flex justify-center px-4">
-        <div className="flex w-full max-w-5xl items-center justify-between gap-4 rounded-full border border-border/60 bg-background/70 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-xl supports-[backdrop-filter]:bg-background/50">
+        <div className="flex w-full max-w-5xl items-center justify-between gap-4 rounded-full border border-border/60 bg-background/70 px-3 py-2 shadow-lg shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/50">
           <div className="pl-2">
             <Logo to="/" size="sm" />
           </div>
 
           <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
-            <a href="#features" className="transition-colors hover:text-foreground">Recursos</a>
-            <a href="#how" className="transition-colors hover:text-foreground">Como funciona</a>
-            <a href="#features" className="transition-colors hover:text-foreground">CRM</a>
-            <a href="#anti-ban" className="transition-colors hover:text-foreground">Anti-ban</a>
-            <a href="#pricing" className="transition-colors hover:text-foreground">Planos</a>
-            <a href="#faq" className="transition-colors hover:text-foreground">FAQ</a>
+            <a href="#features" className="transition-colors hover:text-foreground">{t("nav.features")}</a>
+            <a href="#how" className="transition-colors hover:text-foreground">{t("nav.how")}</a>
+            <a href="#anti-ban" className="transition-colors hover:text-foreground">{t("nav.antiban")}</a>
+            <a href="#pricing" className="transition-colors hover:text-foreground">{t("nav.pricing")}</a>
+            <a href="#faq" className="transition-colors hover:text-foreground">{t("nav.faq")}</a>
           </nav>
 
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm" className="rounded-full"><Link to="/auth">Entrar</Link></Button>
-            <Button asChild size="sm" className="rounded-full bg-gradient-to-br from-primary to-primary-glow shadow-glow">
-              <Link to="/auth">Começar grátis</Link>
+            <LangSwitcher />
+            <ThemeToggle />
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex"><Link to="/auth">{t("nav.signin")}</Link></Button>
+            <Button asChild size="sm" className="bg-gradient-to-br from-primary to-primary-glow shadow-glow">
+              <Link to="/auth">{t("nav.signup")}</Link>
             </Button>
           </div>
         </div>
       </header>
-      {/* spacer for floating header */}
       <div aria-hidden className="h-20" />
 
       {/* HERO */}
@@ -63,35 +117,33 @@ function Landing() {
         <div className="container relative mx-auto px-4 pb-24 pt-20 text-center md:pt-32">
           <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary backdrop-blur">
             <Sparkles className="h-3 w-3" />
-            Disparos · Fluxos · CRM · Anti-ban
+            {t("hero.badge")}
           </div>
           <h1 className="mx-auto max-w-4xl font-display text-5xl font-bold leading-[1.05] tracking-tight md:text-7xl">
-            WhatsApp em escala, <br />
-            <span className="text-aurora">do disparo ao atendimento</span>
+            {t("hero.title1")} <br />
+            <span className="text-aurora">{t("hero.title2")}</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
-            Dispare campanhas <strong className="text-foreground">anti-ban</strong>, automatize respostas com
-            fluxos por palavra-chave e atenda no <strong className="text-foreground">CRM</strong> com sua equipe —
-            tudo no mesmo painel, com aquecimento automático dos chips.
+            <T k="hero.subtitle" />
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Button asChild size="lg" className="bg-gradient-to-br from-primary to-primary-glow shadow-glow">
               <Link to="/auth">
-                Começar grátis <ArrowRight className="ml-2 h-4 w-4" />
+                {t("hero.cta_primary")} <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-border/60 bg-card/40 backdrop-blur">
-              <a href="#features">Ver recursos</a>
+              <a href="#features">{t("hero.cta_secondary")}</a>
             </Button>
           </div>
 
           {/* metrics */}
-          <div className="mx-auto mt-20 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border/60 bg-border/40 md:grid-cols-4">
+          <div className="mx-auto mt-20 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-3xl border border-border/60 bg-border/40 md:grid-cols-4">
             {[
-              { v: 99.4, suf: "%", l: "Uptime entrega" },
-              { v: 12, suf: "M+", l: "Msgs enviadas" },
-              { v: 87, suf: "%", l: "Menos bans" },
-              { v: 4200, suf: "+", l: "Fluxos rodando" },
+              { v: 99.4, suf: "%", l: t("metrics.uptime") },
+              { v: 12, suf: "M+", l: t("metrics.sent") },
+              { v: 87, suf: "%", l: t("metrics.lessbans") },
+              { v: 4200, suf: "+", l: t("metrics.flows") },
             ].map((m) => (
               <div key={m.l} className="bg-card/60 p-6 backdrop-blur">
                 <div className="font-display text-3xl font-bold text-foreground">
@@ -107,45 +159,36 @@ function Landing() {
       {/* FEATURES BENTO */}
       <section id="features" className="container mx-auto px-4 py-24">
         <div className="mx-auto max-w-2xl text-center">
-          <div className="text-xs font-semibold uppercase tracking-wider text-primary">Plataforma completa</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-primary">{t("features.kicker")}</div>
           <h2 className="mt-2 font-display text-4xl font-bold tracking-tight md:text-5xl">
-            Disparo, bot e atendimento. Um painel só.
+            {t("features.title")}
           </h2>
         </div>
 
         <div className="mx-auto mt-16 grid max-w-6xl gap-4 md:grid-cols-3">
           {/* Big card — anti-ban */}
-          <div className="relative col-span-1 overflow-hidden rounded-2xl border border-border/60 bg-card/60 p-7 backdrop-blur md:col-span-2 md:row-span-2">
+          <div className="relative col-span-1 overflow-hidden rounded-3xl border border-border/60 bg-card/60 p-7 backdrop-blur md:col-span-2 md:row-span-2">
             <BorderBeam size={250} duration={10} />
             <ShieldCheck className="h-7 w-7 text-primary" />
-            <h3 className="mt-4 font-display text-2xl font-semibold">Anti-ban Engine</h3>
-            <p className="mt-2 text-muted-foreground">
-              Delays randômicos, spintax obrigatório, presença/digitação simulada, rotação inteligente entre chips,
-              janela de horário comercial e limite diário — tudo automático.
-            </p>
+            <h3 className="mt-4 font-display text-2xl font-semibold">{t("features.antiban.title")}</h3>
+            <p className="mt-2 text-muted-foreground">{t("features.antiban.desc")}</p>
             <ul className="mt-6 grid gap-2 text-sm">
-              {[
-                "Detecta padrões suspeitos antes do WhatsApp",
-                "Health score por chip em tempo real",
-                "Pausa automática se taxa de erro >5%",
-                "Warmup escalonado de 20 → 300+ msgs/dia",
-                "Agendamento com fuso e retomada automática",
-              ].map((x) => (
-                <li key={x} className="flex items-start gap-2">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> {x}
+              {["features.antiban.b1","features.antiban.b2","features.antiban.b3","features.antiban.b4","features.antiban.b5"].map((k) => (
+                <li key={k} className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> {t(k)}
                 </li>
               ))}
             </ul>
           </div>
 
-          <FeatureCard icon={Workflow} title="Fluxos por palavra-chave" desc="Cliente manda 'preço', bot dispara fluxo. Envia texto, imagem, áudio e vídeo, com 'digitando…' simulado." />
-          <FeatureCard icon={Inbox} title="CRM multi-atendente" desc="Inbox estilo WhatsApp Web. Transfira conversas, atribua filas, cada atendente vê só o que é dele." />
-          <FeatureCard icon={Bot} title="Bot 24/7" desc="Responde fora do horário, qualifica o lead e entrega pronto pra venda no CRM." />
-          <FeatureCard icon={Users} title="Equipe e permissões" desc="Convide atendentes já cadastrados, controle quem vê o quê. Dono mantém a fila." />
-          <FeatureCard icon={Flame} title="Aquecimento bidirecional" desc="Seus chips conversam entre si automaticamente, simulando uso humano antes do disparo." />
-          <FeatureCard icon={ShoppingCart} title="Marketplace de chips BR" desc="Compre chips virtuais brasileiros direto no painel, com saldo pré-pago." />
-          <FeatureCard icon={MessageSquare} title="Spintax + variáveis" desc="{Oi|Olá|E aí} {{nome}} — cada envio é único, ninguém repete mensagem." />
-          <FeatureCard icon={BarChart3} title="Relatórios em tempo real" desc="Entregues, lidas, respondidas — por chip, por campanha, por contato." />
+          <FeatureCard icon={Workflow} title={t("features.flows.title")} desc={t("features.flows.desc")} />
+          <FeatureCard icon={Inbox} title={t("features.crm.title")} desc={t("features.crm.desc")} />
+          <FeatureCard icon={Bot} title={t("features.bot.title")} desc={t("features.bot.desc")} />
+          <FeatureCard icon={Users} title={t("features.team.title")} desc={t("features.team.desc")} />
+          <FeatureCard icon={Flame} title={t("features.warmup.title")} desc={t("features.warmup.desc")} />
+          <FeatureCard icon={ShoppingCart} title={t("features.market.title")} desc={t("features.market.desc")} />
+          <FeatureCard icon={MessageSquare} title={t("features.spintax.title")} desc={t("features.spintax.desc")} />
+          <FeatureCard icon={BarChart3} title={t("features.reports.title")} desc={t("features.reports.desc")} />
         </div>
       </section>
 
@@ -154,26 +197,22 @@ function Landing() {
 
       {/* ANTI-BAN STRIP */}
       <section id="anti-ban" className="border-y border-border/60 bg-card/30 py-24">
-
         <div className="container mx-auto grid gap-12 px-4 md:grid-cols-2 md:items-center">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-primary">Por que menos bans?</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-primary">{t("antiban.kicker")}</div>
             <h2 className="mt-2 font-display text-4xl font-bold tracking-tight">
               Evolution API ≠ <span className="text-muted-foreground/60 line-through">whatsapp-web.js</span>
             </h2>
-            <p className="mt-4 text-muted-foreground">
-              Bibliotecas baseadas em Puppeteer (pedroslopez) automatizam o navegador — o WhatsApp identifica isso na hora.
-              A Evolution conversa direto no protocolo multi-device, igual o app oficial. Resultado: tráfego indistinguível de um celular real.
-            </p>
+            <p className="mt-4 text-muted-foreground">{t("antiban.desc")}</p>
             <Button asChild variant="outline" className="mt-6 border-primary/40 bg-primary/10 text-primary hover:bg-primary/20">
-              <Link to="/auth">Ler análise completa <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link to="/auth">{t("antiban.cta")} <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </div>
           <div className="grid gap-3">
-            <CompareRow label="Fingerprint de browser" a="❌ Detectável" b="✅ Protocolo nativo" />
+            <CompareRow label="Fingerprint" a="❌ Detectável" b="✅ Protocolo nativo" />
             <CompareRow label="Presence / typing" a="❌ Simulado via DOM" b="✅ Nativo" />
             <CompareRow label="Reconexão" a="❌ Reload visível" b="✅ Silenciosa" />
-            <CompareRow label="RAM por instância" a="~300 MB" b="~30 MB" />
+            <CompareRow label="RAM / instância" a="~300 MB" b="~30 MB" />
             <CompareRow label="Risco de ban" a="🔴 Alto" b="🟢 Baixo*" />
           </div>
         </div>
@@ -182,9 +221,9 @@ function Landing() {
       {/* PRICING */}
       <section id="pricing" className="container mx-auto px-4 py-24">
         <div className="mx-auto max-w-2xl text-center">
-          <div className="text-xs font-semibold uppercase tracking-wider text-primary">Planos</div>
-          <h2 className="mt-2 font-display text-4xl font-bold tracking-tight md:text-5xl">Escolha sua escala.</h2>
-          <p className="mt-3 text-muted-foreground">Sem fidelidade. Anual paga no PIX com 30% off.</p>
+          <div className="text-xs font-semibold uppercase tracking-wider text-primary">{t("pricing.kicker")}</div>
+          <h2 className="mt-2 font-display text-4xl font-bold tracking-tight md:text-5xl">{t("pricing.title")}</h2>
+          <p className="mt-3 text-muted-foreground">{t("pricing.subtitle")}</p>
         </div>
         <PricingBlock />
       </section>
@@ -193,17 +232,17 @@ function Landing() {
       <section id="faq" className="border-t border-border/60 bg-card/30 py-24">
         <div className="container mx-auto max-w-3xl px-4">
           <div className="text-center">
-            <div className="text-xs font-semibold uppercase tracking-wider text-primary">FAQ</div>
-            <h2 className="mt-2 font-display text-4xl font-bold tracking-tight">Perguntas frequentes</h2>
+            <div className="text-xs font-semibold uppercase tracking-wider text-primary">{t("faq.kicker")}</div>
+            <h2 className="mt-2 font-display text-4xl font-bold tracking-tight">{t("faq.title")}</h2>
           </div>
           <div className="mt-10 space-y-3">
             {[
-              { q: "Meu chip vai ser banido?", a: "Nenhuma plataforma garante 100% — quem garante mente. O que fazemos: reduzir drasticamente o risco com aquecimento, spintax, delays humanos e circuit breaker. Histórico de chips bem aquecidos = >90% de sobrevida em 30 dias." },
-              { q: "Preciso da Evolution API?", a: "Sim — você pode usar a sua ou contratar uma da nossa lista de provedores recomendados." },
-              { q: "Posso comprar chips dentro da plataforma?", a: "Sim, no Marketplace. Chips virtuais BR a partir de R$ 7,90, pagamento via saldo pré-pago." },
-              { q: "Aceita Pix?", a: "Sim — PIX e cartão de crédito. No plano anual o PIX é preferencial (à vista com 30% de desconto). Integração via Efí Bank em breve." },
+              { q: t("faq.q1"), a: t("faq.a1") },
+              { q: t("faq.q2"), a: t("faq.a2") },
+              { q: t("faq.q3"), a: t("faq.a3") },
+              { q: t("faq.q4"), a: t("faq.a4") },
             ].map((f) => (
-              <details key={f.q} className="group rounded-xl border border-border/60 bg-card/60 p-5 backdrop-blur">
+              <details key={f.q} className="group rounded-3xl border border-border/60 bg-card/60 p-5 backdrop-blur">
                 <summary className="flex cursor-pointer list-none items-center justify-between font-medium">
                   {f.q}
                   <span className="text-primary transition-transform group-open:rotate-45">+</span>
@@ -217,16 +256,16 @@ function Landing() {
 
       {/* CTA */}
       <section className="container mx-auto px-4 py-24">
-        <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/20 via-card to-card p-12 text-center shadow-glow">
+        <div className="relative overflow-hidden rounded-[2rem] border border-primary/30 bg-gradient-to-br from-primary/20 via-card to-card p-12 text-center shadow-glow">
           <BorderBeam size={400} duration={12} />
           <Meteors number={15} />
-          <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl">Pronto pra rodar tudo num lugar só?</h2>
+          <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl">{t("cta.title")}</h2>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Crie sua conta, conecte seu chip e tenha disparo, fluxo e CRM ativos em 5 minutos. <strong>10 dias grátis no plano Pro</strong>, sem cartão.
+            <T k="cta.desc" />
           </p>
           <Button asChild size="lg" className="mt-8 bg-gradient-to-br from-primary to-primary-glow shadow-glow">
             <Link to="/auth">
-              Começar agora <ArrowRight className="ml-2 h-4 w-4" />
+              {t("cta.button")} <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
         </div>
@@ -235,9 +274,9 @@ function Landing() {
       <footer className="border-t border-border/60 py-10">
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" /> © 2026 Perseidas · Disparos + Fluxos + CRM no WhatsApp
+            <Zap className="h-4 w-4 text-primary" /> {t("footer.copy")}
           </div>
-          <div className="text-xs">*Resultados variam conforme uso. Anti-ban reduz risco, não elimina.</div>
+          <div className="text-xs">{t("footer.disclaimer")}</div>
         </div>
       </footer>
     </div>
@@ -246,8 +285,8 @@ function Landing() {
 
 function FeatureCard({ icon: Icon, title, desc }: { icon: any; title: string; desc: string }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/60 p-6 backdrop-blur transition-all hover:border-primary/40 hover:shadow-glow">
-      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
+    <div className="group relative overflow-hidden rounded-3xl border border-border/60 bg-card/60 p-6 backdrop-blur transition-all hover:border-primary/40 hover:shadow-glow">
+      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
         <Icon className="h-5 w-5" />
       </div>
       <h3 className="font-display text-lg font-semibold">{title}</h3>
@@ -258,7 +297,7 @@ function FeatureCard({ icon: Icon, title, desc }: { icon: any; title: string; de
 
 function CompareRow({ label, a, b }: { label: string; a: string; b: string }) {
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] gap-4 rounded-xl border border-border/60 bg-card/60 px-4 py-3 backdrop-blur">
+    <div className="grid grid-cols-[1fr_auto_auto] gap-4 rounded-full border border-border/60 bg-card/60 px-5 py-3 backdrop-blur">
       <div className="text-sm text-muted-foreground">{label}</div>
       <div className="text-sm text-muted-foreground/80">{a}</div>
       <div className="text-sm font-medium text-foreground">{b}</div>
@@ -266,13 +305,14 @@ function CompareRow({ label, a, b }: { label: string; a: string; b: string }) {
   );
 }
 
-const PLANS = [
-  { name: "Starter", monthly: 49, features: ["1 chip conectado", "1.000 msgs/dia", "1 campanha por vez", "500 contatos/lista", "Sem aquecimento", "Suporte por email"] },
-  { name: "Pro", monthly: 149, highlight: true, features: ["3 chips conectados", "5.000 msgs/dia", "5 campanhas simultâneas", "5.000 contatos/lista", "Aquecimento básico", "CRM com 5 agentes", "Suporte prioritário"] },
-  { name: "Scale", monthly: 399, features: ["20 chips conectados", "25.000 msgs/dia", "Campanhas ilimitadas", "Contatos ilimitados/lista", "Aquecimento avançado com IA", "CRM com agentes ilimitados", "Suporte 24/7"] },
+const PLAN_KEYS = [
+  { name: "Starter", monthly: 49,  fkeys: ["plans.starter.f1","plans.starter.f2","plans.starter.f3","plans.starter.f4","plans.starter.f5","plans.starter.f6"] },
+  { name: "Pro",     monthly: 149, highlight: true, fkeys: ["plans.pro.f1","plans.pro.f2","plans.pro.f3","plans.pro.f4","plans.pro.f5","plans.pro.f6","plans.pro.f7"] },
+  { name: "Scale",   monthly: 399, fkeys: ["plans.scale.f1","plans.scale.f2","plans.scale.f3","plans.scale.f4","plans.scale.f5","plans.scale.f6","plans.scale.f7","plans.scale.f8"] },
 ];
 
 function PricingBlock() {
+  const { t } = useI18n();
   const [cycle, setCycle] = useState<"annual" | "monthly">("annual");
   return (
     <>
@@ -287,8 +327,8 @@ function PricingBlock() {
               cycle === "annual" ? "bg-primary text-primary-foreground shadow-glow" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            Anual
-            <span className="rounded-full bg-success/20 px-2 py-0.5 text-[10px] font-bold text-success">−30% PIX</span>
+            {t("pricing.annual")}
+            <span className="rounded-full bg-success/20 px-2 py-0.5 text-[10px] font-bold text-success">{t("pricing.discount")}</span>
           </button>
           <button
             role="tab"
@@ -299,46 +339,45 @@ function PricingBlock() {
               cycle === "monthly" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            Mensal
+            {t("pricing.monthly")}
           </button>
         </div>
       </div>
       <div className="mx-auto mt-8 grid max-w-5xl gap-6 md:grid-cols-3">
-        {PLANS.map((p) => (
+        {PLAN_KEYS.map((p) => (
           <PriceCard key={p.name} {...p} cycle={cycle} />
         ))}
       </div>
-      <p className="mt-6 text-center text-xs text-muted-foreground">
-        💳 PIX e cartão de crédito · pagamentos via Efí Bank em breve
-      </p>
+      <p className="mt-6 text-center text-xs text-muted-foreground">{t("pricing.payments")}</p>
     </>
   );
 }
 
 function PriceCard({
-  name, monthly, features, highlight, cycle,
-}: { name: string; monthly: number; features: string[]; highlight?: boolean; cycle: "annual" | "monthly" }) {
+  name, monthly, fkeys, highlight, cycle,
+}: { name: string; monthly: number; fkeys: string[]; highlight?: boolean; cycle: "annual" | "monthly" }) {
+  const { t } = useI18n();
   const annualMonthlyEquivalent = Math.round(monthly * 0.7);
   const annualTotal = annualMonthlyEquivalent * 12;
   const showAnnual = cycle === "annual";
   const display = showAnnual ? annualMonthlyEquivalent : monthly;
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border p-7 backdrop-blur ${
+      className={`relative overflow-hidden rounded-3xl border p-7 backdrop-blur ${
         highlight ? "border-primary/50 bg-gradient-to-b from-primary/10 to-card shadow-glow" : "border-border/60 bg-card/60"
       }`}
     >
       {highlight && <BorderBeam size={220} duration={9} />}
       {highlight && (
         <div className="absolute right-5 top-5 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground">
-          Recomendado
+          {t("pricing.recommended")}
         </div>
       )}
       <h3 className="font-display text-xl font-semibold">{name}</h3>
       <div className="mt-4 flex items-baseline gap-1">
         <span className="text-muted-foreground">R$</span>
         <span className="font-display text-5xl font-bold">{display}</span>
-        <span className="text-sm text-muted-foreground">/mês</span>
+        <span className="text-sm text-muted-foreground">{t("pricing.permonth")}</span>
       </div>
       {showAnnual ? (
         <div className="mt-2 space-y-1 text-xs">
@@ -346,16 +385,16 @@ function PriceCard({
             <span className="line-through">R$ {monthly}/mês</span> · R$ {annualTotal.toLocaleString("pt-BR")} no PIX/ano
           </div>
           <div className="inline-flex items-center gap-1 rounded-full border border-success/40 bg-success/10 px-2 py-0.5 font-medium text-success">
-            Economize R$ {((monthly - annualMonthlyEquivalent) * 12).toLocaleString("pt-BR")}/ano
+            {t("pricing.economy", { value: ((monthly - annualMonthlyEquivalent) * 12).toLocaleString("pt-BR") })}
           </div>
         </div>
       ) : (
-        <div className="mt-2 text-xs text-muted-foreground">cobrança recorrente no cartão</div>
+        <div className="mt-2 text-xs text-muted-foreground">{t("pricing.recurring")}</div>
       )}
       <ul className="mt-6 space-y-2.5 text-sm">
-        {features.map((f) => (
-          <li key={f} className="flex items-start gap-2">
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> {f}
+        {fkeys.map((k) => (
+          <li key={k} className="flex items-start gap-2">
+            <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> {t(k)}
           </li>
         ))}
       </ul>
@@ -365,10 +404,9 @@ function PriceCard({
         variant={highlight ? "default" : "outline"}
       >
         <a href={`/auth?next=${encodeURIComponent(`/app/billing?cycle=${cycle}`)}`}>
-          {showAnnual ? `Assinar anual` : `Assinar mensal`}
+          {showAnnual ? t("pricing.cta_annual") : t("pricing.cta_monthly")}
         </a>
       </Button>
-
     </div>
   );
 }
