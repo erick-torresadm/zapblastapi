@@ -1,95 +1,92 @@
-# Anti-abuso do trial de 10 dias
+## O que será construído
 
-Hoje só checamos IP (máx. 2 contas/IP em 30 dias). É trivial driblar com 4G, VPN ou navegador anônimo. O usuário pode exportar os fluxos como JSON e re-subir numa conta nova quantas vezes quiser. Abaixo o plano em camadas — cada uma já corta uma parte grande dos abusadores.
+Duas novas ferramentas na aba **Ferramentas** (`/app/tools`), somando às duas já existentes (Validador e Extrator de Grupo).
 
-## 1. Identidade dura no cadastro
+---
 
-Sem isso o resto é decoração.
+### 1. Extrator de Leads do Google Maps — R$ 5 por busca (até 60 leads)
 
-- **CPF/CNPJ obrigatório, único e validado** (dígito + Receita pública). Salva como hash `sha256(cpf+pepper)` em `signup_identity_log`. Bloqueia se já houve trial nesse documento.
-- **Telefone + OTP** (SMS/WhatsApp) obrigatório. Hash do telefone normalizado (E.164) também na blocklist.
-- **E-mail normalizado**: remove `.` e `+tag` do Gmail, lowercase, hashea. Bloqueia variações do mesmo e-mail (`fulano.silva+1@gmail`).
-- **Bloqueia domínios descartáveis** (mailinator, tempmail, 10minutemail, guerrillamail). Lista mantida no DB.
+**Modelo de cobrança**
+- Cobrança fixa de **R$ 5,00 por busca** debitada antes de chamar o Maps
+- Devolve até 60 leads (limite da Places API)
+- Se a busca não retornar nenhum lead com telefone → **reembolso automático**
+- Auto-validar no WhatsApp custa **+R$ 0,02 por lead validado** (opcional, toggle)
 
-## 2. Device fingerprint
+**Filtros disponíveis**
+- **Modo simples**: campo de texto livre + cidade (ex: "pizzaria em Curitiba")
+- **Modo avançado**: mapa interativo (Google Maps JS API) — clique pra definir o centro, slider de raio (1-50km), dropdown de categorias prontas (Restaurante, Salão de Beleza, Academia, Clínica, Mercado, Pet Shop, Imobiliária, Advogado, Contador, etc.)
+- **Toggle "apenas com telefone"**: filtra antes de cobrar, leads sem telefone são descartados
+- **Toggle "validar WhatsApp"**: depois da busca, roda o validador (precisa de um chip conectado escolhido)
 
-- Coleta no signup um hash estável: UA + idioma + timezone + resolução + canvas + fontes (lib `@fingerprintjs/fingerprintjs` open source).
-- Grava em `signup_device_log`. Mesmo fingerprint → bloqueio com a mesma mensagem do IP.
-- Não é à prova de balas (incógnito limpa), mas pega 70% dos casos "abro outro navegador".
+**O que cada lead traz**
+- Nome do estabelecimento
+- Telefone (formatado BR)
+- Endereço completo
+- Website (quando existe)
+- Categoria
+- Rating + número de avaliações
+- Coordenadas (lat/lng)
+- Tem WhatsApp? (se toggle ligado)
 
-## 3. IP endurecido
+**Export**: CSV pronto pra importar em campanhas + botão "Importar como lista de contatos" que cria uma `contact_list` direto.
 
-- Janela passa de 30 → 90 dias.
-- Limita também por **/24 (IPv4)** e **/64 (IPv6)** com peso menor (3 contas).
-- Loga ASN/país (ipinfo ou cf-ipcountry header) para revisão manual.
-- Sinaliza (não bloqueia) faixas conhecidas de VPN/Tor — flag para revisão.
+---
 
-## 4. Cartão ou Pix de garantia no trial
+### 2. Identificador de Contatos Não Salvos no WhatsApp — Grátis no plano pago
 
-Esse é o filtro definitivo. Sem custo real pro cliente legítimo, mas mata o ciclo "criar conta → 10 dias grátis → repetir".
+**Como funciona**
+- Cliente escolhe um chip conectado
+- Sistema chama `/chat/findContacts` da Evolution + cruza com `crm_conversations` (todas as conversas que o chip teve)
+- Identifica "não salvos" pela heurística: contato cujo `name` está vazio ou igual ao próprio número
+- Mostra tabela com: número, foto de perfil, pushName (nome que o contato exibe), última mensagem trocada, data do primeiro contato
 
-Opções (escolher uma):
-- **(A) Cartão obrigatório com pré-autorização R$ 1**: a Efí faz o tokenize; sem cobrar nada o cartão fica vinculado. Hash do `card_fingerprint` (BIN + últimos 4 + nome) entra na blocklist.
-- **(B) Pix de R$ 1 reembolsado**: chato pro usuário, mas amarra CPF + chave Pix.
-- **(C) Trial só com plano contratado** (cobrança após 10 dias, com cancelamento livre) — é o que Netflix, Spotify e quase todo SaaS sério faz.
+**Gating de plano**
+- **Free/Trial**: vê o **número total** de não salvos com CTA "Faça upgrade pra exportar"
+- **Pro/Business**: vê tudo, exporta CSV, pode marcar como "salvar depois" (lista interna)
 
-Recomendo **(A)** para manter atrito baixo e funil de conversão alto.
+**Ações disponíveis (apenas plano pago)**
+- Exportar CSV completo (nome sugerido, número, última conversa)
+- Adicionar todos a uma lista de contatos pra disparo posterior
+- Botão "Salvar no WhatsApp" — gera vCard agrupado em arquivo `.vcf` baixável que o cliente importa no celular dele (não dá pra escrever na agenda dele via API, mas o `.vcf` resolve)
 
-## 5. Blocklist unificada
+**Por que esse é o melhor gatilho de upgrade**: usuário no trial vê "Você tem **347 contatos não salvos** valendo dinheiro perdido" → upgrade pra exportar.
 
-Tabela única `trial_abuse_blocklist` com colunas `kind` (`cpf|phone|email_norm|fingerprint|ip|card_fp|asn`) + `value_hash` + `reason` + `expires_at`. A função `checkSignupFn` consulta todas as camadas numa só ida ao banco.
-
-Quando uma conta é encerrada por inadimplência/abuso, admin marca "queimar identidade" → joga CPF/telefone/fingerprint/cartão na blocklist permanente.
-
-## 6. Reduzir o valor do "backup de fluxo"
-
-O export do JSON em `app.flows.$id.tsx` (botão "Exportar") é o que viabiliza a migração entre contas. Não dá pra remover (legítimos usam pra versionar), mas:
-
-- **Exportar exige conta paga** (plano ativo, não trial). Reduz a transferência entre contas grátis.
-- **Marca d'água no JSON**: campo `__origin: { user_id_hash, exported_at }`. Se aparecer o mesmo hash em outra conta nova importando, levanta flag.
-- **Importar fluxo de mesma origem em conta nova com <7 dias** → exige aprovação manual.
-
-## 7. Sinais comportamentais (passivos, só logam)
-
-Não bloqueiam sozinhos, mas viram dashboard pro admin revisar:
-
-- Várias contas com mesmo `Accept-Language` + fuso + range de horário de uso.
-- Conta nova que importa fluxo enorme nos primeiros 10 minutos.
-- CPF/telefone com padrão sequencial.
-- Mesmo número de WhatsApp conectado anteriormente em outra conta (já temos `whatsapp_instances.phone_number` — fácil cruzar).
-
-## 8. UX honesto
-
-Na tela de cadastro deixar claro: "Detectamos tentativa de criar nova conta para reutilizar o trial. Fale com o suporte." — não revela qual sinal disparou (para não ensinar a contornar).
+---
 
 ## Detalhes técnicos
 
-### Migrações
-- `trial_abuse_blocklist(id, kind, value_hash, reason, expires_at, created_at)` + índice `(kind, value_hash)`.
-- `signup_identity_log(user_id, cpf_hash, phone_hash, email_norm_hash, created_at)`.
-- `signup_device_log(user_id, fingerprint_hash, ip, asn, country, ua, created_at)`.
-- `disposable_email_domains(domain primary key)`.
-- Adicionar `card_fingerprint_hash` em `subscriptions` (vindo da Efí).
+### Conexão Google Maps
+- Linkar o conector **Google Maps Platform** (managed, sem chave do cliente) via `standard_connectors--connect`
+- Usar Places API (New) `places:searchText` (modo simples) e `places:searchNearby` (modo avançado com raio)
+- Browser key `VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY` pro mapa interativo
+- Server fns chamam via gateway com `Authorization: Bearer LOVABLE_API_KEY` + `X-Connection-Api-Key`
 
-### Server functions
-- `preSignupCheckFn(input: { email, phone, cpf, fingerprint })` → consulta tudo, retorna `{ ok, reason? }`.
-- `recordSignupFn` (extensão da atual) → grava nas 3 tabelas e roda blocklist insert se houver hit suave.
-- `requestSignupOtpFn` / `confirmSignupOtpFn` → Twilio Verify ou Evolution (PTT/SMS gateway que já temos).
-- Webhook Efí: ao receber `card_fingerprint`, gravar e re-checar blocklist.
+### Novos arquivos
+- `src/lib/maps.functions.ts` — `searchMapsLeadsFn` (debita R$ 5, chama Places, opcionalmente valida WhatsApp via `checkWhatsappNumbers`, refund se 0 leads)
+- `src/lib/unsaved-contacts.functions.ts` — `listUnsavedContactsFn` (gate por plano via `get_user_plan_limits`), `exportUnsavedContactsFn` (gate Pro+)
+- `src/components/tools/MapsExtractorCard.tsx` — UI com tabs simples/avançado + mapa
+- `src/components/tools/UnsavedContactsCard.tsx` — tabela + CTA condicional
+- `src/routes/_authenticated/app.tools.tsx` — adicionar 2 novas abas
+- Migration: tabela `maps_searches` (log de buscas pra evitar duplicar leads e pra histórico)
 
-### Frontend
-- `/auth` ganha passos: e-mail → OTP → CPF + telefone → fingerprint silencioso → cartão (Efí tokenizer iframe).
-- Botão "Exportar fluxo" desabilitado para `status = 'trialing'`.
+### Pricing constants em `tools.functions.ts`
+```typescript
+maps_search_flat_cents: 500,        // R$ 5 por busca
+maps_search_max_leads: 60,
+maps_whatsapp_check_per_lead_cents: 2,  // mesma do validador
+```
 
-### Ordem sugerida de execução
-1. Migrações + blocklist unificada + e-mail normalizado + domínios descartáveis (rápido, ganho imediato).
-2. Fingerprint do device (1 lib, baixo risco).
-3. CPF + OTP de telefone (mais trabalho, maior impacto).
-4. Cartão na Efí no trial (o golpe final).
-5. Restrições de export + marca d'água.
-6. Dashboard admin com os sinais comportamentais.
+### Plano gating (contatos não salvos)
+- Free/Trial: `plan_slug !== 'pro'` && `plan_slug !== 'business'` → bloqueia export
+- Aproveita helper existente `get_user_plan_limits` no DB
 
-### O que NÃO recomendo
-- Banir por IP puro com janela longa — mata cliente legítimo em coworking/casa compartilhada.
-- KYC com selfie/documento foto — atrito gigante, derruba conversão.
-- Encurtar trial — não resolve o problema, só piora UX do cliente honesto.
+### Sidebar
+- Sem mudanças (entram como abas dentro de `/app/tools`)
+
+---
+
+## Fora do escopo (pra não inflar)
+- Scraping de Instagram/LinkedIn (TOS hostil, conta a parte)
+- Enriquecimento por CNPJ (vira outra feature)
+- Agendar buscas recorrentes do Maps (depois, com cron)
+- Salvar automaticamente na agenda do celular do cliente (impossível via API; vCard é a solução)

@@ -1067,6 +1067,66 @@ export type Database = {
           },
         ]
       }
+      maps_searches: {
+        Row: {
+          category: string | null
+          city: string | null
+          cost_cents: number
+          created_at: string
+          id: string
+          lat: number | null
+          leads_returned: number
+          lng: number | null
+          mode: string
+          only_with_phone: boolean
+          query: string
+          radius_m: number | null
+          refunded: boolean
+          results: Json
+          user_id: string
+          whatsapp_check: boolean
+          whatsapp_valid_count: number
+        }
+        Insert: {
+          category?: string | null
+          city?: string | null
+          cost_cents?: number
+          created_at?: string
+          id?: string
+          lat?: number | null
+          leads_returned?: number
+          lng?: number | null
+          mode?: string
+          only_with_phone?: boolean
+          query: string
+          radius_m?: number | null
+          refunded?: boolean
+          results?: Json
+          user_id: string
+          whatsapp_check?: boolean
+          whatsapp_valid_count?: number
+        }
+        Update: {
+          category?: string | null
+          city?: string | null
+          cost_cents?: number
+          created_at?: string
+          id?: string
+          lat?: number | null
+          leads_returned?: number
+          lng?: number | null
+          mode?: string
+          only_with_phone?: boolean
+          query?: string
+          radius_m?: number | null
+          refunded?: boolean
+          results?: Json
+          user_id?: string
+          whatsapp_check?: boolean
+          whatsapp_valid_count?: number
+        }
+        Relationships: []
+      }
       opt_outs: {
         Row: {
           created_at: string
