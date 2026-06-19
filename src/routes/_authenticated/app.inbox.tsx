@@ -488,7 +488,7 @@ function Inbox() {
     toast.success(until ? "Silenciado por 8h" : "Som ativado");
   }
 
-  const filterChips: Array<{ id: FilterKind; label: string; icon?: React.ReactNode }> = [
+  const filterChips: Array<{ id: FilterKind; label: string; icon?: ReactNode }> = [
     { id: "all", label: "Todas" },
     { id: "unread", label: `Não lidas${totalUnread ? ` · ${totalUnread}` : ""}` },
     { id: "mine", label: "Minhas" },
