@@ -25,11 +25,18 @@ function AuthPage() {
   const checkIp = useServerFn(checkSignupIpFn);
   const recordIp = useServerFn(recordSignupIpFn);
 
+  const nextPath = (() => {
+    if (typeof window === "undefined") return "/app";
+    const p = new URLSearchParams(window.location.search).get("next");
+    return p && p.startsWith("/") ? p : "/app";
+  })();
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) nav({ to: "/app", replace: true });
+      if (data.user) nav({ to: nextPath, replace: true });
     });
-  }, [nav]);
+  }, [nav, nextPath]);
+
 
   async function signIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
