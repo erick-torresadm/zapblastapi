@@ -91,7 +91,7 @@ export function CardCheckoutDialog({ open, onOpenChange, planId, planName, price
   useEffect(() => {
     if (!open || !cfg?.payeeCode || scriptLoaded.current) return;
     setLoadingSdk(true);
-    loadEfiScript(cfg.payeeCode)
+    loadEfiScript(cfg.payeeCode, cfg.env)
       .then(() => { scriptLoaded.current = true; })
       .catch((e) => toast.error(String(e.message ?? e)))
       .finally(() => setLoadingSdk(false));
