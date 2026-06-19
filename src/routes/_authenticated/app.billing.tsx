@@ -172,6 +172,17 @@ function BillingPage() {
           </div>
         </CardContent>
       </Card>
+
+      {cardPlan && (
+        <CardCheckoutDialog
+          open={!!cardPlan}
+          onOpenChange={(o) => !o && setCardPlan(null)}
+          planId={cardPlan.id}
+          planName={cardPlan.name}
+          priceCents={cardPlan.price}
+          onSuccess={() => qc.invalidateQueries({ queryKey: ["billing"] })}
+        />
+      )}
     </div>
   );
 }
