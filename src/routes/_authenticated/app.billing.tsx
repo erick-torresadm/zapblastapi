@@ -39,6 +39,11 @@ function BillingPage() {
   const [pixPlan, setPixPlan] = useState<{ id: string; name: string; annual: number } | null>(null);
   const sub = data?.subscription;
   const isActive = sub?.status === "active" || sub?.status === "trialing";
+  const limits = usePlanLimits();
+
+  const pct = (used: number, max: number) => (max === -1 ? 0 : Math.min(100, Math.round((used / Math.max(1, max)) * 100)));
+  const lim = limits.data?.limits;
+  const use = limits.data?.usage;
 
   return (
     <div className="space-y-6 p-6">
@@ -47,6 +52,29 @@ function BillingPage() {
         <p className="text-muted-foreground">Escolha o plano ideal pra escalar seus disparos.</p>
       </div>
 
+      {/* Banner: trial acabando ou expirado */}
+      {limits.isTrialing && limits.trialDaysLeft !== null && limits.trialDaysLeft <= 3 && limits.trialDaysLeft > 0 && (
+        <Card className="border-warning bg-warning/10">
+          <CardContent className="flex items-center gap-3 py-4">
+            <Clock className="h-5 w-5 text-warning flex-shrink-0" />
+            <div className="flex-1 text-sm">
+              <strong>Seu teste grátis acaba em {limits.trialDaysLeft} {limits.trialDaysLeft === 1 ? "dia" : "dias"}.</strong>
+              {" "}Assine pra não perder seus chips e campanhas.
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {limits.isPastDue && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex items-center gap-3 py-4">
+            <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0" />
+            <div className="flex-1 text-sm">
+              <strong>Teste grátis expirado.</strong> Disparos e novos chips estão bloqueados. Seus dados e CRM continuam acessíveis — assine pra reativar.
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {sub && (
         <Card className={cn(isActive && "border-primary/60 bg-primary/5")}>
           <CardHeader>
@@ -54,7 +82,7 @@ function BillingPage() {
               <Crown className="h-5 w-5 text-primary" />
               Seu plano: {sub.subscription_plans?.name ?? "Sem plano"}
               <Badge variant={isActive ? "default" : "destructive"}>
-                {sub.status === "active" ? "Ativo" : sub.status === "trialing" ? "Período de teste" : sub.status}
+                {limits.isPastDue ? "Expirado" : sub.status === "active" ? "Ativo" : sub.status === "trialing" ? `Teste grátis — ${limits.trialDaysLeft ?? "?"} dias restantes` : sub.status}
               </Badge>
               {sub.payment_method && (
                 <Badge variant="outline" className="capitalize">
@@ -64,11 +92,37 @@ function BillingPage() {
             </CardTitle>
             <CardDescription>
               {sub.current_period_end && `Renova em ${new Date(sub.current_period_end).toLocaleDateString("pt-BR")}`}
-              
             </CardDescription>
           </CardHeader>
+          {lim && use && (
+            <CardContent className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Chips conectados</span>
+                  <span className="font-medium">{use.chips} / {limits.fmtLimit(lim.max_chips)}</span>
+                </div>
+                <Progress value={pct(use.chips, lim.max_chips)} className="h-2" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Campanhas ativas</span>
+                  <span className="font-medium">{use.active_campaigns} / {limits.fmtLimit(lim.max_active_campaigns)}</span>
+                </div>
+                <Progress value={pct(use.active_campaigns, lim.max_active_campaigns)} className="h-2" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Mensagens hoje</span>
+                  <span className="font-medium">{use.messages_today.toLocaleString("pt-BR")} / {limits.fmtLimit(lim.max_messages_per_day)}</span>
+                </div>
+                <Progress value={pct(use.messages_today, lim.max_messages_per_day)} className="h-2" />
+              </div>
+            </CardContent>
+          )}
         </Card>
       )}
+
+
 
 
       {/* Toggle Mensal / Anual */}
