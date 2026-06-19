@@ -5,6 +5,7 @@ import {
   Zap, ShieldCheck, Flame, ShoppingCart, MessageSquare, BarChart3,
   ArrowRight, Check, Sparkles, Workflow, Inbox, Bot, Users,
   TrendingDown, Clock, PhoneOff, AlertTriangle, DollarSign,
+  MapPin, UserSearch, ListChecks, UsersRound, Wallet, Star,
 } from "lucide-react";
 import { Meteors } from "@/components/magicui/meteors";
 import { GridPattern } from "@/components/magicui/grid-pattern";
