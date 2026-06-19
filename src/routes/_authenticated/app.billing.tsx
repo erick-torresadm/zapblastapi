@@ -46,16 +46,28 @@ function BillingPage() {
       </div>
 
       {sub && (
-        <Card>
+        <Card className={cn(isActive && "border-primary/60 bg-primary/5")}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">Assinatura atual <Badge variant={isActive ? "default" : "destructive"}>{sub.status}</Badge></CardTitle>
+            <CardTitle className="flex items-center gap-2 flex-wrap">
+              <Crown className="h-5 w-5 text-primary" />
+              Seu plano: {sub.subscription_plans?.name ?? "Sem plano"}
+              <Badge variant={isActive ? "default" : "destructive"}>
+                {sub.status === "active" ? "Ativo" : sub.status === "trialing" ? "Período de teste" : sub.status}
+              </Badge>
+              {sub.payment_method && (
+                <Badge variant="outline" className="capitalize">
+                  {sub.payment_method === "card" ? "Cartão" : sub.payment_method.toUpperCase()}
+                </Badge>
+              )}
+            </CardTitle>
             <CardDescription>
-              {sub.subscription_plans?.name ?? "Sem plano"}
-              {sub.current_period_end && ` · renova em ${new Date(sub.current_period_end).toLocaleDateString("pt-BR")}`}
+              {sub.current_period_end && `Renova em ${new Date(sub.current_period_end).toLocaleDateString("pt-BR")}`}
+              {sub.status === "trialing" && sub.trial_ends_at && ` · trial até ${new Date(sub.trial_ends_at).toLocaleDateString("pt-BR")}`}
             </CardDescription>
           </CardHeader>
         </Card>
       )}
+
 
       {/* Toggle Mensal / Anual */}
       <div className="flex justify-center">
