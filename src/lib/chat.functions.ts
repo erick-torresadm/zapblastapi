@@ -116,6 +116,7 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
       evolution_message_id: msgId,
       status: "sent",
       sent_by_agent_id: userId,
+      reply_to_id: data.reply_to_id ?? null,
     });
     return { ok: true };
   });
