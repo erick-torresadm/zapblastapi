@@ -104,16 +104,6 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
             }
           }
 
-          const messageText =
-            ((data as { message?: { conversation?: string; extendedTextMessage?: { text?: string } } }).message?.conversation)
-            ?? ((data as { message?: { extendedTextMessage?: { text?: string } } }).message?.extendedTextMessage?.text)
-            ?? null;
-
-          console.log("[webhook] messages.upsert", {
-            instance: instanceName, instanceId, chatType, fromMe,
-            remoteJid, resolvedJid, hasText: !!messageText,
-          });
-
           if (chatType !== "user") {
             console.log("[webhook] ignorado (não é 1:1)", chatType);
             return Response.json({ ok: true, skipped: chatType });
@@ -125,6 +115,108 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
             return Response.json({ ok: true, skipped: "invalid_phone" });
           }
 
+          // ----- Extrai texto e/ou mídia -----
+          type WaMsg = {
+            conversation?: string;
+            extendedTextMessage?: { text?: string };
+            imageMessage?: { caption?: string; mimetype?: string; fileLength?: number | string };
+            videoMessage?: { caption?: string; mimetype?: string; fileLength?: number | string; seconds?: number };
+            audioMessage?: { mimetype?: string; fileLength?: number | string; seconds?: number; ptt?: boolean };
+            documentMessage?: { caption?: string; mimetype?: string; fileLength?: number | string; fileName?: string; title?: string };
+            documentWithCaptionMessage?: { message?: WaMsg };
+            stickerMessage?: { mimetype?: string; fileLength?: number | string };
+            reactionMessage?: { text?: string; key?: { id?: string } };
+          };
+          let waMsg = ((data as { message?: WaMsg }).message) ?? {};
+          if (waMsg.documentWithCaptionMessage?.message) {
+            waMsg = { ...waMsg, ...waMsg.documentWithCaptionMessage.message };
+          }
+
+          const messageText =
+            waMsg.conversation
+            ?? waMsg.extendedTextMessage?.text
+            ?? null;
+
+          let mediaType: "image" | "video" | "audio" | "document" | "sticker" | null = null;
+          let mediaMime: string | undefined;
+          let mediaSize: number | undefined;
+          let mediaFilename: string | undefined;
+          let caption: string | undefined;
+          let durationSeconds: number | undefined;
+          let isPtt = false;
+          let reaction: string | undefined;
+
+          const num = (v: number | string | undefined) => {
+            if (v == null) return undefined;
+            const n = typeof v === "number" ? v : Number(v);
+            return Number.isFinite(n) ? n : undefined;
+          };
+
+          if (waMsg.imageMessage) {
+            mediaType = "image"; mediaMime = waMsg.imageMessage.mimetype;
+            mediaSize = num(waMsg.imageMessage.fileLength); caption = waMsg.imageMessage.caption;
+          } else if (waMsg.videoMessage) {
+            mediaType = "video"; mediaMime = waMsg.videoMessage.mimetype;
+            mediaSize = num(waMsg.videoMessage.fileLength); caption = waMsg.videoMessage.caption;
+            durationSeconds = waMsg.videoMessage.seconds;
+          } else if (waMsg.audioMessage) {
+            mediaType = "audio"; mediaMime = waMsg.audioMessage.mimetype;
+            mediaSize = num(waMsg.audioMessage.fileLength);
+            durationSeconds = waMsg.audioMessage.seconds; isPtt = !!waMsg.audioMessage.ptt;
+          } else if (waMsg.documentMessage) {
+            mediaType = "document"; mediaMime = waMsg.documentMessage.mimetype;
+            mediaSize = num(waMsg.documentMessage.fileLength);
+            mediaFilename = waMsg.documentMessage.fileName ?? waMsg.documentMessage.title;
+            caption = waMsg.documentMessage.caption;
+          } else if (waMsg.stickerMessage) {
+            mediaType = "sticker"; mediaMime = waMsg.stickerMessage.mimetype;
+            mediaSize = num(waMsg.stickerMessage.fileLength);
+          } else if (waMsg.reactionMessage) {
+            reaction = waMsg.reactionMessage.text;
+          }
+
+          let mediaUrl: string | null = null;
+          if (mediaType) {
+            try {
+              const { data: srv } = await supabaseAdmin
+                .from("evolution_servers").select("base_url, api_key").eq("id", server.id).maybeSingle();
+              if (srv?.base_url && srv?.api_key) {
+                const { getBase64FromMediaMessage } = await import("@/lib/evolution.server");
+                const got = await getBase64FromMediaMessage(
+                  { base_url: srv.base_url, api_key: srv.api_key },
+                  instanceName,
+                  { key: key!, message: waMsg as unknown },
+                );
+                if (got?.base64) {
+                  const ext = (got.mimetype ?? mediaMime ?? "").split("/")[1]?.split(";")[0] ?? "bin";
+                  const fname = mediaFilename ?? `${Date.now()}-${key?.id ?? "msg"}.${ext}`;
+                  const path = `${server.user_id}/${fromPhone}/${fname}`;
+                  const bin = Uint8Array.from(atob(got.base64), (c) => c.charCodeAt(0));
+                  const { error: upErr } = await supabaseAdmin.storage.from("crm-media").upload(path, bin, {
+                    contentType: got.mimetype ?? mediaMime ?? "application/octet-stream",
+                    upsert: true,
+                  });
+                  if (!upErr) mediaUrl = path;
+                  else console.warn("[webhook] upload mídia falhou", upErr);
+                  if (!mediaMime && got.mimetype) mediaMime = got.mimetype;
+                  if (!mediaFilename && got.fileName) mediaFilename = got.fileName;
+                }
+              }
+            } catch (e) {
+              console.warn("[webhook] download mídia falhou", e);
+            }
+          }
+
+          // Reação: atualiza msg existente sem inserir nova linha
+          if (reaction !== undefined && waMsg.reactionMessage?.key?.id) {
+            await supabaseAdmin.from("chat_messages").update({ reaction })
+              .eq("evolution_message_id", waMsg.reactionMessage.key.id);
+            return Response.json({ ok: true, reaction: true });
+          }
+
+          console.log("[webhook] messages.upsert", {
+            instance: instanceName, instanceId, chatType, fromMe, mediaType,
+          });
 
           // Grava em chat_messages (CRM/Inbox)
           await supabaseAdmin.from("chat_messages").insert({
@@ -137,6 +229,14 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
             text: messageText,
             evolution_message_id: key?.id ?? null,
             status: "delivered",
+            media_type: mediaType,
+            media_url: mediaUrl,
+            media_mime: mediaMime,
+            media_filename: mediaFilename,
+            media_size: mediaSize,
+            caption,
+            duration_seconds: durationSeconds,
+            is_ptt: isPtt,
           });
 
           if (!fromMe) {
@@ -230,6 +330,26 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
             }
           }
         }
+
+        // Indicador de "digitando" / "gravando" / online
+        if (ev.includes("presence.update") || ev === "presence_update") {
+          const id = String((data as { id?: string }).id ?? "");
+          const phone = id.includes("@") ? id.split("@")[0].replace(/\D/g, "") : id.replace(/\D/g, "");
+          const presences = (data as { presences?: Record<string, { lastKnownPresence?: string }> }).presences;
+          let presence: string | null = null;
+          if (presences) {
+            const first = Object.values(presences)[0];
+            presence = first?.lastKnownPresence ?? null;
+          }
+          if (phone && presence) {
+            await supabaseAdmin.from("crm_conversations")
+              .update({ presence, presence_at: new Date().toISOString() })
+              .eq("owner_user_id", server.user_id)
+              .eq("contact_phone", phone);
+          }
+        }
+
+
 
         return Response.json({ ok: true });
       },
