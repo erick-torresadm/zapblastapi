@@ -36,7 +36,10 @@ import {
   Play, MessageSquare, Clock, GitBranch, Tag, Webhook, Trash2, Save, Download, Plus,
   ArrowLeft, Rocket, CheckCircle2, Loader2, Image as ImageIcon, Keyboard,
   Smile, MapPin, Contact as ContactIcon, BarChart3, Heart,
+  Search, Copy as CopyIcon, AlertTriangle, ListOrdered, Shuffle, Variable,
+  CornerDownRight, StopCircle, Globe, CalendarClock, UserPlus, StickyNote, Users,
 } from "lucide-react";
+
 
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
@@ -55,7 +58,9 @@ export const Route = createFileRoute("/_authenticated/app/flows/$id")({
 type StepType =
   | "start" | "message" | "media" | "typing" | "delay" | "condition" | "tag"
   | "webhook" | "ask" | "ai" | "transfer_human"
-  | "sticker" | "location" | "contact_card" | "poll" | "reaction";
+  | "sticker" | "location" | "contact_card" | "poll" | "reaction"
+  | "menu" | "set_variable" | "random_split" | "jump" | "end"
+  | "http_request" | "time_window" | "update_contact" | "note" | "assign_agent" | "comment";
 
 type StepData = {
   label: string;
@@ -65,6 +70,7 @@ type StepData = {
   delaySeconds?: number;
   conditionField?: string;
   conditionEquals?: string;
+  conditionOp?: "eq" | "lte" | "gte" | "contains";
   tag?: string;
   webhookUrl?: string;
   variable?: string;
@@ -96,8 +102,43 @@ type StepData = {
   pollSelectable?: number;
   // reaction
   emoji?: string;
+  // ask / menu
+  timeoutSeconds?: number;
+  menuOptions?: string;
+  // http / webhook
+  url?: string;
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  headers?: string;
+  body?: string;
+  retries?: number;
+  savePath?: string;
+  saveVar?: string;
+  // ai
+  model?: string;
+  send?: boolean;
+  // set_variable
+  value?: string;
+  pairs?: string;
+  // random_split
+  weights?: string;
+  // jump
+  jumpTo?: string;
+  // end
+  reason?: string;
+  // time_window
+  startHour?: number;
+  endHour?: number;
+  days?: string;
+  // update_contact
+  customFields?: string;
+  // note
+  note?: string;
+  // assign_agent
+  agentId?: string;
+  conversationStatus?: "open" | "pending" | "closed";
   [key: string]: unknown;
 };
+
 
 
 import { HelpCircle, Sparkles as SparklesIcon, UserCog } from "lucide-react";
@@ -124,8 +165,19 @@ const STEP_META: Record<StepType, {
   contact_card:   { label: "Cartão de contato",  icon: ContactIcon,    color: "#0891b2",              description: "Compartilha um vCard de contato" },
   poll:           { label: "Enquete",            icon: BarChart3,      color: "#8b5cf6",              description: "Envia uma enquete com até N opções" },
   reaction:       { label: "Reação",             icon: Heart,          color: "#e11d48",              description: "Reage com emoji à última mensagem recebida" },
-
+  menu:           { label: "Menu numerado",       icon: ListOrdered,    color: "#2563eb",              description: "Manda opções 1, 2, 3… e ramifica pela escolha" },
+  set_variable:   { label: "Definir variável",    icon: Variable,       color: "#14b8a6",              description: "Cria ou atualiza variáveis no contato" },
+  random_split:   { label: "Aleatório / A-B",     icon: Shuffle,        color: "#d946ef",              description: "Divide em saídas com pesos (teste A/B)" },
+  jump:           { label: "Pular para",          icon: CornerDownRight,color: "#64748b",              description: "Vai direto para outro nó (loops e atalhos)" },
+  end:            { label: "Encerrar",            icon: StopCircle,     color: "#475569",              description: "Termina o fluxo aqui" },
+  http_request:   { label: "HTTP Request",        icon: Globe,          color: "#dc2626",              description: "GET/POST/PUT/DELETE com headers, body e retry" },
+  time_window:    { label: "Janela de horário",   icon: CalendarClock,  color: "#f59e0b",              description: "Ramifica em comercial / fora do expediente" },
+  update_contact: { label: "Atualizar contato",   icon: UserPlus,       color: "#0d9488",              description: "Salva nome, e-mail e campos customizados" },
+  note:           { label: "Nota no CRM",         icon: StickyNote,     color: "#eab308",              description: "Cria nota interna na conversa do CRM" },
+  assign_agent:   { label: "Atribuir agente",     icon: Users,          color: "#7c3aed",              description: "Distribui a conversa para um agente específico" },
+  comment:        { label: "Comentário",          icon: StickyNote,     color: "#94a3b8",              description: "Anotação visual no canvas (não executa)" },
 };
+
 
 /* =========================================================
    Card de nó (usado para todos os tipos)
@@ -141,18 +193,30 @@ function StepNode({ data, selected, type }: NodeProps) {
   : stepType === "media"          ? (d.mediaUrl ? `${(d.mediatype ?? "image").toUpperCase()}: ${d.mediaUrl.slice(0, 40)}…` : "Configure a mídia…")
   : stepType === "typing"         ? `${d.presence === "recording" ? "Gravando" : "Digitando"} por ${d.seconds ?? 3}s`
   : stepType === "ask"            ? (d.message ? `Pergunta: ${d.message}` : "Configure a pergunta…")
+  : stepType === "menu"           ? (d.message || "Configure o menu…")
   : stepType === "ai"             ? (d.systemPrompt || "Configure o prompt da IA…")
   : stepType === "transfer_human" ? "Encaminha a conversa para um humano"
   : stepType === "delay"          ? `Aguardar ${d.delaySeconds ?? 60}s`
   : stepType === "condition"      ? `Se "${d.conditionField || "campo"}" = "${d.conditionEquals || "valor"}"`
   : stepType === "tag"            ? `Adicionar tag: ${d.tag || "—"}`
   : stepType === "webhook"        ? (d.webhookUrl || "Configure a URL")
+  : stepType === "http_request"   ? `${d.method ?? "POST"} ${d.url || "Configure a URL"}`
   : stepType === "sticker"        ? (d.stickerUrl ? `Sticker: ${d.stickerUrl.slice(0, 36)}…` : "Configure o sticker…")
   : stepType === "location"       ? (Number.isFinite(d.latitude) && Number.isFinite(d.longitude) ? `📍 ${d.latitude}, ${d.longitude}` : "Configure a localização…")
   : stepType === "contact_card"   ? (d.contactName ? `${d.contactName} • ${d.contactPhone ?? "—"}` : "Configure o contato…")
   : stepType === "poll"           ? (d.pollQuestion ? `Enquete: ${d.pollQuestion}` : "Configure a enquete…")
   : stepType === "reaction"       ? `Reagir com ${d.emoji ?? "👍"}`
+  : stepType === "set_variable"   ? (d.variable ? `${d.variable} = ${String(d.value ?? "").slice(0, 30)}` : "Configure as variáveis…")
+  : stepType === "random_split"   ? `Pesos: ${(d.weights ?? "a=1, b=1").split(/\r?\n/).join(", ").slice(0, 40)}`
+  : stepType === "jump"           ? (d.jumpTo ? `→ ${d.jumpTo}` : "Escolha o nó destino…")
+  : stepType === "end"            ? (d.reason ? `Fim: ${d.reason}` : "Encerra o fluxo")
+  : stepType === "time_window"    ? `${d.startHour ?? 9}h–${d.endHour ?? 18}h (dias ${d.days ?? "1-5"})`
+  : stepType === "update_contact" ? (d.contactName || d.contactEmail || d.customFields ? "Atualiza dados do contato" : "Configure os campos…")
+  : stepType === "note"           ? (d.note ? `Nota: ${String(d.note).slice(0, 40)}` : "Escreva a nota…")
+  : stepType === "assign_agent"   ? (d.agentId ? `Agente: ${d.agentId.slice(0, 8)}…` : "Configure o agente…")
+  : stepType === "comment"        ? (d.note || d.message || "Anotação")
   : "Ponto de entrada — o fluxo começa aqui";
+
 
 
   return (
@@ -189,9 +253,67 @@ function StepNode({ data, selected, type }: NodeProps) {
             <span className="text-red-500">NÃO</span>
           </div>
         </>
-      ) : (
+      ) : stepType === "time_window" ? (
+        <>
+          <Handle id="in" type="source" position={Position.Bottom} style={{ left: "30%", background: "#10b981" }} className="!h-3 !w-3 !border-2 !border-background" />
+          <Handle id="out" type="source" position={Position.Bottom} style={{ left: "70%", background: "#f59e0b" }} className="!h-3 !w-3 !border-2 !border-background" />
+          <div className="flex justify-between border-t border-border/60 px-3 py-1 text-[10px] font-medium">
+            <span className="text-emerald-500">DENTRO</span>
+            <span className="text-amber-500">FORA</span>
+          </div>
+        </>
+      ) : stepType === "menu" ? (() => {
+        const opts = String(d.menuOptions ?? "").split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+        const labels = [...opts.map((o, i) => ({ id: `opt_${i + 1}`, label: `${i + 1}. ${o.slice(0, 12)}` })), { id: "invalid", label: "?" }];
+        if (Number(d.timeoutSeconds ?? 0) > 0) labels.push({ id: "timeout", label: "⏱" });
+        return (
+          <>
+            {labels.map((h, i) => (
+              <Handle key={h.id} id={h.id} type="source" position={Position.Bottom}
+                style={{ left: `${((i + 1) * 100) / (labels.length + 1)}%`, background: meta.color }}
+                className="!h-3 !w-3 !border-2 !border-background" />
+            ))}
+            <div className="grid border-t border-border/60 px-3 py-1 text-[10px] text-muted-foreground" style={{ gridTemplateColumns: `repeat(${labels.length}, 1fr)` }}>
+              {labels.map((h) => <span key={h.id} className="truncate text-center">{h.label}</span>)}
+            </div>
+          </>
+        );
+      })() : stepType === "ask" && Number(d.timeoutSeconds ?? 0) > 0 ? (
+        <>
+          <Handle id="default" type="source" position={Position.Bottom} style={{ left: "30%", background: meta.color }} className="!h-3 !w-3 !border-2 !border-background" />
+          <Handle id="timeout" type="source" position={Position.Bottom} style={{ left: "70%", background: "#f59e0b" }} className="!h-3 !w-3 !border-2 !border-background" />
+          <div className="flex justify-between border-t border-border/60 px-3 py-1 text-[10px] font-medium">
+            <span>RESPOSTA</span>
+            <span className="text-amber-500">TIMEOUT</span>
+          </div>
+        </>
+      ) : stepType === "random_split" ? (() => {
+        const items = String(d.weights ?? "a=1\nb=1").split(/\r?\n/).map((l) => l.split("=")[0]?.trim()).filter(Boolean) as string[];
+        return (
+          <>
+            {items.map((h, i) => (
+              <Handle key={h} id={h} type="source" position={Position.Bottom}
+                style={{ left: `${((i + 1) * 100) / (items.length + 1)}%`, background: meta.color }}
+                className="!h-3 !w-3 !border-2 !border-background" />
+            ))}
+            <div className="grid border-t border-border/60 px-3 py-1 text-[10px] text-muted-foreground" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
+              {items.map((h) => <span key={h} className="truncate text-center">{h}</span>)}
+            </div>
+          </>
+        );
+      })() : stepType === "http_request" ? (
+        <>
+          <Handle id="ok" type="source" position={Position.Bottom} style={{ left: "30%", background: "#10b981" }} className="!h-3 !w-3 !border-2 !border-background" />
+          <Handle id="error" type="source" position={Position.Bottom} style={{ left: "70%", background: "#ef4444" }} className="!h-3 !w-3 !border-2 !border-background" />
+          <div className="flex justify-between border-t border-border/60 px-3 py-1 text-[10px] font-medium">
+            <span className="text-emerald-500">OK</span>
+            <span className="text-red-500">ERRO</span>
+          </div>
+        </>
+      ) : stepType === "end" ? null : (
         <Handle type="source" position={Position.Bottom} className="!h-3 !w-3 !border-2 !border-background" style={{ background: meta.color }} />
       )}
+
     </div>
   );
 }
@@ -213,7 +335,19 @@ const nodeTypes = {
   contact_card: StepNode,
   poll: StepNode,
   reaction: StepNode,
+  menu: StepNode,
+  set_variable: StepNode,
+  random_split: StepNode,
+  jump: StepNode,
+  end: StepNode,
+  http_request: StepNode,
+  time_window: StepNode,
+  update_contact: StepNode,
+  note: StepNode,
+  assign_agent: StepNode,
+  comment: StepNode,
 };
+
 
 
 /* =========================================================
@@ -282,6 +416,8 @@ function FlowsInner() {
   const [flowName, setFlowName] = useState("Carregando…");
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [paletteSearch, setPaletteSearch] = useState("");
+
   const rfRef = useRef<ReactFlowInstance | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dirtyRef = useRef(false);
@@ -407,6 +543,46 @@ function FlowsInner() {
     setSelectedId(null);
   };
 
+  const duplicateSelected = () => {
+    if (!selectedId) return;
+    const src = nodes.find((n) => n.id === selectedId);
+    if (!src || src.type === "start") return;
+    const newId = `n_${Date.now()}`;
+    setNodes((nds) => nds.concat({
+      ...src,
+      id: newId,
+      position: { x: src.position.x + 40, y: src.position.y + 40 },
+      selected: false,
+      data: { ...src.data, label: `${(src.data as StepData).label} (cópia)` },
+    } as Node));
+    setSelectedId(newId);
+    toast.success("Passo duplicado");
+  };
+
+  // ---------- Validação (orfãos, sem entrada, configs faltando) ----------
+  const validation = useMemo(() => {
+    const warnings: string[] = [];
+    if (!nodes.length) return { warnings: ["Adicione pelo menos um passo"] };
+    const hasStart = nodes.some((n) => n.type === "start");
+    if (!hasStart) warnings.push("Falta o nó Início");
+    const targets = new Set(edges.map((e) => e.target));
+    nodes.forEach((n) => {
+      if (n.type === "start") return;
+      if (n.type === "comment") return;
+      if (!targets.has(n.id)) warnings.push(`"${(n.data as StepData).label || n.id}" não está conectado`);
+      const d = n.data as StepData;
+      if (n.type === "message" && !d.message) warnings.push(`"${d.label}" sem mensagem`);
+      if (n.type === "ask" && !d.message) warnings.push(`"${d.label}" sem pergunta`);
+      if (n.type === "menu" && !d.menuOptions) warnings.push(`"${d.label}" sem opções de menu`);
+      if (n.type === "media" && !d.mediaUrl) warnings.push(`"${d.label}" sem URL de mídia`);
+      if ((n.type === "webhook" || n.type === "http_request") && !d.webhookUrl && !d.url) warnings.push(`"${d.label}" sem URL`);
+      if (n.type === "jump" && !d.jumpTo) warnings.push(`"${d.label}" sem destino`);
+      if (n.type === "tag" && !d.tag) warnings.push(`"${d.label}" sem tag`);
+    });
+    return { warnings: warnings.slice(0, 8) };
+  }, [nodes, edges]);
+
+
   const exportJson = () => {
     const blob = new Blob([JSON.stringify({ name: flowName, nodes, edges }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
@@ -453,7 +629,16 @@ function FlowsInner() {
                 <SheetDescription className="text-xs">Toque para adicionar ao canvas</SheetDescription>
               </SheetHeader>
               <div className="space-y-2 overflow-y-auto p-3" style={{ maxHeight: "calc(100vh - 80px)" }}>
-                {(Object.keys(STEP_META) as StepType[]).filter((t) => t !== "start").map((t) => {
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input placeholder="Buscar bloco…" value={paletteSearch} onChange={(e) => setPaletteSearch(e.target.value)} className="h-8 pl-7 text-xs" />
+                </div>
+                {(Object.keys(STEP_META) as StepType[]).filter((t) => t !== "start").filter((t) => {
+                  const q = paletteSearch.toLowerCase().trim();
+                  if (!q) return true;
+                  const m = STEP_META[t];
+                  return m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || t.includes(q);
+                }).map((t) => {
                   const m = STEP_META[t]; const Icon = m.icon;
                   return (
                     <button
@@ -473,6 +658,7 @@ function FlowsInner() {
                   );
                 })}
               </div>
+
             </SheetContent>
           </Sheet>
           <Button variant="outline" size="sm" onClick={exportJson} className="hidden sm:inline-flex"><Download className="mr-2 h-4 w-4" />Exportar</Button>
@@ -494,7 +680,16 @@ function FlowsInner() {
             <CardDescription className="text-xs">Arraste para o canvas</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {(Object.keys(STEP_META) as StepType[]).filter((t) => t !== "start").map((t) => {
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder="Buscar bloco…" value={paletteSearch} onChange={(e) => setPaletteSearch(e.target.value)} className="h-8 pl-7 text-xs" />
+            </div>
+            {(Object.keys(STEP_META) as StepType[]).filter((t) => t !== "start").filter((t) => {
+              const q = paletteSearch.toLowerCase().trim();
+              if (!q) return true;
+              const m = STEP_META[t];
+              return m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || t.includes(q);
+            }).map((t) => {
               const m = STEP_META[t]; const Icon = m.icon;
               return (
                 <div
@@ -518,18 +713,30 @@ function FlowsInner() {
                 </div>
               );
             })}
+
             <Button size="sm" variant="outline" className="w-full" onClick={() => addNode("message")}>
               <Plus className="mr-2 h-3.5 w-3.5" />Adicionar mensagem
             </Button>
           </CardContent>
         </Card>
 
-        {/* Canvas */}
-        <div
-          ref={wrapperRef}
-          className="relative flex-1 overflow-hidden rounded-xl border border-border/60 bg-[var(--background)]"
-          onDragOver={onDragOver}
-          onDrop={onDrop}
+        {/* Canvas + validação */}
+        <div className="flex flex-1 flex-col gap-2 overflow-hidden">
+          {validation.warnings.length > 0 && (
+            <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+              <div className="flex-1">
+                <span className="font-medium">{validation.warnings.length} aviso(s):</span>{" "}
+                {validation.warnings.join(" · ")}
+              </div>
+            </div>
+          )}
+          <div
+            ref={wrapperRef}
+            className="relative flex-1 overflow-hidden rounded-xl border border-border/60 bg-[var(--background)]"
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+
         >
           <ReactFlow
             nodes={nodes}
@@ -557,8 +764,10 @@ function FlowsInner() {
               maskColor="color-mix(in oklab, var(--background) 80%, transparent)"
             />
           </ReactFlow>
+          </div>
         </div>
       </div>
+
 
       {/* Painel de propriedades */}
       <Sheet open={!!selected} onOpenChange={(o) => { if (!o) setSelectedId(null); }}>
@@ -703,9 +912,35 @@ function FlowsInner() {
                         <Input id="ask-var" value={d.variable ?? ""} onChange={(e) => updateSelected({ variable: e.target.value })} placeholder="nome" />
                         <p className="mt-1 text-[11px] text-muted-foreground">Use depois como <code className="rounded bg-muted px-1">{`{{${d.variable || "nome"}}}`}</code></p>
                       </div>
+                      <div>
+                        <Label htmlFor="ask-timeout">Timeout (segundos, 0 = sem timeout)</Label>
+                        <Input id="ask-timeout" type="number" min={0} value={d.timeoutSeconds ?? 0} onChange={(e) => updateSelected({ timeoutSeconds: Math.max(0, Number(e.target.value) || 0) })} />
+                        <p className="mt-1 text-[11px] text-muted-foreground">Se o contato não responder em até X segundos, segue pela saída <span className="font-medium text-amber-500">TIMEOUT</span>.</p>
+                      </div>
                     </>
                   )}
 
+                  {t === "menu" && (
+                    <>
+                      <div>
+                        <Label htmlFor="menu-msg">Mensagem (opcional, opções são acrescentadas)</Label>
+                        <Textarea id="menu-msg" rows={3} value={d.message ?? ""} onChange={(e) => updateSelected({ message: e.target.value })} placeholder="Em que posso ajudar?" />
+                      </div>
+                      <div>
+                        <Label htmlFor="menu-opts">Opções (uma por linha)</Label>
+                        <Textarea id="menu-opts" rows={5} value={d.menuOptions ?? ""} onChange={(e) => updateSelected({ menuOptions: e.target.value })} placeholder={"Falar com vendas\nSuporte\nFinanceiro\nOutros"} />
+                        <p className="mt-1 text-[11px] text-muted-foreground">O contato responde com o número. Cada opção vira uma saída (opt_1, opt_2…). "?" é o caminho para resposta inválida.</p>
+                      </div>
+                      <div>
+                        <Label htmlFor="menu-var">Salvar escolha em</Label>
+                        <Input id="menu-var" value={d.variable ?? ""} onChange={(e) => updateSelected({ variable: e.target.value })} placeholder="menu_opcao" />
+                      </div>
+                      <div>
+                        <Label htmlFor="menu-timeout">Timeout (segundos)</Label>
+                        <Input id="menu-timeout" type="number" min={0} value={d.timeoutSeconds ?? 0} onChange={(e) => updateSelected({ timeoutSeconds: Math.max(0, Number(e.target.value) || 0) })} />
+                      </div>
+                    </>
+                  )}
 
                   {t === "ai" && (
                     <>
@@ -717,6 +952,25 @@ function FlowsInner() {
                         <Label htmlFor="ai-input">Entrada do usuário</Label>
                         <Input id="ai-input" value={(d.userInput as string) ?? ""} onChange={(e) => updateSelected({ userInput: e.target.value })} placeholder="{{pergunta}}" />
                       </div>
+                      <div>
+                        <Label htmlFor="ai-model">Modelo</Label>
+                        <select id="ai-model" value={d.model ?? "google/gemini-3-flash-preview"} onChange={(e) => updateSelected({ model: e.target.value })}
+                          className="mt-1 h-9 w-full rounded-full border border-input bg-background px-3 text-sm">
+                          <option value="google/gemini-3-flash-preview">Gemini 3 Flash (rápido)</option>
+                          <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+                          <option value="google/gemini-2.5-pro">Gemini 2.5 Pro (mais inteligente)</option>
+                          <option value="openai/gpt-5-mini">GPT-5 mini</option>
+                          <option value="openai/gpt-5">GPT-5</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="ai-save">Salvar resposta em variável (opcional)</Label>
+                        <Input id="ai-save" value={d.saveVar ?? ""} onChange={(e) => updateSelected({ saveVar: e.target.value })} placeholder="resposta_ia" />
+                      </div>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={d.send !== false} onChange={(e) => updateSelected({ send: e.target.checked })} />
+                        Enviar a resposta no WhatsApp
+                      </label>
                     </>
                   )}
 
@@ -731,7 +985,7 @@ function FlowsInner() {
                           placeholder="Um atendente vai continuar daqui, {{nome}}. Só um momento 🙂"
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">Envia a mensagem (se preenchida), abre a conversa no CRM como “aberta” para o time assumir e encerra a automação para este contato.</p>
+                      <p className="text-xs text-muted-foreground">Envia a mensagem (se preenchida), abre a conversa no CRM como "aberta" para o time assumir e encerra a automação para este contato.</p>
                     </>
                   )}
 
@@ -750,14 +1004,24 @@ function FlowsInner() {
                   {t === "condition" && (
                     <>
                       <div>
-                        <Label htmlFor="field">Campo do contato</Label>
+                        <Label htmlFor="field">Variável / campo</Label>
                         <Input id="field" value={d.conditionField ?? ""} onChange={(e) => updateSelected({ conditionField: e.target.value })} placeholder="cidade" />
                       </div>
                       <div>
-                        <Label htmlFor="equals">É igual a</Label>
+                        <Label htmlFor="op">Operador</Label>
+                        <select id="op" value={d.conditionOp ?? "eq"} onChange={(e) => updateSelected({ conditionOp: e.target.value as StepData["conditionOp"] })}
+                          className="mt-1 h-9 w-full rounded-full border border-input bg-background px-3 text-sm">
+                          <option value="eq">igual</option>
+                          <option value="contains">contém</option>
+                          <option value="lte">≤ (número)</option>
+                          <option value="gte">≥ (número)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="equals">Valor</Label>
                         <Input id="equals" value={d.conditionEquals ?? ""} onChange={(e) => updateSelected({ conditionEquals: e.target.value })} placeholder="São Paulo" />
                       </div>
-                      <p className="text-[11px] text-muted-foreground">A saída <span className="font-medium text-emerald-500">SIM</span> dispara quando a condição bate.</p>
+                      <p className="text-[11px] text-muted-foreground">Saída <span className="font-medium text-emerald-500">SIM</span> quando bater.</p>
                     </>
                   )}
 
@@ -768,12 +1032,169 @@ function FlowsInner() {
                     </div>
                   )}
 
-                  {t === "webhook" && (
-                    <div>
-                      <Label htmlFor="url">URL</Label>
-                      <Input id="url" value={d.webhookUrl ?? ""} onChange={(e) => updateSelected({ webhookUrl: e.target.value })} placeholder="https://meu-sistema.com/hook" />
+                  {(t === "webhook" || t === "http_request") && (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-[110px_1fr] gap-2">
+                        <div>
+                          <Label htmlFor="http-method">Método</Label>
+                          <select id="http-method" value={d.method ?? (t === "webhook" ? "POST" : "GET")}
+                            onChange={(e) => updateSelected({ method: e.target.value as StepData["method"] })}
+                            className="mt-1 h-9 w-full rounded-full border border-input bg-background px-3 text-sm">
+                            {(["GET","POST","PUT","PATCH","DELETE"] as const).map((m) => <option key={m} value={m}>{m}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <Label htmlFor="http-url">URL</Label>
+                          <Input id="http-url" value={(d.webhookUrl ?? d.url) ?? ""} onChange={(e) => updateSelected({ webhookUrl: e.target.value, url: e.target.value })} placeholder="https://meu-sistema.com/hook" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="http-headers">Headers (JSON, opcional)</Label>
+                        <Textarea id="http-headers" rows={2} value={(d.headers as string) ?? ""} onChange={(e) => updateSelected({ headers: e.target.value })} placeholder='{"x-api-key":"..."}' />
+                      </div>
+                      {(d.method ?? "POST") !== "GET" && (
+                        <div>
+                          <Label htmlFor="http-body">Body (opcional — padrão envia variáveis do fluxo)</Label>
+                          <Textarea id="http-body" rows={4} value={(d.body as string) ?? ""} onChange={(e) => updateSelected({ body: e.target.value })} placeholder='{"telefone":"{{telefone}}","nome":"{{nome}}"}' />
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="http-retries">Retries em falha</Label>
+                          <Input id="http-retries" type="number" min={0} max={5} value={d.retries ?? 2} onChange={(e) => updateSelected({ retries: Math.max(0, Math.min(5, Number(e.target.value) || 0)) })} />
+                        </div>
+                        <div>
+                          <Label htmlFor="http-savevar">Salvar resposta em</Label>
+                          <Input id="http-savevar" value={d.saveVar ?? ""} onChange={(e) => updateSelected({ saveVar: e.target.value })} placeholder="resposta" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="http-savepath">Caminho JSON (ex: data.items.0.id)</Label>
+                        <Input id="http-savepath" value={d.savePath ?? ""} onChange={(e) => updateSelected({ savePath: e.target.value })} placeholder="data.user.name" />
+                        <p className="mt-1 text-[11px] text-muted-foreground">Saídas: <span className="text-emerald-500">OK</span> em sucesso, <span className="text-red-500">ERRO</span> após esgotar retries.</p>
+                      </div>
                     </div>
                   )}
+
+                  {t === "set_variable" && (
+                    <>
+                      <div>
+                        <Label htmlFor="sv-var">Variável</Label>
+                        <Input id="sv-var" value={d.variable ?? ""} onChange={(e) => updateSelected({ variable: e.target.value })} placeholder="status" />
+                      </div>
+                      <div>
+                        <Label htmlFor="sv-val">Valor (suporta {`{{variavel}}`})</Label>
+                        <Input id="sv-val" value={d.value ?? ""} onChange={(e) => updateSelected({ value: e.target.value })} placeholder="qualificado" />
+                      </div>
+                      <div>
+                        <Label htmlFor="sv-pairs">Ou várias (uma por linha: nome=valor)</Label>
+                        <Textarea id="sv-pairs" rows={3} value={d.pairs ?? ""} onChange={(e) => updateSelected({ pairs: e.target.value })} placeholder={"status=qualificado\netapa=2"} />
+                      </div>
+                    </>
+                  )}
+
+                  {t === "random_split" && (
+                    <>
+                      <div>
+                        <Label htmlFor="rs-weights">Saídas com peso (uma por linha)</Label>
+                        <Textarea id="rs-weights" rows={4} value={d.weights ?? "a=1\nb=1"} onChange={(e) => updateSelected({ weights: e.target.value })} placeholder={"a=2\nb=1\nc=1"} />
+                        <p className="mt-1 text-[11px] text-muted-foreground">Cada linha cria uma saída com o nome à esquerda do "=". O número é o peso relativo.</p>
+                      </div>
+                    </>
+                  )}
+
+                  {t === "jump" && (
+                    <>
+                      <div>
+                        <Label htmlFor="jump-to">Nó de destino</Label>
+                        <select id="jump-to" value={d.jumpTo ?? ""} onChange={(e) => updateSelected({ jumpTo: e.target.value })}
+                          className="mt-1 h-9 w-full rounded-full border border-input bg-background px-3 text-sm">
+                          <option value="">— escolher —</option>
+                          {nodes.filter((n) => n.id !== selectedId).map((n) => (
+                            <option key={n.id} value={n.id}>{(n.data as StepData).label || n.id} ({n.type})</option>
+                          ))}
+                        </select>
+                        <p className="mt-1 text-[11px] text-muted-foreground">Útil para loops ou voltar pro menu principal.</p>
+                      </div>
+                    </>
+                  )}
+
+                  {t === "end" && (
+                    <div>
+                      <Label htmlFor="end-reason">Motivo (opcional)</Label>
+                      <Input id="end-reason" value={d.reason ?? ""} onChange={(e) => updateSelected({ reason: e.target.value })} placeholder="cliente desistiu" />
+                    </div>
+                  )}
+
+                  {t === "time_window" && (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="tw-start">Hora início (0-23)</Label>
+                          <Input id="tw-start" type="number" min={0} max={23} value={d.startHour ?? 9} onChange={(e) => updateSelected({ startHour: Number(e.target.value) })} />
+                        </div>
+                        <div>
+                          <Label htmlFor="tw-end">Hora fim (1-24)</Label>
+                          <Input id="tw-end" type="number" min={1} max={24} value={d.endHour ?? 18} onChange={(e) => updateSelected({ endHour: Number(e.target.value) })} />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="tw-days">Dias da semana (0=dom, 6=sáb)</Label>
+                        <Input id="tw-days" value={d.days ?? "1,2,3,4,5"} onChange={(e) => updateSelected({ days: e.target.value })} placeholder="1,2,3,4,5" />
+                        <p className="mt-1 text-[11px] text-muted-foreground">Horário do Brasil (UTC-3). Saída <span className="text-emerald-500">DENTRO</span> em horário comercial, <span className="text-amber-500">FORA</span> caso contrário.</p>
+                      </div>
+                    </>
+                  )}
+
+                  {t === "update_contact" && (
+                    <>
+                      <div>
+                        <Label htmlFor="uc-name">Nome (suporta {`{{var}}`})</Label>
+                        <Input id="uc-name" value={d.contactName ?? ""} onChange={(e) => updateSelected({ contactName: e.target.value })} placeholder="{{nome}}" />
+                      </div>
+                      <div>
+                        <Label htmlFor="uc-email">E-mail</Label>
+                        <Input id="uc-email" value={d.contactEmail ?? ""} onChange={(e) => updateSelected({ contactEmail: e.target.value })} placeholder="{{email}}" />
+                      </div>
+                      <div>
+                        <Label htmlFor="uc-fields">Campos customizados (chave=valor por linha)</Label>
+                        <Textarea id="uc-fields" rows={4} value={d.customFields ?? ""} onChange={(e) => updateSelected({ customFields: e.target.value })} placeholder={"cidade={{cidade}}\nplano=premium"} />
+                      </div>
+                    </>
+                  )}
+
+                  {t === "note" && (
+                    <div>
+                      <Label htmlFor="note-body">Nota</Label>
+                      <Textarea id="note-body" rows={4} value={d.note ?? ""} onChange={(e) => updateSelected({ note: e.target.value })} placeholder="Lead respondeu interesse em {{produto}}" />
+                    </div>
+                  )}
+
+                  {t === "assign_agent" && (
+                    <>
+                      <div>
+                        <Label htmlFor="aa-id">ID do agente</Label>
+                        <Input id="aa-id" value={d.agentId ?? ""} onChange={(e) => updateSelected({ agentId: e.target.value })} placeholder="uuid do agente (ou vazio = fila)" />
+                      </div>
+                      <div>
+                        <Label htmlFor="aa-status">Status da conversa</Label>
+                        <select id="aa-status" value={d.conversationStatus ?? "open"} onChange={(e) => updateSelected({ conversationStatus: e.target.value as StepData["conversationStatus"] })}
+                          className="mt-1 h-9 w-full rounded-full border border-input bg-background px-3 text-sm">
+                          <option value="open">Aberta</option>
+                          <option value="pending">Pendente</option>
+                          <option value="closed">Fechada</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {t === "comment" && (
+                    <div>
+                      <Label htmlFor="comment-body">Anotação (não executa)</Label>
+                      <Textarea id="comment-body" rows={4} value={d.note ?? ""} onChange={(e) => updateSelected({ note: e.target.value })} placeholder="Use isso pra documentar o fluxo pro time" />
+                    </div>
+                  )}
+
 
                   {t === "sticker" && (
                     <div className="space-y-2">
@@ -856,10 +1277,16 @@ function FlowsInner() {
 
 
                   {t !== "start" && (
-                    <Button variant="destructive" className="w-full" onClick={deleteSelected}>
-                      <Trash2 className="mr-2 h-4 w-4" />Remover passo
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" onClick={duplicateSelected}>
+                        <CopyIcon className="mr-2 h-4 w-4" />Duplicar
+                      </Button>
+                      <Button variant="destructive" className="flex-1" onClick={deleteSelected}>
+                        <Trash2 className="mr-2 h-4 w-4" />Remover
+                      </Button>
+                    </div>
                   )}
+
                 </div>
               </>
             );

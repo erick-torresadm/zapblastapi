@@ -208,9 +208,17 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   const { data: run } = await supabaseAdmin.from("flow_runs").select("*").eq("id", runId).maybeSingle();
   if (!run || run.status === "done" || run.status === "failed" || run.status === "stopped") return;
   let allowSafetyReprocess = false;
+  let askTimedOut = false;
   if (run.status === "waiting") {
-    if (run.waiting_for) return;
-    if (run.wait_until && new Date(run.wait_until).getTime() > Date.now()) {
+    if (run.waiting_for) {
+      // ask/menu com timeout configurado → expira sem resposta
+      if (run.wait_until && new Date(run.wait_until).getTime() <= Date.now()) {
+        askTimedOut = true;
+      } else {
+        return;
+      }
+    }
+    if (!askTimedOut && run.wait_until && new Date(run.wait_until).getTime() > Date.now()) {
       const { data: lastSafetyStep } = await supabaseAdmin.from("flow_run_steps")
         .select("id, output")
         .eq("run_id", runId)
@@ -227,9 +235,11 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   if (!["pending", "waiting"].includes(run.status)) return;
 
   let claim = supabaseAdmin.from("flow_runs").update({ status: "running" }).eq("id", runId).eq("status", run.status);
-  if (run.status === "waiting" && !allowSafetyReprocess) claim = claim.lte("wait_until", new Date().toISOString()).is("waiting_for", null);
+  if (run.status === "waiting" && !allowSafetyReprocess && !askTimedOut) claim = claim.lte("wait_until", new Date().toISOString()).is("waiting_for", null);
+  if (askTimedOut) claim = claim.not("waiting_for", "is", null);
   const { data: claimed } = await claim.select("id").maybeSingle();
   if (!claimed) return;
+
 
   const flow = await loadFlow(supabaseAdmin, run.flow_id);
   if (!flow) {
@@ -254,6 +264,23 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
 
   const vars = (run.variables ?? {}) as Record<string, string>;
   const data = (node.data ?? {}) as Record<string, unknown>;
+
+  // ask/menu com timeout expirado → roteia via handle "timeout"
+  if (askTimedOut) {
+    await supabaseAdmin.from("flow_run_steps").insert({
+      run_id: runId, flow_id: run.flow_id, user_id: run.user_id,
+      node_id: node.id, node_type: node.type, status: "ok",
+      output: { timeout: true, waiting_for: run.waiting_for },
+    });
+    const edge = nextEdge(flow!, node.id, "timeout") ?? nextEdge(flow!, node.id);
+    if (!edge) {
+      await supabaseAdmin.from("flow_runs").update({ status: "done", finished_at: new Date().toISOString(), current_node_id: null, waiting_for: null, wait_until: null }).eq("id", runId);
+    } else {
+      await supabaseAdmin.from("flow_runs").update({ current_node_id: edge.target, status: "pending", waiting_for: null, wait_until: null }).eq("id", runId);
+    }
+    return;
+  }
+
 
   async function logStep(status: "ok" | "error" | "skipped", error?: string, output?: Record<string, unknown>) {
     await supabaseAdmin.from("flow_run_steps").insert({
@@ -575,18 +602,28 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       return;
     }
 
-    if (node.type === "ask") {
-      const tpl = String(data.message ?? "");
+    if (node.type === "ask" || node.type === "menu") {
+      let tpl = String(data.message ?? "");
+      if (node.type === "menu") {
+        const opts = String(data.menuOptions ?? "")
+          .split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+        if (opts.length && !/\b1\b/.test(tpl)) {
+          tpl = tpl + (tpl ? "\n\n" : "") + opts.map((o, i) => `${i + 1}. ${o}`).join("\n");
+        }
+      }
       if (tpl && inst) {
         if (!(await gateSafetyOrDefer())) return;
         await sendTextSafely(renderTemplate(tpl, vars));
       }
-      await supabaseAdmin.from("flow_runs").update({
-        status: "waiting", waiting_for: String(data.variable ?? "resposta"),
-      }).eq("id", runId);
-      await logStep("ok", undefined, { waiting_for: String(data.variable ?? "resposta") });
+      const variable = String(data.variable ?? (node.type === "menu" ? "menu_opcao" : "resposta"));
+      const timeoutSecs = Math.max(0, Number(data.timeoutSeconds ?? 0));
+      const patch: Record<string, unknown> = { status: "waiting", waiting_for: variable };
+      if (timeoutSecs > 0) patch.wait_until = new Date(Date.now() + timeoutSecs * 1000).toISOString();
+      await supabaseAdmin.from("flow_runs").update(patch).eq("id", runId);
+      await logStep("ok", undefined, { waiting_for: variable, timeout_seconds: timeoutSecs || null });
       return;
     }
+
 
     if (node.type === "delay") {
       if (run.status === "waiting" && run.wait_until && new Date(run.wait_until).getTime() <= Date.now()) {
@@ -643,39 +680,96 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       return;
     }
 
-    if (node.type === "webhook") {
-      const url = String(data.webhookUrl ?? "");
-      if (url) {
-        try {
-          const resp = await fetch(url, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              run_id: runId, flow_id: run.flow_id, contact_id: run.contact_id,
-              phone: run.contact_phone, variables: vars,
-            }),
+    if (node.type === "webhook" || node.type === "http_request") {
+      const url = renderTemplate(String(data.webhookUrl ?? data.url ?? ""), vars);
+      const method = String(data.method ?? "POST").toUpperCase();
+      const retries = Math.max(0, Math.min(5, Number(data.retries ?? (node.type === "webhook" ? 2 : 0))));
+      const savePath = String(data.savePath ?? "").trim(); // ex: "data.items.0.id"
+      const saveVar = String(data.saveVar ?? "").trim();
+      let headers: Record<string, string> = { "content-type": "application/json" };
+      try {
+        const hraw = data.headers;
+        if (typeof hraw === "string" && hraw.trim()) Object.assign(headers, JSON.parse(renderTemplate(hraw, vars)));
+        else if (hraw && typeof hraw === "object") Object.assign(headers, hraw as Record<string, string>);
+      } catch { /* ignora json inválido */ }
+      let bodyStr: string | undefined;
+      if (method !== "GET" && method !== "HEAD") {
+        if (data.body !== undefined && data.body !== null && String(data.body).length) {
+          bodyStr = renderTemplate(String(data.body), vars);
+        } else {
+          bodyStr = JSON.stringify({
+            run_id: runId, flow_id: run.flow_id, contact_id: run.contact_id,
+            phone: run.contact_phone, variables: vars,
           });
+        }
+      }
+      if (!url) {
+        await logStep("skipped", "URL vazia");
+        await goNext();
+        return;
+      }
+      let attempt = 0;
+      let lastErr: string | null = null;
+      let succeeded = false;
+      while (attempt <= retries && !succeeded) {
+        attempt++;
+        try {
+          const resp = await fetch(url, { method, headers, body: bodyStr });
           let body: unknown = null;
-          try { body = await resp.json(); } catch { body = await resp.text(); }
-          // Se a resposta for objeto, mescla nas variables
-          if (body && typeof body === "object" && !Array.isArray(body)) {
+          const ct = resp.headers.get("content-type") ?? "";
+          if (ct.includes("application/json")) {
+            try { body = await resp.json(); } catch { body = await resp.text(); }
+          } else {
+            try { body = await resp.text(); } catch { body = null; }
+          }
+          if (!resp.ok) {
+            lastErr = `HTTP ${resp.status}`;
+            // 5xx: retry; 4xx: não retry
+            if (resp.status < 500 || attempt > retries) {
+              await logStep("error", lastErr, { status: resp.status, body });
+              await goNext("error");
+              return;
+            }
+            await new Promise((r) => setTimeout(r, Math.min(2000, 250 * attempt)));
+            continue;
+          }
+          // mescla resposta nas variáveis (compatibilidade)
+          if (body && typeof body === "object" && !Array.isArray(body) && !saveVar) {
             const merged = { ...vars, ...(body as Record<string, string>) };
             await supabaseAdmin.from("flow_runs").update({ variables: merged }).eq("id", runId);
           }
-          await logStep("ok", undefined, { status: resp.status });
+          // savePath: extrai campo aninhado e salva em saveVar
+          if (saveVar) {
+            let value: unknown = body;
+            if (savePath) {
+              for (const seg of savePath.split(".")) {
+                if (value == null) break;
+                value = (value as Record<string, unknown>)[seg];
+              }
+            }
+            const merged = { ...vars, [saveVar]: value == null ? "" : (typeof value === "object" ? JSON.stringify(value) : String(value)) };
+            await supabaseAdmin.from("flow_runs").update({ variables: merged }).eq("id", runId);
+          }
+          await logStep("ok", undefined, { status: resp.status, attempts: attempt });
+          succeeded = true;
         } catch (e) {
-          await logStep("error", (e as Error).message);
+          lastErr = (e as Error).message;
+          if (attempt > retries) {
+            await logStep("error", lastErr);
+            await goNext("error");
+            return;
+          }
+          await new Promise((r) => setTimeout(r, Math.min(2000, 250 * attempt)));
         }
-      } else {
-        await logStep("skipped", "URL vazia");
       }
-      await goNext();
+      await goNext(succeeded ? "ok" : "error");
       return;
     }
 
     if (node.type === "ai") {
       const sys = String(data.systemPrompt ?? "Você é um atendente educado e direto.");
       const userInput = renderTemplate(String(data.userInput ?? ""), vars);
+      const model = String(data.model ?? "google/gemini-3-flash-preview");
       const apiKey = process.env.LOVABLE_API_KEY;
       let reply = "";
       if (apiKey && userInput) {
@@ -684,7 +778,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
             method: "POST",
             headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
+              model,
               messages: [{ role: "system", content: sys }, { role: "user", content: userInput }],
             }),
           });
@@ -694,14 +788,21 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           await logStep("error", (e as Error).message);
         }
       }
-      if (reply && inst) {
+      const saveVar = String(data.saveVar ?? "").trim();
+      if (saveVar && reply) {
+        await supabaseAdmin.from("flow_runs").update({ variables: { ...vars, [saveVar]: reply } }).eq("id", runId);
+      }
+      const shouldSend = data.send === false ? false : true;
+      if (reply && shouldSend && inst) {
         if (!(await gateSafetyOrDefer())) return;
         try { await sendTextSafely(reply); } catch (e) { await logStep("error", (e as Error).message); }
       }
-      await logStep("ok", undefined, { sent: !!reply, reply: reply.slice(0, 200) });
+      await logStep("ok", undefined, { sent: !!reply && shouldSend, model, reply: reply.slice(0, 200) });
       await goNext();
       return;
     }
+
+
 
     if (node.type === "sticker") {
       const url = String(data.stickerUrl ?? "");
@@ -852,8 +953,149 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       return;
     }
 
+    // ============ Novos nós utilitários ============
+
+    if (node.type === "comment") {
+      // sticky note: não executa, só segue.
+      await goNext();
+      return;
+    }
+
+    if (node.type === "end") {
+      await logStep("ok", undefined, { ended: true, reason: data.reason ?? null });
+      await supabaseAdmin.from("flow_runs").update({ status: "done", finished_at: new Date().toISOString(), current_node_id: null }).eq("id", runId);
+      return;
+    }
+
+    if (node.type === "jump") {
+      const targetId = String(data.jumpTo ?? "").trim();
+      const found = targetId ? flow!.nodes.find((n) => n.id === targetId) : undefined;
+      if (!found) {
+        await logStep("skipped", "Nó destino não encontrado");
+        await goNext();
+        return;
+      }
+      await logStep("ok", undefined, { jumped_to: targetId });
+      await supabaseAdmin.from("flow_runs").update({
+        current_node_id: targetId, status: "pending", waiting_for: null, wait_until: null,
+      }).eq("id", runId);
+      return;
+    }
+
+    if (node.type === "set_variable") {
+      const updates: Record<string, string> = {};
+      // Modo único: {variable, value}
+      const single = String(data.variable ?? "").trim();
+      if (single) updates[single] = renderTemplate(String(data.value ?? ""), vars);
+      // Modo múltiplo: pairs string "var=valor" por linha
+      const pairsRaw = String(data.pairs ?? "");
+      pairsRaw.split(/\r?\n/).forEach((line) => {
+        const idx = line.indexOf("=");
+        if (idx <= 0) return;
+        const k = line.slice(0, idx).trim();
+        const v = renderTemplate(line.slice(idx + 1).trim(), vars);
+        if (k) updates[k] = v;
+      });
+      if (Object.keys(updates).length) {
+        await supabaseAdmin.from("flow_runs").update({ variables: { ...vars, ...updates } }).eq("id", runId);
+      }
+      await logStep("ok", undefined, { set: Object.keys(updates) });
+      await goNext();
+      return;
+    }
+
+    if (node.type === "random_split") {
+      // weights: "a=2\nb=1\nc=1" -> handles "a","b","c"
+      const raw = String(data.weights ?? "a=1\nb=1");
+      const items = raw.split(/\r?\n/).map((l) => {
+        const [k, v] = l.split("=");
+        const w = Math.max(0, Number(v ?? 1));
+        return { handle: (k ?? "").trim(), weight: Number.isFinite(w) ? w : 1 };
+      }).filter((x) => x.handle);
+      const total = items.reduce((s, x) => s + x.weight, 0);
+      let pick = items[0]?.handle ?? "a";
+      if (total > 0) {
+        let r = Math.random() * total;
+        for (const it of items) { r -= it.weight; if (r <= 0) { pick = it.handle; break; } }
+      }
+      await logStep("ok", undefined, { picked: pick });
+      await goNext(pick);
+      return;
+    }
+
+    if (node.type === "time_window") {
+      // Horário comercial em BR (UTC-3). Handles: "in" / "out".
+      const startH = Math.max(0, Math.min(23, Number(data.startHour ?? 9)));
+      const endH = Math.max(0, Math.min(24, Number(data.endHour ?? 18)));
+      const days = String(data.days ?? "1,2,3,4,5").split(",").map((d) => Number(d.trim())).filter((d) => Number.isFinite(d));
+      const now = new Date();
+      const brHour = (now.getUTCHours() - 3 + 24) % 24;
+      const brDow = (now.getUTCDay() + (now.getUTCHours() < 3 ? 6 : 0)) % 7; // 0=dom
+      const inDay = days.includes(brDow);
+      const inHour = startH <= endH ? (brHour >= startH && brHour < endH) : (brHour >= startH || brHour < endH);
+      const inside = inDay && inHour;
+      await logStep("ok", undefined, { inside, brHour, brDow });
+      await goNext(inside ? "in" : "out");
+      return;
+    }
+
+    if (node.type === "update_contact") {
+      const { data: c } = await supabaseAdmin.from("contacts").select("name, email, variables").eq("id", run.contact_id).maybeSingle();
+      const patch: Record<string, unknown> = {};
+      const cv = (c?.variables ?? {}) as Record<string, unknown>;
+      const nextVars = { ...cv };
+      if (data.contactName) patch.name = renderTemplate(String(data.contactName), vars);
+      if (data.contactEmail) patch.email = renderTemplate(String(data.contactEmail), vars);
+      const customRaw = String(data.customFields ?? "");
+      customRaw.split(/\r?\n/).forEach((line) => {
+        const idx = line.indexOf("=");
+        if (idx <= 0) return;
+        const k = line.slice(0, idx).trim();
+        const v = renderTemplate(line.slice(idx + 1).trim(), vars);
+        if (k) nextVars[k] = v;
+      });
+      if (Object.keys(nextVars).length !== Object.keys(cv).length || Object.keys(nextVars).some((k) => nextVars[k] !== cv[k])) {
+        patch.variables = nextVars;
+      }
+      if (Object.keys(patch).length) {
+        await supabaseAdmin.from("contacts").update(patch).eq("id", run.contact_id);
+      }
+      await logStep("ok", undefined, { updated: Object.keys(patch) });
+      await goNext();
+      return;
+    }
+
+    if (node.type === "note") {
+      const body = renderTemplate(String(data.note ?? ""), vars).trim();
+      if (body) {
+        const { data: conv } = await supabaseAdmin.from("crm_conversations")
+          .select("id").eq("owner_user_id", run.user_id).eq("contact_phone", run.contact_phone).maybeSingle();
+        if (conv?.id) {
+          await supabaseAdmin.from("crm_notes").insert({
+            conversation_id: conv.id, user_id: run.user_id, body, source: "flow",
+          });
+        }
+      }
+      await logStep("ok", undefined, { saved: !!body });
+      await goNext();
+      return;
+    }
+
+    if (node.type === "assign_agent") {
+      const agentId = String(data.agentId ?? "").trim() || null;
+      const status = String(data.conversationStatus ?? "open");
+      const { error: convErr } = await supabaseAdmin.from("crm_conversations")
+        .update({ assigned_agent_id: agentId, status, updated_at: new Date().toISOString() })
+        .eq("owner_user_id", run.user_id)
+        .eq("contact_phone", run.contact_phone);
+      await logStep(convErr ? "error" : "ok", convErr?.message, { agentId, status });
+      await goNext();
+      return;
+    }
+
     await logStep("ok");
     await goNext();
+
   } catch (e) {
     const msg = (e as Error).message;
     await logStep("error", msg);
@@ -878,14 +1120,31 @@ export async function resumeFlowRunsForReply(
     if (!flow) continue;
     const node = flow.nodes.find((n) => n.id === r.current_node_id);
     if (!node) continue;
-    const newVars = { ...(r.variables ?? {}), [r.waiting_for]: args.text ?? "" };
-    const edge = nextEdge(flow, node.id);
+    const reply = args.text ?? "";
+    const newVars = { ...(r.variables ?? {}), [r.waiting_for]: reply };
+    // Menu: roteia pelo número da opção (1..N) → handle "opt_N"; vazio/inválido → "invalid"
+    let handle: string | undefined;
+    if (node.type === "menu") {
+      const data = (node.data ?? {}) as Record<string, unknown>;
+      const opts = String(data.menuOptions ?? "").split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+      const digit = (reply.match(/\d+/)?.[0]) ?? "";
+      const idx = digit ? Number(digit) : NaN;
+      if (Number.isFinite(idx) && idx >= 1 && idx <= opts.length) {
+        handle = `opt_${idx}`;
+        newVars[`${r.waiting_for}_label`] = opts[idx - 1];
+      } else {
+        handle = "invalid";
+      }
+    }
+    const edge = nextEdge(flow, node.id, handle);
     await supabaseAdmin.from("flow_runs").update({
       variables: newVars,
       waiting_for: null,
+      wait_until: null,
       status: "pending",
       current_node_id: edge?.target ?? null,
       ...(edge ? {} : { finished_at: new Date().toISOString(), status: "done" }),
+
     }).eq("id", r.id);
   }
 }
