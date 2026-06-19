@@ -144,6 +144,15 @@
   --shadow-glow: 0 0 60px -10px oklch(0.62 0.21 275 / 0.55);
   --shadow-elegant: 0 20px 60px -20px oklch(0.05 0.02 280 / 0.8);
   --shadow-card: 0 10px 30px -10px oklch(0.05 0.02 280 / 0.6);
+
+  /* ===== Chat / CRM ===== */
+  --chat-bg: oklch(0.12 0.04 280);
+  --chat-out: oklch(0.32 0.16 275);
+  --chat-out-fg: oklch(0.99 0.01 280);
+  --chat-in: oklch(0.20 0.05 280);
+  --chat-in-fg: oklch(0.96 0.01 280);
+  --chat-tick-read: oklch(0.72 0.17 235);
+  --chat-quoted-border: oklch(0.72 0.20 275);
 }
 
 /* ============== LIGHT — Cloud Indigo ============== */
