@@ -3,6 +3,7 @@
 // Retorna: { txid, qrcode (br code copia-cola), imagem_qrcode (data:image/png base64), valor, expires_in }
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { efiPixFetch } from "../_shared/efi.ts";
+import QRCode from "https://esm.sh/qrcode@1.5.4";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -59,12 +60,23 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Falha ao criar cobrança PIX", details: txt }), { status: 502, headers: { ...cors, "Content-Type": "application/json" } });
     }
     const cob = await cobRes.json();
-    const locId: number | undefined = cob?.loc?.id;
-    if (!locId) throw new Error("Cobrança sem location id");
+    let qrcode = cob?.pixCopiaECola;
+    let imagemQrcode: string | undefined;
 
-    const qrRes = await efiPixFetch(`/v2/loc/${locId}/qrcode`);
-    if (!qrRes.ok) throw new Error(`QR code falhou: ${await qrRes.text()}`);
-    const qr = await qrRes.json();
+    // A rota /v2/loc/:id/qrcode exige o escopo payloadlocation.read.
+    // Quando a aplicação Efí tem apenas cob.write, a própria cobrança já retorna pixCopiaECola;
+    // geramos a imagem localmente para o checkout não travar por falta desse escopo extra.
+    if (qrcode) {
+      imagemQrcode = await QRCode.toDataURL(qrcode, { margin: 1, width: 320 });
+    } else {
+      const locId: number | undefined = cob?.loc?.id;
+      if (!locId) throw new Error("Cobrança sem Pix Copia e Cola e sem location id");
+      const qrRes = await efiPixFetch(`/v2/loc/${locId}/qrcode`);
+      if (!qrRes.ok) throw new Error(`QR code falhou: ${await qrRes.text()}`);
+      const qr = await qrRes.json();
+      qrcode = qr.qrcode;
+      imagemQrcode = qr.imagemQrcode;
+    }
 
     // TODO: persistir txid em tabela própria de cobranças PIX para reconciliar via webhook
 
@@ -72,8 +84,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         txid,
-        qrcode: qr.qrcode,
-        imagem_qrcode: qr.imagemQrcode,
+        qrcode,
+        imagem_qrcode: imagemQrcode,
         valor,
         expires_in: 3600,
       }),

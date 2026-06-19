@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import EfiPay from "payment-token-efi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,19 +10,6 @@ import { toast } from "sonner";
 import { Loader2, CreditCard, ShieldCheck } from "lucide-react";
 import { getEfiPublicConfigFn } from "@/lib/billing.functions";
 import { supabase } from "@/integrations/supabase/client";
-
-// Tipagem mínima do SDK Efí ($gn) injetado dinamicamente
-type EfiCheckout = {
-  getPaymentToken: (
-    card: { brand: string; number: string; cvv: string; expiration_month: string; expiration_year: string },
-    cb: (error: unknown, response: { data: { payment_token: string; card_mask: string } }) => void,
-  ) => void;
-};
-declare global {
-  interface Window {
-    $gn?: { ready: (cb: (checkout: EfiCheckout) => void) => void };
-  }
-}
 
 function detectBrand(num: string): string {
   const n = num.replace(/\D/g, "");
@@ -35,42 +23,17 @@ function detectBrand(num: string): string {
   return "visa";
 }
 
-function loadEfiScript(payeeCode: string, env: "prod" | "sandbox"): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (document.getElementById(payeeCode)) {
-      const wait = setInterval(() => {
-        if (window.$gn) { clearInterval(wait); resolve(); }
-      }, 100);
-      setTimeout(() => { clearInterval(wait); reject(new Error("Timeout carregando SDK Efí")); }, 10000);
-      return;
+async function functionErrorMessage(error: unknown) {
+  const context = (error as { context?: Response })?.context;
+  if (context instanceof Response) {
+    try {
+      const body = await context.clone().json();
+      return body?.details?.error_description ?? body?.details?.message ?? body?.details?.mensagem ?? body?.error;
+    } catch {
+      return await context.clone().text();
     }
-    const v = Math.floor(Math.random() * 1_000_000);
-    const host = env === "prod" ? "api.gerencianet.com.br" : "sandbox.gerencianet.com.br";
-    const s = document.createElement("script");
-    s.src = `https://${host}/v1/cdn/${payeeCode}/${v}`;
-    s.async = false;
-    s.id = payeeCode;
-    s.onerror = () => reject(new Error("Falha ao carregar SDK Efí (verifique payee code)"));
-    document.head.appendChild(s);
-    const wait = setInterval(() => {
-      if (window.$gn) { clearInterval(wait); resolve(); }
-    }, 100);
-    setTimeout(() => { clearInterval(wait); reject(new Error("Timeout carregando SDK Efí")); }, 15000);
-  });
-}
-
-function tokenizeCard(card: {
-  brand: string; number: string; cvv: string; expiration_month: string; expiration_year: string;
-}): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (!window.$gn) return reject(new Error("SDK Efí não carregado"));
-    window.$gn.ready((checkout) => {
-      checkout.getPaymentToken(card, (err, res) => {
-        if (err) return reject(err);
-        resolve(res.data.payment_token);
-      });
-    });
-  });
+  }
+  return (error as Error)?.message;
 }
 
 type Props = {
@@ -85,17 +48,6 @@ type Props = {
 export function CardCheckoutDialog({ open, onOpenChange, planId, planName, priceCents, onSuccess }: Props) {
   const cfgFn = useServerFn(getEfiPublicConfigFn);
   const { data: cfg } = useQuery({ queryKey: ["efi-public-config"], queryFn: () => cfgFn(), enabled: open });
-  const [loadingSdk, setLoadingSdk] = useState(false);
-  const scriptLoaded = useRef(false);
-
-  useEffect(() => {
-    if (!open || !cfg?.payeeCode || scriptLoaded.current) return;
-    setLoadingSdk(true);
-    loadEfiScript(cfg.payeeCode, cfg.env)
-      .then(() => { scriptLoaded.current = true; })
-      .catch((e) => toast.error(String(e.message ?? e)))
-      .finally(() => setLoadingSdk(false));
-  }, [open, cfg?.payeeCode]);
 
   // Form state
   const [number, setNumber] = useState("");
@@ -117,13 +69,27 @@ export function CardCheckoutDialog({ open, onOpenChange, planId, planName, price
 
   const subscribe = useMutation({
     mutationFn: async () => {
+      if (!cfg?.payeeCode) throw new Error("Identificador de conta Efí não carregado");
       const cleanNumber = number.replace(/\s/g, "");
       const brand = detectBrand(cleanNumber);
-      const payment_token = await tokenizeCard({
-        brand, number: cleanNumber, cvv,
-        expiration_month: expMonth.padStart(2, "0"),
-        expiration_year: expYear.length === 2 ? `20${expYear}` : expYear,
-      });
+      const tokenResult = await EfiPay.CreditCard
+        .setAccount(cfg.payeeCode)
+        .setEnvironment(cfg.env === "prod" ? "production" : "sandbox")
+        .setCreditCardData({
+          brand,
+          number: cleanNumber,
+          cvv,
+          expirationMonth: expMonth.padStart(2, "0"),
+          expirationYear: expYear.length === 2 ? `20${expYear}` : expYear,
+          holderName,
+          holderDocument: cpf.replace(/\D/g, ""),
+          reuse: false,
+        })
+        .getPaymentToken();
+      if (!("payment_token" in tokenResult)) {
+        throw new Error(tokenResult.error_description ?? "Falha ao tokenizar cartão");
+      }
+      const payment_token = tokenResult.payment_token;
       const { data, error } = await supabase.functions.invoke("efi-subscribe-card", {
         body: {
           plan_id: planId,
@@ -142,7 +108,7 @@ export function CardCheckoutDialog({ open, onOpenChange, planId, planName, price
           },
         },
       });
-      if (error) throw error;
+      if (error) throw new Error((await functionErrorMessage(error)) ?? "Falha ao processar pagamento");
       if (data?.error) throw new Error(data.details?.error_description ?? data.error);
       return data;
     },
@@ -151,7 +117,7 @@ export function CardCheckoutDialog({ open, onOpenChange, planId, planName, price
       onSuccess?.();
       onOpenChange(false);
     },
-    onError: (e: Error) => toast.error(e.message ?? "Falha ao processar pagamento"),
+    onError: (e: Error & { error_description?: string }) => toast.error(e.error_description ?? e.message ?? "Falha ao processar pagamento"),
   });
 
   const priceFmt = (priceCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -250,9 +216,9 @@ export function CardCheckoutDialog({ open, onOpenChange, planId, planName, price
             </div>
           </div>
 
-          <Button type="submit" disabled={loadingSdk || subscribe.isPending || !scriptLoaded.current} className="w-full">
+          <Button type="submit" disabled={!cfg?.payeeCode || subscribe.isPending} className="w-full">
             {subscribe.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...</>
-              : loadingSdk ? "Carregando..." : `Assinar por ${priceFmt}/mês`}
+              : !cfg?.payeeCode ? "Carregando..." : `Assinar por ${priceFmt}/mês`}
           </Button>
         </form>
       </DialogContent>
