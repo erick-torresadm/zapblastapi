@@ -899,9 +899,35 @@ function FlowsInner() {
                         <Input id="ask-var" value={d.variable ?? ""} onChange={(e) => updateSelected({ variable: e.target.value })} placeholder="nome" />
                         <p className="mt-1 text-[11px] text-muted-foreground">Use depois como <code className="rounded bg-muted px-1">{`{{${d.variable || "nome"}}}`}</code></p>
                       </div>
+                      <div>
+                        <Label htmlFor="ask-timeout">Timeout (segundos, 0 = sem timeout)</Label>
+                        <Input id="ask-timeout" type="number" min={0} value={d.timeoutSeconds ?? 0} onChange={(e) => updateSelected({ timeoutSeconds: Math.max(0, Number(e.target.value) || 0) })} />
+                        <p className="mt-1 text-[11px] text-muted-foreground">Se o contato não responder em até X segundos, segue pela saída <span className="font-medium text-amber-500">TIMEOUT</span>.</p>
+                      </div>
                     </>
                   )}
 
+                  {t === "menu" && (
+                    <>
+                      <div>
+                        <Label htmlFor="menu-msg">Mensagem (opcional, opções são acrescentadas)</Label>
+                        <Textarea id="menu-msg" rows={3} value={d.message ?? ""} onChange={(e) => updateSelected({ message: e.target.value })} placeholder="Em que posso ajudar?" />
+                      </div>
+                      <div>
+                        <Label htmlFor="menu-opts">Opções (uma por linha)</Label>
+                        <Textarea id="menu-opts" rows={5} value={d.menuOptions ?? ""} onChange={(e) => updateSelected({ menuOptions: e.target.value })} placeholder={"Falar com vendas\nSuporte\nFinanceiro\nOutros"} />
+                        <p className="mt-1 text-[11px] text-muted-foreground">O contato responde com o número. Cada opção vira uma saída (opt_1, opt_2…). "?" é o caminho para resposta inválida.</p>
+                      </div>
+                      <div>
+                        <Label htmlFor="menu-var">Salvar escolha em</Label>
+                        <Input id="menu-var" value={d.variable ?? ""} onChange={(e) => updateSelected({ variable: e.target.value })} placeholder="menu_opcao" />
+                      </div>
+                      <div>
+                        <Label htmlFor="menu-timeout">Timeout (segundos)</Label>
+                        <Input id="menu-timeout" type="number" min={0} value={d.timeoutSeconds ?? 0} onChange={(e) => updateSelected({ timeoutSeconds: Math.max(0, Number(e.target.value) || 0) })} />
+                      </div>
+                    </>
+                  )}
 
                   {t === "ai" && (
                     <>
@@ -913,6 +939,25 @@ function FlowsInner() {
                         <Label htmlFor="ai-input">Entrada do usuário</Label>
                         <Input id="ai-input" value={(d.userInput as string) ?? ""} onChange={(e) => updateSelected({ userInput: e.target.value })} placeholder="{{pergunta}}" />
                       </div>
+                      <div>
+                        <Label htmlFor="ai-model">Modelo</Label>
+                        <select id="ai-model" value={d.model ?? "google/gemini-3-flash-preview"} onChange={(e) => updateSelected({ model: e.target.value })}
+                          className="mt-1 h-9 w-full rounded-full border border-input bg-background px-3 text-sm">
+                          <option value="google/gemini-3-flash-preview">Gemini 3 Flash (rápido)</option>
+                          <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+                          <option value="google/gemini-2.5-pro">Gemini 2.5 Pro (mais inteligente)</option>
+                          <option value="openai/gpt-5-mini">GPT-5 mini</option>
+                          <option value="openai/gpt-5">GPT-5</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="ai-save">Salvar resposta em variável (opcional)</Label>
+                        <Input id="ai-save" value={d.saveVar ?? ""} onChange={(e) => updateSelected({ saveVar: e.target.value })} placeholder="resposta_ia" />
+                      </div>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={d.send !== false} onChange={(e) => updateSelected({ send: e.target.checked })} />
+                        Enviar a resposta no WhatsApp
+                      </label>
                     </>
                   )}
 
@@ -927,7 +972,7 @@ function FlowsInner() {
                           placeholder="Um atendente vai continuar daqui, {{nome}}. Só um momento 🙂"
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">Envia a mensagem (se preenchida), abre a conversa no CRM como “aberta” para o time assumir e encerra a automação para este contato.</p>
+                      <p className="text-xs text-muted-foreground">Envia a mensagem (se preenchida), abre a conversa no CRM como "aberta" para o time assumir e encerra a automação para este contato.</p>
                     </>
                   )}
 
@@ -946,14 +991,24 @@ function FlowsInner() {
                   {t === "condition" && (
                     <>
                       <div>
-                        <Label htmlFor="field">Campo do contato</Label>
+                        <Label htmlFor="field">Variável / campo</Label>
                         <Input id="field" value={d.conditionField ?? ""} onChange={(e) => updateSelected({ conditionField: e.target.value })} placeholder="cidade" />
                       </div>
                       <div>
-                        <Label htmlFor="equals">É igual a</Label>
+                        <Label htmlFor="op">Operador</Label>
+                        <select id="op" value={d.conditionOp ?? "eq"} onChange={(e) => updateSelected({ conditionOp: e.target.value as StepData["conditionOp"] })}
+                          className="mt-1 h-9 w-full rounded-full border border-input bg-background px-3 text-sm">
+                          <option value="eq">igual</option>
+                          <option value="contains">contém</option>
+                          <option value="lte">≤ (número)</option>
+                          <option value="gte">≥ (número)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="equals">Valor</Label>
                         <Input id="equals" value={d.conditionEquals ?? ""} onChange={(e) => updateSelected({ conditionEquals: e.target.value })} placeholder="São Paulo" />
                       </div>
-                      <p className="text-[11px] text-muted-foreground">A saída <span className="font-medium text-emerald-500">SIM</span> dispara quando a condição bate.</p>
+                      <p className="text-[11px] text-muted-foreground">Saída <span className="font-medium text-emerald-500">SIM</span> quando bater.</p>
                     </>
                   )}
 
@@ -964,12 +1019,169 @@ function FlowsInner() {
                     </div>
                   )}
 
-                  {t === "webhook" && (
-                    <div>
-                      <Label htmlFor="url">URL</Label>
-                      <Input id="url" value={d.webhookUrl ?? ""} onChange={(e) => updateSelected({ webhookUrl: e.target.value })} placeholder="https://meu-sistema.com/hook" />
+                  {(t === "webhook" || t === "http_request") && (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-[110px_1fr] gap-2">
+                        <div>
+                          <Label htmlFor="http-method">Método</Label>
+                          <select id="http-method" value={d.method ?? (t === "webhook" ? "POST" : "GET")}
+                            onChange={(e) => updateSelected({ method: e.target.value as StepData["method"] })}
+                            className="mt-1 h-9 w-full rounded-full border border-input bg-background px-3 text-sm">
+                            {(["GET","POST","PUT","PATCH","DELETE"] as const).map((m) => <option key={m} value={m}>{m}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <Label htmlFor="http-url">URL</Label>
+                          <Input id="http-url" value={(d.webhookUrl ?? d.url) ?? ""} onChange={(e) => updateSelected({ webhookUrl: e.target.value, url: e.target.value })} placeholder="https://meu-sistema.com/hook" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="http-headers">Headers (JSON, opcional)</Label>
+                        <Textarea id="http-headers" rows={2} value={(d.headers as string) ?? ""} onChange={(e) => updateSelected({ headers: e.target.value })} placeholder='{"x-api-key":"..."}' />
+                      </div>
+                      {(d.method ?? "POST") !== "GET" && (
+                        <div>
+                          <Label htmlFor="http-body">Body (opcional — padrão envia variáveis do fluxo)</Label>
+                          <Textarea id="http-body" rows={4} value={(d.body as string) ?? ""} onChange={(e) => updateSelected({ body: e.target.value })} placeholder='{"telefone":"{{telefone}}","nome":"{{nome}}"}' />
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="http-retries">Retries em falha</Label>
+                          <Input id="http-retries" type="number" min={0} max={5} value={d.retries ?? 2} onChange={(e) => updateSelected({ retries: Math.max(0, Math.min(5, Number(e.target.value) || 0)) })} />
+                        </div>
+                        <div>
+                          <Label htmlFor="http-savevar">Salvar resposta em</Label>
+                          <Input id="http-savevar" value={d.saveVar ?? ""} onChange={(e) => updateSelected({ saveVar: e.target.value })} placeholder="resposta" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="http-savepath">Caminho JSON (ex: data.items.0.id)</Label>
+                        <Input id="http-savepath" value={d.savePath ?? ""} onChange={(e) => updateSelected({ savePath: e.target.value })} placeholder="data.user.name" />
+                        <p className="mt-1 text-[11px] text-muted-foreground">Saídas: <span className="text-emerald-500">OK</span> em sucesso, <span className="text-red-500">ERRO</span> após esgotar retries.</p>
+                      </div>
                     </div>
                   )}
+
+                  {t === "set_variable" && (
+                    <>
+                      <div>
+                        <Label htmlFor="sv-var">Variável</Label>
+                        <Input id="sv-var" value={d.variable ?? ""} onChange={(e) => updateSelected({ variable: e.target.value })} placeholder="status" />
+                      </div>
+                      <div>
+                        <Label htmlFor="sv-val">Valor (suporta {`{{variavel}}`})</Label>
+                        <Input id="sv-val" value={d.value ?? ""} onChange={(e) => updateSelected({ value: e.target.value })} placeholder="qualificado" />
+                      </div>
+                      <div>
+                        <Label htmlFor="sv-pairs">Ou várias (uma por linha: nome=valor)</Label>
+                        <Textarea id="sv-pairs" rows={3} value={d.pairs ?? ""} onChange={(e) => updateSelected({ pairs: e.target.value })} placeholder={"status=qualificado\netapa=2"} />
+                      </div>
+                    </>
+                  )}
+
+                  {t === "random_split" && (
+                    <>
+                      <div>
+                        <Label htmlFor="rs-weights">Saídas com peso (uma por linha)</Label>
+                        <Textarea id="rs-weights" rows={4} value={d.weights ?? "a=1\nb=1"} onChange={(e) => updateSelected({ weights: e.target.value })} placeholder={"a=2\nb=1\nc=1"} />
+                        <p className="mt-1 text-[11px] text-muted-foreground">Cada linha cria uma saída com o nome à esquerda do "=". O número é o peso relativo.</p>
+                      </div>
+                    </>
+                  )}
+
+                  {t === "jump" && (
+                    <>
+                      <div>
+                        <Label htmlFor="jump-to">Nó de destino</Label>
+                        <select id="jump-to" value={d.jumpTo ?? ""} onChange={(e) => updateSelected({ jumpTo: e.target.value })}
+                          className="mt-1 h-9 w-full rounded-full border border-input bg-background px-3 text-sm">
+                          <option value="">— escolher —</option>
+                          {nodes.filter((n) => n.id !== selectedId).map((n) => (
+                            <option key={n.id} value={n.id}>{(n.data as StepData).label || n.id} ({n.type})</option>
+                          ))}
+                        </select>
+                        <p className="mt-1 text-[11px] text-muted-foreground">Útil para loops ou voltar pro menu principal.</p>
+                      </div>
+                    </>
+                  )}
+
+                  {t === "end" && (
+                    <div>
+                      <Label htmlFor="end-reason">Motivo (opcional)</Label>
+                      <Input id="end-reason" value={d.reason ?? ""} onChange={(e) => updateSelected({ reason: e.target.value })} placeholder="cliente desistiu" />
+                    </div>
+                  )}
+
+                  {t === "time_window" && (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="tw-start">Hora início (0-23)</Label>
+                          <Input id="tw-start" type="number" min={0} max={23} value={d.startHour ?? 9} onChange={(e) => updateSelected({ startHour: Number(e.target.value) })} />
+                        </div>
+                        <div>
+                          <Label htmlFor="tw-end">Hora fim (1-24)</Label>
+                          <Input id="tw-end" type="number" min={1} max={24} value={d.endHour ?? 18} onChange={(e) => updateSelected({ endHour: Number(e.target.value) })} />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="tw-days">Dias da semana (0=dom, 6=sáb)</Label>
+                        <Input id="tw-days" value={d.days ?? "1,2,3,4,5"} onChange={(e) => updateSelected({ days: e.target.value })} placeholder="1,2,3,4,5" />
+                        <p className="mt-1 text-[11px] text-muted-foreground">Horário do Brasil (UTC-3). Saída <span className="text-emerald-500">DENTRO</span> em horário comercial, <span className="text-amber-500">FORA</span> caso contrário.</p>
+                      </div>
+                    </>
+                  )}
+
+                  {t === "update_contact" && (
+                    <>
+                      <div>
+                        <Label htmlFor="uc-name">Nome (suporta {`{{var}}`})</Label>
+                        <Input id="uc-name" value={d.contactName ?? ""} onChange={(e) => updateSelected({ contactName: e.target.value })} placeholder="{{nome}}" />
+                      </div>
+                      <div>
+                        <Label htmlFor="uc-email">E-mail</Label>
+                        <Input id="uc-email" value={d.contactEmail ?? ""} onChange={(e) => updateSelected({ contactEmail: e.target.value })} placeholder="{{email}}" />
+                      </div>
+                      <div>
+                        <Label htmlFor="uc-fields">Campos customizados (chave=valor por linha)</Label>
+                        <Textarea id="uc-fields" rows={4} value={d.customFields ?? ""} onChange={(e) => updateSelected({ customFields: e.target.value })} placeholder={"cidade={{cidade}}\nplano=premium"} />
+                      </div>
+                    </>
+                  )}
+
+                  {t === "note" && (
+                    <div>
+                      <Label htmlFor="note-body">Nota</Label>
+                      <Textarea id="note-body" rows={4} value={d.note ?? ""} onChange={(e) => updateSelected({ note: e.target.value })} placeholder="Lead respondeu interesse em {{produto}}" />
+                    </div>
+                  )}
+
+                  {t === "assign_agent" && (
+                    <>
+                      <div>
+                        <Label htmlFor="aa-id">ID do agente</Label>
+                        <Input id="aa-id" value={d.agentId ?? ""} onChange={(e) => updateSelected({ agentId: e.target.value })} placeholder="uuid do agente (ou vazio = fila)" />
+                      </div>
+                      <div>
+                        <Label htmlFor="aa-status">Status da conversa</Label>
+                        <select id="aa-status" value={d.conversationStatus ?? "open"} onChange={(e) => updateSelected({ conversationStatus: e.target.value as StepData["conversationStatus"] })}
+                          className="mt-1 h-9 w-full rounded-full border border-input bg-background px-3 text-sm">
+                          <option value="open">Aberta</option>
+                          <option value="pending">Pendente</option>
+                          <option value="closed">Fechada</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {t === "comment" && (
+                    <div>
+                      <Label htmlFor="comment-body">Anotação (não executa)</Label>
+                      <Textarea id="comment-body" rows={4} value={d.note ?? ""} onChange={(e) => updateSelected({ note: e.target.value })} placeholder="Use isso pra documentar o fluxo pro time" />
+                    </div>
+                  )}
+
 
                   {t === "sticker" && (
                     <div className="space-y-2">
