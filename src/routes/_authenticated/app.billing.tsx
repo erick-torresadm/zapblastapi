@@ -62,7 +62,7 @@ function BillingPage() {
             </CardTitle>
             <CardDescription>
               {sub.current_period_end && `Renova em ${new Date(sub.current_period_end).toLocaleDateString("pt-BR")}`}
-              {sub.status === "trialing" && sub.trial_ends_at && ` · trial até ${new Date(sub.trial_ends_at).toLocaleDateString("pt-BR")}`}
+              {sub.status === "trialing" && (sub as { trial_ends_at?: string | null }).trial_ends_at && ` · trial até ${new Date((sub as { trial_ends_at: string }).trial_ends_at).toLocaleDateString("pt-BR")}`}
             </CardDescription>
           </CardHeader>
         </Card>
