@@ -34,6 +34,7 @@ function BillingPage() {
   const [cycle, setCycle] = useState<Cycle>(initialCycle);
 
   const [cardPlan, setCardPlan] = useState<{ id: string; name: string; price: number } | null>(null);
+  const [pixPlan, setPixPlan] = useState<{ id: string; name: string; annual: number } | null>(null);
   const sub = data?.subscription;
   const isActive = sub?.status === "active" || sub?.status === "trialing";
 
