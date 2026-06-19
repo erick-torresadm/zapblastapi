@@ -110,8 +110,9 @@ function BillingPage() {
           const displayPriceCents = showAnnual ? monthlyEquivalent : p.price_cents;
 
           return (
-            <Card key={p.id} className={cn("relative flex flex-col", p.featured && "border-primary shadow-lg")}>
-              {p.featured && <Badge className="absolute -top-2 right-4">Mais popular</Badge>}
+            <Card key={p.id} className={cn("relative flex flex-col", p.featured && "border-primary shadow-lg", isCurrent && "ring-2 ring-primary border-primary")}>
+              {isCurrent && <Badge className="absolute -top-2 left-4 bg-success text-success-foreground">✓ Seu plano</Badge>}
+              {p.featured && !isCurrent && <Badge className="absolute -top-2 right-4">Mais popular</Badge>}
               <CardHeader>
                 <Icon className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>{p.name}</CardTitle>
