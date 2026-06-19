@@ -49,7 +49,7 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Bem-vindo de volta!");
-    nav({ to: "/app", replace: true });
+    nav({ to: nextPath, replace: true });
   }
 
   async function signUp(e: React.FormEvent<HTMLFormElement>) {
@@ -81,7 +81,7 @@ function AuthPage() {
         description: "Você ganhou acesso completo: 20 chips, 5.000 mensagens/dia e aquecimento ilimitado.",
         duration: 6000,
       });
-      nav({ to: "/app", replace: true });
+      nav({ to: nextPath, replace: true });
     } catch (e) {
       setLoading(false);
       toast.error((e as Error).message);
@@ -91,10 +91,10 @@ function AuthPage() {
 
   async function google() {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/app" });
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + nextPath });
     if (result.error) { setLoading(false); toast.error("Erro ao entrar com Google"); return; }
     if (result.redirected) return;
-    nav({ to: "/app", replace: true });
+    nav({ to: nextPath, replace: true });
   }
 
   return (
