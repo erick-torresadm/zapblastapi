@@ -764,8 +764,10 @@ function FlowsInner() {
               maskColor="color-mix(in oklab, var(--background) 80%, transparent)"
             />
           </ReactFlow>
+          </div>
         </div>
       </div>
+
 
       {/* Painel de propriedades */}
       <Sheet open={!!selected} onOpenChange={(o) => { if (!o) setSelectedId(null); }}>
