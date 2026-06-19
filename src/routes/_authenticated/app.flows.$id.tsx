@@ -165,8 +165,19 @@ const STEP_META: Record<StepType, {
   contact_card:   { label: "Cartão de contato",  icon: ContactIcon,    color: "#0891b2",              description: "Compartilha um vCard de contato" },
   poll:           { label: "Enquete",            icon: BarChart3,      color: "#8b5cf6",              description: "Envia uma enquete com até N opções" },
   reaction:       { label: "Reação",             icon: Heart,          color: "#e11d48",              description: "Reage com emoji à última mensagem recebida" },
-
+  menu:           { label: "Menu numerado",       icon: ListOrdered,    color: "#2563eb",              description: "Manda opções 1, 2, 3… e ramifica pela escolha" },
+  set_variable:   { label: "Definir variável",    icon: Variable,       color: "#14b8a6",              description: "Cria ou atualiza variáveis no contato" },
+  random_split:   { label: "Aleatório / A-B",     icon: Shuffle,        color: "#d946ef",              description: "Divide em saídas com pesos (teste A/B)" },
+  jump:           { label: "Pular para",          icon: CornerDownRight,color: "#64748b",              description: "Vai direto para outro nó (loops e atalhos)" },
+  end:            { label: "Encerrar",            icon: StopCircle,     color: "#475569",              description: "Termina o fluxo aqui" },
+  http_request:   { label: "HTTP Request",        icon: Globe,          color: "#dc2626",              description: "GET/POST/PUT/DELETE com headers, body e retry" },
+  time_window:    { label: "Janela de horário",   icon: CalendarClock,  color: "#f59e0b",              description: "Ramifica em comercial / fora do expediente" },
+  update_contact: { label: "Atualizar contato",   icon: UserPlus,       color: "#0d9488",              description: "Salva nome, e-mail e campos customizados" },
+  note:           { label: "Nota no CRM",         icon: StickyNote,     color: "#eab308",              description: "Cria nota interna na conversa do CRM" },
+  assign_agent:   { label: "Atribuir agente",     icon: Users,          color: "#7c3aed",              description: "Distribui a conversa para um agente específico" },
+  comment:        { label: "Comentário",          icon: StickyNote,     color: "#94a3b8",              description: "Anotação visual no canvas (não executa)" },
 };
+
 
 /* =========================================================
    Card de nó (usado para todos os tipos)
