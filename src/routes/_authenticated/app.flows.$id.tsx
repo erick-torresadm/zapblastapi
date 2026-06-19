@@ -253,9 +253,67 @@ function StepNode({ data, selected, type }: NodeProps) {
             <span className="text-red-500">NÃO</span>
           </div>
         </>
-      ) : (
+      ) : stepType === "time_window" ? (
+        <>
+          <Handle id="in" type="source" position={Position.Bottom} style={{ left: "30%", background: "#10b981" }} className="!h-3 !w-3 !border-2 !border-background" />
+          <Handle id="out" type="source" position={Position.Bottom} style={{ left: "70%", background: "#f59e0b" }} className="!h-3 !w-3 !border-2 !border-background" />
+          <div className="flex justify-between border-t border-border/60 px-3 py-1 text-[10px] font-medium">
+            <span className="text-emerald-500">DENTRO</span>
+            <span className="text-amber-500">FORA</span>
+          </div>
+        </>
+      ) : stepType === "menu" ? (() => {
+        const opts = String(d.menuOptions ?? "").split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+        const labels = [...opts.map((o, i) => ({ id: `opt_${i + 1}`, label: `${i + 1}. ${o.slice(0, 12)}` })), { id: "invalid", label: "?" }];
+        if (Number(d.timeoutSeconds ?? 0) > 0) labels.push({ id: "timeout", label: "⏱" });
+        return (
+          <>
+            {labels.map((h, i) => (
+              <Handle key={h.id} id={h.id} type="source" position={Position.Bottom}
+                style={{ left: `${((i + 1) * 100) / (labels.length + 1)}%`, background: meta.color }}
+                className="!h-3 !w-3 !border-2 !border-background" />
+            ))}
+            <div className="grid border-t border-border/60 px-3 py-1 text-[10px] text-muted-foreground" style={{ gridTemplateColumns: `repeat(${labels.length}, 1fr)` }}>
+              {labels.map((h) => <span key={h.id} className="truncate text-center">{h.label}</span>)}
+            </div>
+          </>
+        );
+      })() : stepType === "ask" && Number(d.timeoutSeconds ?? 0) > 0 ? (
+        <>
+          <Handle id="default" type="source" position={Position.Bottom} style={{ left: "30%", background: meta.color }} className="!h-3 !w-3 !border-2 !border-background" />
+          <Handle id="timeout" type="source" position={Position.Bottom} style={{ left: "70%", background: "#f59e0b" }} className="!h-3 !w-3 !border-2 !border-background" />
+          <div className="flex justify-between border-t border-border/60 px-3 py-1 text-[10px] font-medium">
+            <span>RESPOSTA</span>
+            <span className="text-amber-500">TIMEOUT</span>
+          </div>
+        </>
+      ) : stepType === "random_split" ? (() => {
+        const items = String(d.weights ?? "a=1\nb=1").split(/\r?\n/).map((l) => l.split("=")[0]?.trim()).filter(Boolean) as string[];
+        return (
+          <>
+            {items.map((h, i) => (
+              <Handle key={h} id={h} type="source" position={Position.Bottom}
+                style={{ left: `${((i + 1) * 100) / (items.length + 1)}%`, background: meta.color }}
+                className="!h-3 !w-3 !border-2 !border-background" />
+            ))}
+            <div className="grid border-t border-border/60 px-3 py-1 text-[10px] text-muted-foreground" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
+              {items.map((h) => <span key={h} className="truncate text-center">{h}</span>)}
+            </div>
+          </>
+        );
+      })() : stepType === "http_request" ? (
+        <>
+          <Handle id="ok" type="source" position={Position.Bottom} style={{ left: "30%", background: "#10b981" }} className="!h-3 !w-3 !border-2 !border-background" />
+          <Handle id="error" type="source" position={Position.Bottom} style={{ left: "70%", background: "#ef4444" }} className="!h-3 !w-3 !border-2 !border-background" />
+          <div className="flex justify-between border-t border-border/60 px-3 py-1 text-[10px] font-medium">
+            <span className="text-emerald-500">OK</span>
+            <span className="text-red-500">ERRO</span>
+          </div>
+        </>
+      ) : stepType === "end" ? null : (
         <Handle type="source" position={Position.Bottom} className="!h-3 !w-3 !border-2 !border-background" style={{ background: meta.color }} />
       )}
+
     </div>
   );
 }
