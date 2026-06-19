@@ -58,7 +58,9 @@ export const Route = createFileRoute("/_authenticated/app/flows/$id")({
 type StepType =
   | "start" | "message" | "media" | "typing" | "delay" | "condition" | "tag"
   | "webhook" | "ask" | "ai" | "transfer_human"
-  | "sticker" | "location" | "contact_card" | "poll" | "reaction";
+  | "sticker" | "location" | "contact_card" | "poll" | "reaction"
+  | "menu" | "set_variable" | "random_split" | "jump" | "end"
+  | "http_request" | "time_window" | "update_contact" | "note" | "assign_agent" | "comment";
 
 type StepData = {
   label: string;
@@ -68,6 +70,7 @@ type StepData = {
   delaySeconds?: number;
   conditionField?: string;
   conditionEquals?: string;
+  conditionOp?: "eq" | "lte" | "gte" | "contains";
   tag?: string;
   webhookUrl?: string;
   variable?: string;
@@ -99,8 +102,43 @@ type StepData = {
   pollSelectable?: number;
   // reaction
   emoji?: string;
+  // ask / menu
+  timeoutSeconds?: number;
+  menuOptions?: string;
+  // http / webhook
+  url?: string;
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  headers?: string;
+  body?: string;
+  retries?: number;
+  savePath?: string;
+  saveVar?: string;
+  // ai
+  model?: string;
+  send?: boolean;
+  // set_variable
+  value?: string;
+  pairs?: string;
+  // random_split
+  weights?: string;
+  // jump
+  jumpTo?: string;
+  // end
+  reason?: string;
+  // time_window
+  startHour?: number;
+  endHour?: number;
+  days?: string;
+  // update_contact
+  customFields?: string;
+  // note
+  note?: string;
+  // assign_agent
+  agentId?: string;
+  conversationStatus?: "open" | "pending" | "closed";
   [key: string]: unknown;
 };
+
 
 
 import { HelpCircle, Sparkles as SparklesIcon, UserCog } from "lucide-react";
