@@ -80,6 +80,9 @@ Deno.serve(async (req) => {
       { headers: { ...cors, "Content-Type": "application/json" } },
     );
   } catch (e) {
-    return new Response(JSON.stringify({ error: String((e as Error).message ?? e) }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+    const msg = String((e as Error)?.message ?? e);
+    const stack = (e as Error)?.stack ?? "";
+    console.error("efi-pix-annual FATAL:", msg, stack);
+    return new Response(JSON.stringify({ error: msg, stack }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
 });
