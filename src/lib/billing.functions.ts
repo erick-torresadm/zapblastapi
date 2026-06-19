@@ -9,8 +9,33 @@ export const getBillingStateFn = createServerFn({ method: "GET" })
       supabase.from("subscription_plans").select("*").eq("active", true).order("sort_order"),
       supabase.from("subscriptions").select("*, subscription_plans(*)").eq("user_id", userId).maybeSingle(),
     ]);
-    return { plans: plansRes.data ?? [], subscription: subRes.data ?? null };
+
+    let subscription = subRes.data;
+
+    // Backfill: usuários criados antes do trigger ficam sem subscription.
+    // Cria automaticamente o trial de 10 dias no Pro pra não deixar a tela vazia.
+    if (!subscription) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const proPlan = (plansRes.data ?? []).find((p) => p.slug === "pro");
+      if (proPlan) {
+        const now = new Date();
+        const trialEnd = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
+        await supabaseAdmin.from("subscriptions").upsert({
+          user_id: userId,
+          plan_id: proPlan.id,
+          status: "trialing",
+          trial_ends_at: trialEnd.toISOString(),
+          current_period_start: now.toISOString(),
+          current_period_end: trialEnd.toISOString(),
+        }, { onConflict: "user_id" });
+        const refetch = await supabase.from("subscriptions").select("*, subscription_plans(*)").eq("user_id", userId).maybeSingle();
+        subscription = refetch.data;
+      }
+    }
+
+    return { plans: plansRes.data ?? [], subscription: subscription ?? null };
   });
+
 
 export type PlanLimits = {
   has_subscription: boolean;
