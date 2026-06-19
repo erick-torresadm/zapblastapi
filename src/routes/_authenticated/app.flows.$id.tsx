@@ -416,6 +416,8 @@ function FlowsInner() {
   const [flowName, setFlowName] = useState("Carregando…");
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [paletteSearch, setPaletteSearch] = useState("");
+
   const rfRef = useRef<ReactFlowInstance | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dirtyRef = useRef(false);
