@@ -3,6 +3,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
+const MSG_COLS = "id,direction,text,caption,created_at,status,read_at,instance_id,sent_by_agent_id,media_type,media_url,media_mime,media_filename,media_size,duration_seconds,is_ptt,reaction,reactions,starred,deleted_at,reply_to_id";
+
 export const getConversationMessagesFn = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ conversation_id: z.string().uuid() }).parse(d))
@@ -14,14 +16,15 @@ export const getConversationMessagesFn = createServerFn({ method: "GET" })
     const c = conv as any;
     const { data: msgs } = await supabase
       .from("chat_messages" as any)
-      .select("id,direction,text,caption,created_at,status,read_at,instance_id,sent_by_agent_id,media_type,media_url,media_mime,media_filename,media_size,duration_seconds,is_ptt,reaction")
+      .select(MSG_COLS)
       .eq("user_id", c.owner_user_id)
       .eq("contact_phone", c.contact_phone)
       .order("created_at", { ascending: true })
       .limit(500);
-    // zera unread
+    // zera unread + last_seen
     await supabase.from("crm_conversations" as any)
-      .update({ unread_count: 0 }).eq("id", data.conversation_id);
+      .update({ unread_count: 0, last_seen_at: new Date().toISOString() })
+      .eq("id", data.conversation_id);
     return msgs ?? [];
   });
 
