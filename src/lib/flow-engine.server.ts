@@ -265,6 +265,23 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   const vars = (run.variables ?? {}) as Record<string, string>;
   const data = (node.data ?? {}) as Record<string, unknown>;
 
+  // ask/menu com timeout expirado → roteia via handle "timeout"
+  if (askTimedOut) {
+    await supabaseAdmin.from("flow_run_steps").insert({
+      run_id: runId, flow_id: run.flow_id, user_id: run.user_id,
+      node_id: node.id, node_type: node.type, status: "ok",
+      output: { timeout: true, waiting_for: run.waiting_for },
+    });
+    const edge = nextEdge(flow!, node.id, "timeout") ?? nextEdge(flow!, node.id);
+    if (!edge) {
+      await supabaseAdmin.from("flow_runs").update({ status: "done", finished_at: new Date().toISOString(), current_node_id: null, waiting_for: null, wait_until: null }).eq("id", runId);
+    } else {
+      await supabaseAdmin.from("flow_runs").update({ current_node_id: edge.target, status: "pending", waiting_for: null, wait_until: null }).eq("id", runId);
+    }
+    return;
+  }
+
+
   async function logStep(status: "ok" | "error" | "skipped", error?: string, output?: Record<string, unknown>) {
     await supabaseAdmin.from("flow_run_steps").insert({
       run_id: runId, flow_id: run.flow_id, user_id: run.user_id,
