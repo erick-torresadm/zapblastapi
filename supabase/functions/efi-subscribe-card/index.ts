@@ -32,8 +32,25 @@ Deno.serve(async (req) => {
     if (error || !plan) throw new Error("Plano não encontrado");
 
     const env = efiEnv();
-    const efiPlanId = env === "prod" ? plan.efi_plan_id_prod : plan.efi_plan_id_sandbox;
-    if (!efiPlanId) throw new Error("Plano não cadastrado na Efí. Rode efi-create-plan primeiro.");
+    const planCol = env === "prod" ? "efi_plan_id_prod" : "efi_plan_id_sandbox";
+    let efiPlanId: number | null = plan[planCol] ?? null;
+
+    // Lazy: cria o Plano na Efí se ainda não existe
+    if (!efiPlanId) {
+      const planRes = await efiFetch("/v1/plan", {
+        method: "POST",
+        body: JSON.stringify({ name: `${plan.name} (mensal)`, interval: 1, repeats: null }),
+      });
+      const planBody = await planRes.json();
+      if (!planRes.ok) {
+        console.error("Efí create-plan error", planBody);
+        return new Response(JSON.stringify({ error: "efi_error", details: planBody }), {
+          status: 400, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      efiPlanId = planBody.data?.plan_id ?? planBody.plan_id;
+      await supabase.from("subscription_plans").update({ [planCol]: efiPlanId }).eq("id", plan_id);
+    }
 
     // POST /v1/plan/:id/subscription/one-step
     const payload = {
