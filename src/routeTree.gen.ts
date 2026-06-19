@@ -29,6 +29,7 @@ import { Route as AuthenticatedAppKeywordsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAppInstancesRouteImport } from './routes/_authenticated/app.instances'
 import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
 import { Route as AuthenticatedAppFlowsRouteImport } from './routes/_authenticated/app.flows'
+import { Route as AuthenticatedAppCancelarRouteImport } from './routes/_authenticated/app.cancelar'
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppAntiBanRouteImport } from './routes/_authenticated/app.anti-ban'
 import { Route as AuthenticatedAppFlowsIndexRouteImport } from './routes/_authenticated/app.flows.index'
@@ -143,6 +144,12 @@ const AuthenticatedAppFlowsRoute = AuthenticatedAppFlowsRouteImport.update({
   path: '/app/flows',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppCancelarRoute =
+  AuthenticatedAppCancelarRouteImport.update({
+    id: '/app/cancelar',
+    path: '/app/cancelar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppBillingRoute = AuthenticatedAppBillingRouteImport.update({
   id: '/app/billing',
   path: '/app/billing',
@@ -207,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
+  '/app/cancelar': typeof AuthenticatedAppCancelarRoute
   '/app/flows': typeof AuthenticatedAppFlowsRouteWithChildren
   '/app/inbox': typeof AuthenticatedAppInboxRoute
   '/app/instances': typeof AuthenticatedAppInstancesRoute
@@ -238,6 +246,7 @@ export interface FileRoutesByTo {
   '/termos': typeof TermosRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
+  '/app/cancelar': typeof AuthenticatedAppCancelarRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
   '/app/instances': typeof AuthenticatedAppInstancesRoute
   '/app/keywords': typeof AuthenticatedAppKeywordsRoute
@@ -270,6 +279,7 @@ export interface FileRoutesById {
   '/termos': typeof TermosRoute
   '/_authenticated/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
+  '/_authenticated/app/cancelar': typeof AuthenticatedAppCancelarRoute
   '/_authenticated/app/flows': typeof AuthenticatedAppFlowsRouteWithChildren
   '/_authenticated/app/inbox': typeof AuthenticatedAppInboxRoute
   '/_authenticated/app/instances': typeof AuthenticatedAppInstancesRoute
@@ -303,6 +313,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/app/anti-ban'
     | '/app/billing'
+    | '/app/cancelar'
     | '/app/flows'
     | '/app/inbox'
     | '/app/instances'
@@ -334,6 +345,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/app/anti-ban'
     | '/app/billing'
+    | '/app/cancelar'
     | '/app/inbox'
     | '/app/instances'
     | '/app/keywords'
@@ -365,6 +377,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/_authenticated/app/anti-ban'
     | '/_authenticated/app/billing'
+    | '/_authenticated/app/cancelar'
     | '/_authenticated/app/flows'
     | '/_authenticated/app/inbox'
     | '/_authenticated/app/instances'
@@ -545,6 +558,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppFlowsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/cancelar': {
+      id: '/_authenticated/app/cancelar'
+      path: '/app/cancelar'
+      fullPath: '/app/cancelar'
+      preLoaderRoute: typeof AuthenticatedAppCancelarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/billing': {
       id: '/_authenticated/app/billing'
       path: '/app/billing'
@@ -649,6 +669,7 @@ const AuthenticatedAppListsRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAntiBanRoute: typeof AuthenticatedAppAntiBanRoute
   AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
+  AuthenticatedAppCancelarRoute: typeof AuthenticatedAppCancelarRoute
   AuthenticatedAppFlowsRoute: typeof AuthenticatedAppFlowsRouteWithChildren
   AuthenticatedAppInboxRoute: typeof AuthenticatedAppInboxRoute
   AuthenticatedAppInstancesRoute: typeof AuthenticatedAppInstancesRoute
@@ -669,6 +690,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppAntiBanRoute: AuthenticatedAppAntiBanRoute,
   AuthenticatedAppBillingRoute: AuthenticatedAppBillingRoute,
+  AuthenticatedAppCancelarRoute: AuthenticatedAppCancelarRoute,
   AuthenticatedAppFlowsRoute: AuthenticatedAppFlowsRouteWithChildren,
   AuthenticatedAppInboxRoute: AuthenticatedAppInboxRoute,
   AuthenticatedAppInstancesRoute: AuthenticatedAppInstancesRoute,

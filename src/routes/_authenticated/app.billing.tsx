@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Check, X, Crown, Sparkles, Building2, CreditCard, QrCode, AlertTriangle, Clock } from "lucide-react";
+import { Check, X, Crown, Sparkles, Building2, CreditCard, QrCode, AlertTriangle, Clock, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { getBillingStateFn } from "@/lib/billing.functions";
 import { CardCheckoutDialog } from "@/components/billing/CardCheckoutDialog";
 import { PixAnnualDialog } from "@/components/billing/PixAnnualDialog";
@@ -17,6 +17,9 @@ export const Route = createFileRoute("/_authenticated/app/billing")({ component:
 
 function brl(cents: number) { return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
 function brlNoDecimals(cents: number) { return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }); }
+function hasPaidSubscription({ sub, isTrialing }: { sub: { plan_id?: string | null; status?: string } | null | undefined; isTrialing: boolean }) {
+  return !!sub?.plan_id && !isTrialing && (sub.status === "active" || sub.status === "past_due");
+}
 
 const planIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   starter: Sparkles, pro: Crown, scale: Building2, enterprise: Building2,
@@ -174,10 +177,33 @@ function BillingPage() {
           const showAnnual = cycle === "annual";
           const displayPriceCents = showAnnual ? monthlyEquivalent : p.price_cents;
 
+          // ===== Lógica de upgrade/downgrade =====
+          const currentPlan = sub?.subscription_plans as { price_cents?: number; price_annual_cents?: number | null } | null | undefined;
+          const currentMonthly = currentPlan?.price_cents ?? 0;
+          const hasActivePaid = isActive && !!sub?.plan_id && !limits.isTrialing;
+          const isUpgrade = hasActivePaid && !isCurrent && p.price_cents > currentMonthly;
+          const isDowngrade = hasActivePaid && !isCurrent && p.price_cents < currentMonthly;
+          const priceDiffMonthly = Math.max(0, p.price_cents - currentMonthly);
+          const priceDiffAnnual = showAnnual
+            ? Math.max(0, annualTotal - ((currentPlan?.price_annual_cents ?? Math.round(currentMonthly * 12 * 0.7))))
+            : 0;
+
+          const cardLabel = isCurrent
+            ? "Plano atual"
+            : isUpgrade
+            ? (showAnnual ? `Fazer upgrade · +${brl(priceDiffAnnual)}/ano` : `Fazer upgrade · +${brl(priceDiffMonthly)}/mês`)
+            : isDowngrade
+            ? "Trocar para este plano"
+            : (showAnnual ? "Assinar anual via PIX" : "Assinar no cartão");
+
+          const ctaIcon = showAnnual ? QrCode : CreditCard;
+          const CtaIcon = isUpgrade ? ArrowUpRight : isDowngrade ? ArrowDownRight : ctaIcon;
+
           return (
             <Card key={p.id} className={cn("relative flex flex-col", p.featured && "border-primary shadow-lg", isCurrent && "ring-2 ring-primary border-primary")}>
               {isCurrent && <Badge className="absolute -top-2 left-4 bg-success text-success-foreground">✓ Seu plano</Badge>}
-              {p.featured && !isCurrent && <Badge className="absolute -top-2 right-4">Mais popular</Badge>}
+              {isUpgrade && <Badge className="absolute -top-2 right-4 bg-primary">Upgrade</Badge>}
+              {p.featured && !isCurrent && !isUpgrade && <Badge className="absolute -top-2 right-4">Mais popular</Badge>}
               <CardHeader>
                 <Icon className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>{p.name}</CardTitle>
@@ -210,6 +236,19 @@ function BillingPage() {
                       ou <button onClick={() => setCycle("annual")} className="text-primary font-medium underline-offset-2 hover:underline">economize 30% no anual via PIX ↑</button>
                     </div>
                   )}
+
+                  {isUpgrade && (
+                    <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 px-2 py-1.5 text-xs">
+                      <strong className="text-primary">Você só paga a diferença:</strong>{" "}
+                      {showAnnual ? `+${brl(priceDiffAnnual)} para o ciclo anual` : `+${brl(priceDiffMonthly)}/mês`}.
+                      <div className="text-muted-foreground">Mudança vale na próxima cobrança.</div>
+                    </div>
+                  )}
+                  {isDowngrade && (
+                    <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-2 py-1.5 text-xs text-muted-foreground">
+                      Plano mais simples — a troca vale só na próxima renovação, sem reembolso do período atual.
+                    </div>
+                  )}
                 </div>
 
                 <CardDescription className="pt-2">{p.description}</CardDescription>
@@ -236,32 +275,37 @@ function BillingPage() {
               </CardContent>
 
               <CardFooter className="flex-col gap-2">
-                {showAnnual ? (
-                  <Button
-                    className="w-full"
-                    variant={isCurrent ? "outline" : p.featured ? "default" : "outline"}
-                    disabled={isCurrent}
-                    onClick={() => setPixPlan({ id: p.id, name: p.name, annual: annualTotal })}
-                  >
-                    <QrCode className="h-4 w-4 mr-2" />
-                    {isCurrent ? "Plano atual" : "Assinar anual via PIX"}
-                  </Button>
-                ) : (
-                  <Button
-                    className="w-full"
-                    variant={isCurrent ? "outline" : p.featured ? "default" : "outline"}
-                    disabled={isCurrent}
-                    onClick={() => setCardPlan({ id: p.id, name: p.name, price: p.price_cents })}
-                  >
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    {isCurrent ? "Plano atual" : "Assinar no cartão"}
-                  </Button>
-                )}
+                <Button
+                  className="w-full"
+                  variant={isCurrent ? "outline" : (isUpgrade || p.featured) ? "default" : "outline"}
+                  disabled={isCurrent}
+                  onClick={() => showAnnual
+                    ? setPixPlan({ id: p.id, name: p.name, annual: annualTotal })
+                    : setCardPlan({ id: p.id, name: p.name, price: p.price_cents })}
+                >
+                  <CtaIcon className="h-4 w-4 mr-2" />
+                  {cardLabel}
+                </Button>
               </CardFooter>
             </Card>
           );
         })}
       </div>
+
+      {/* Cancelamento — discreto, no fim do painel, como manda a manhosagem do varejo */}
+      {hasPaidSubscription({ sub, isTrialing: limits.isTrialing }) && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col gap-1 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              Precisa pausar a assinatura?{" "}
+              <span className="text-foreground">Antes, fale com a gente</span> — em 9 de cada 10 casos a gente resolve em minutos.
+            </div>
+            <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+              <Link to="/app/cancelar">Quero cancelar mesmo assim →</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="pt-6 text-sm text-muted-foreground space-y-2">

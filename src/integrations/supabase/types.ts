@@ -1259,6 +1259,9 @@ export type Database = {
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
+          canceled_at: string | null
+          cancellation_feedback: string | null
+          cancellation_reason: string | null
           card_brand: string | null
           card_last4: string | null
           created_at: string
@@ -1277,6 +1280,9 @@ export type Database = {
         }
         Insert: {
           cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          cancellation_feedback?: string | null
+          cancellation_reason?: string | null
           card_brand?: string | null
           card_last4?: string | null
           created_at?: string
@@ -1295,6 +1301,9 @@ export type Database = {
         }
         Update: {
           cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          cancellation_feedback?: string | null
+          cancellation_reason?: string | null
           card_brand?: string | null
           card_last4?: string | null
           created_at?: string
