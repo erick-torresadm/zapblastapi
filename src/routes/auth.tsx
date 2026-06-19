@@ -25,11 +25,18 @@ function AuthPage() {
   const checkIp = useServerFn(checkSignupIpFn);
   const recordIp = useServerFn(recordSignupIpFn);
 
+  const nextPath = (() => {
+    if (typeof window === "undefined") return "/app";
+    const p = new URLSearchParams(window.location.search).get("next");
+    return p && p.startsWith("/") ? p : "/app";
+  })();
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) nav({ to: "/app", replace: true });
+      if (data.user) window.location.replace(nextPath);
     });
-  }, [nav]);
+  }, [nav, nextPath]);
+
 
   async function signIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -42,7 +49,7 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Bem-vindo de volta!");
-    nav({ to: "/app", replace: true });
+    window.location.replace(nextPath);
   }
 
   async function signUp(e: React.FormEvent<HTMLFormElement>) {
@@ -74,7 +81,7 @@ function AuthPage() {
         description: "Você ganhou acesso completo: 20 chips, 5.000 mensagens/dia e aquecimento ilimitado.",
         duration: 6000,
       });
-      nav({ to: "/app", replace: true });
+      window.location.replace(nextPath);
     } catch (e) {
       setLoading(false);
       toast.error((e as Error).message);
@@ -84,10 +91,10 @@ function AuthPage() {
 
   async function google() {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/app" });
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + nextPath });
     if (result.error) { setLoading(false); toast.error("Erro ao entrar com Google"); return; }
     if (result.redirected) return;
-    nav({ to: "/app", replace: true });
+    window.location.replace(nextPath);
   }
 
   return (
