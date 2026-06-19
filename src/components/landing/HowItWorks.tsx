@@ -32,19 +32,17 @@ export function HowItWorks() {
 
       <div className="container relative mx-auto px-4">
         <div className="mx-auto max-w-2xl text-center">
-          <div className="text-xs font-semibold uppercase tracking-wider text-primary">Como funciona</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-primary">{t("how.kicker")}</div>
           <h2 className="mt-2 font-display text-4xl font-bold tracking-tight md:text-5xl">
-            Do <span className="text-aurora">QR Code</span> ao primeiro venda
+            {t("how.title1")} <span className="text-aurora">{t("how.title2")}</span> {t("how.title3")}
           </h2>
-          <p className="mt-4 text-muted-foreground">
-            4 passos. 5 minutos. Sem código, sem servidor, sem dor de cabeça.
-          </p>
+          <p className="mt-4 text-muted-foreground">{t("how.subtitle")}</p>
         </div>
 
         <div className="mx-auto mt-16 grid max-w-7xl gap-10 lg:grid-cols-[1fr_1.3fr] lg:items-start">
           {/* STEPS LIST */}
           <div className="space-y-3">
-            {STEPS.map((s, i) => {
+            {STEP_DEFS.map((s, i) => {
               const Icon = s.icon;
               const isActive = active === i;
               return (
@@ -55,7 +53,7 @@ export function HowItWorks() {
                   transition={{ delay: i * 0.1, duration: 0.5 }}
                   onClick={() => setActive(i)}
                   className={cn(
-                    "group relative flex w-full gap-4 rounded-2xl border p-5 text-left transition-all",
+                    "group relative flex w-full gap-4 rounded-3xl border p-5 text-left transition-all",
                     isActive
                       ? "border-primary/50 bg-card shadow-glow"
                       : "border-border/40 bg-card/30 hover:border-border/70 hover:bg-card/60",
@@ -69,7 +67,7 @@ export function HowItWorks() {
                   )}
                   <div
                     className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ring-1 transition-all",
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ring-1 transition-all",
                       s.accent,
                       isActive ? "ring-primary/40 scale-110" : "ring-border/50",
                     )}
@@ -80,15 +78,16 @@ export function HowItWorks() {
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs text-muted-foreground/60">{s.n}</span>
                       <h3 className={cn("font-display text-lg font-semibold transition-colors", isActive ? "text-foreground" : "text-foreground/80")}>
-                        {s.title}
+                        {t(`how.${s.k}.title`)}
                       </h3>
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{s.desc}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{t(`how.${s.k}.desc`)}</p>
                   </div>
                 </motion.button>
               );
             })}
           </div>
+
 
           {/* PREVIEW PANEL — animated mockup */}
           <div className="relative">
