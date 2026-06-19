@@ -272,7 +272,10 @@ function BillingPage() {
           </div>
           <div>
             💚 <strong>PIX no anual</strong> tem o melhor preço — pagamento à vista com 30% de desconto.
-            Cartão será aceito em mensal e anual (parcelado). Por enquanto, todos os usuários têm acesso liberado pra testar.
+            Cartão será aceito em mensal e anual (parcelado).
+          </div>
+          <div>
+            🎁 Novos usuários ganham <strong>10 dias grátis no plano Pro</strong>, sem cartão.
           </div>
         </CardContent>
       </Card>
