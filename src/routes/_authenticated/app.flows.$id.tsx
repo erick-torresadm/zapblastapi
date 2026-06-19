@@ -335,7 +335,19 @@ const nodeTypes = {
   contact_card: StepNode,
   poll: StepNode,
   reaction: StepNode,
+  menu: StepNode,
+  set_variable: StepNode,
+  random_split: StepNode,
+  jump: StepNode,
+  end: StepNode,
+  http_request: StepNode,
+  time_window: StepNode,
+  update_contact: StepNode,
+  note: StepNode,
+  assign_agent: StepNode,
+  comment: StepNode,
 };
+
 
 
 /* =========================================================
