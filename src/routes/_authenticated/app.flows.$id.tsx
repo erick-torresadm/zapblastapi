@@ -426,6 +426,7 @@ function FlowsInner() {
   const getFlow = useServerFn(getFlowFn);
   const saveDraft = useServerFn(saveFlowDraftFn);
   const publish = useServerFn(publishFlowFn);
+  const plan = usePlanLimits();
 
   // Carrega o fluxo do servidor
   const { data: flowData } = useQuery({
@@ -584,8 +585,29 @@ function FlowsInner() {
   }, [nodes, edges]);
 
 
-  const exportJson = () => {
-    const blob = new Blob([JSON.stringify({ name: flowName, nodes, edges }, null, 2)], { type: "application/json" });
+  const exportJson = async () => {
+    // Trial não exporta — evita ciclo "baixei o fluxo, abro conta nova, subo de novo"
+    if (plan.isTrialing) {
+      toast.error("Exportar fluxos está disponível só para assinantes.", {
+        description: "Para versionar localmente, contrate um plano. Sua trial continua ativa.",
+      });
+      return;
+    }
+    // Marca d'água — permite detectar import na conta nova
+    const { data: u } = await supabase.auth.getUser();
+    const watermark = {
+      __origin: {
+        user_id: u.user?.id ?? null,
+        exported_at: new Date().toISOString(),
+        flow_id: id,
+        app: "perseidas",
+      },
+    };
+    const payload = { ...watermark, name: flowName, nodes, edges };
+    try {
+      await supabase.from("flow_export_log" as any).insert({ user_id: u.user?.id, flow_id: id });
+    } catch { /* não bloqueia download */ }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `${flowName.replace(/\s+/g, "_")}.json`;
