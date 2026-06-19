@@ -14,7 +14,7 @@ export const getConversationMessagesFn = createServerFn({ method: "GET" })
     const c = conv as any;
     const { data: msgs } = await supabase
       .from("chat_messages" as any)
-      .select("id,direction,text,created_at,status,read_at,instance_id,sent_by_agent_id")
+      .select("id,direction,text,caption,created_at,status,read_at,instance_id,sent_by_agent_id,media_type,media_url,media_mime,media_filename,media_size,duration_seconds,is_ptt,reaction")
       .eq("user_id", c.owner_user_id)
       .eq("contact_phone", c.contact_phone)
       .order("created_at", { ascending: true })
