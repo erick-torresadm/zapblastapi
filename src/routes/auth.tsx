@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useServerFn } from "@tanstack/react-start";
-import { checkSignupIpFn, recordSignupIpFn } from "@/lib/signup-guard.functions";
+import { preSignupCheckFn, recordSignupFn } from "@/lib/signup-guard.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Meteors } from "@/components/magicui/meteors";
+import FingerprintJS from "@fingerprintjs/fingerprintjs";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar — Perseidas" }, { name: "description", content: "Acesse sua conta Perseidas" }] }),
