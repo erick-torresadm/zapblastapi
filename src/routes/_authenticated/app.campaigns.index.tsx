@@ -100,3 +100,31 @@ function CampaignsPage() {
     </div>
   );
 }
+
+function NewCampaignButton() {
+  const limits = usePlanLimits();
+  if (!limits.canCreateCampaign) {
+    const reason = !limits.canAct
+      ? "Teste grátis expirado. Assine pra criar campanhas."
+      : `Limite do plano ${limits.plan}: ${limits.data?.limits?.max_active_campaigns} campanha(s) ativa(s). Faça upgrade.`;
+    return (
+      <Button asChild variant="outline" title={reason}>
+        <Link to="/app/billing"><Plus className="mr-2 h-4 w-4" />Limite atingido — fazer upgrade</Link>
+      </Button>
+    );
+  }
+  return <Button asChild><Link to="/app/campaigns/new"><Plus className="mr-2 h-4 w-4" />Nova campanha</Link></Button>;
+}
+
+function PastDueAlert() {
+  const limits = usePlanLimits();
+  if (!limits.isPastDue) return null;
+  return (
+    <Card className="border-destructive bg-destructive/10">
+      <CardContent className="py-4 text-sm">
+        ⚠️ <strong>Teste grátis expirado.</strong> Campanhas em execução estão pausadas e novos disparos bloqueados.{" "}
+        <Link to="/app/billing" className="font-semibold text-primary underline-offset-2 hover:underline">Assinar agora</Link>
+      </CardContent>
+    </Card>
+  );
+}
