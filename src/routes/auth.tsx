@@ -33,7 +33,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) nav({ to: nextPath, replace: true });
+      if (data.user) window.location.replace(nextPath);
     });
   }, [nav, nextPath]);
 
@@ -49,7 +49,7 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Bem-vindo de volta!");
-    nav({ to: nextPath, replace: true });
+    window.location.replace(nextPath);
   }
 
   async function signUp(e: React.FormEvent<HTMLFormElement>) {
@@ -81,7 +81,7 @@ function AuthPage() {
         description: "Você ganhou acesso completo: 20 chips, 5.000 mensagens/dia e aquecimento ilimitado.",
         duration: 6000,
       });
-      nav({ to: nextPath, replace: true });
+      window.location.replace(nextPath);
     } catch (e) {
       setLoading(false);
       toast.error((e as Error).message);
@@ -94,7 +94,7 @@ function AuthPage() {
     const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + nextPath });
     if (result.error) { setLoading(false); toast.error("Erro ao entrar com Google"); return; }
     if (result.redirected) return;
-    nav({ to: nextPath, replace: true });
+    window.location.replace(nextPath);
   }
 
   return (
