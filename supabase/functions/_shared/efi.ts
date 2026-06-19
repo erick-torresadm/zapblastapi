@@ -3,6 +3,8 @@
 
 const PROD_BASE = "https://cobrancas.api.efipay.com.br";
 const SANDBOX_BASE = "https://cobrancas-h.api.efipay.com.br";
+const PIX_PROD_BASE = "https://pix.api.efipay.com.br";
+const PIX_SANDBOX_BASE = "https://pix-h.api.efipay.com.br";
 
 type EfiEnv = "prod" | "sandbox";
 
