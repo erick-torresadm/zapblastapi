@@ -322,7 +322,7 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
       whatsapp_valid_count: whatsappValid,
       cost_cents: cost + extraCost,
       refunded: false,
-      results: leads as unknown as object,
+      results: leads as never,
     });
 
     return {
