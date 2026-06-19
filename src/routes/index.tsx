@@ -276,7 +276,11 @@ function Landing() {
           <div className="flex items-center gap-2">
             <Zap className="h-4 w-4 text-primary" /> {t("footer.copy")}
           </div>
-          <div className="text-xs">{t("footer.disclaimer")}</div>
+          <div className="flex items-center gap-4 text-xs">
+            <Link to="/privacidade" className="hover:text-foreground">Privacidade</Link>
+            <Link to="/termos" className="hover:text-foreground">Termos</Link>
+          </div>
+          <div className="w-full text-xs md:w-auto">{t("footer.disclaimer")}</div>
         </div>
       </footer>
     </div>
