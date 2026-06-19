@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, RefreshCw, QrCode, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { createInstanceFn, getInstanceQrFn, deleteInstanceFn, listAvailableServersFn, listInstancesFn } from "@/lib/instances.functions";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/app/instances")({ component: InstancesPage });
 
