@@ -267,9 +267,9 @@ function CompareRow({ label, a, b }: { label: string; a: string; b: string }) {
 }
 
 const PLANS = [
-  { name: "Starter", monthly: 97, features: ["5 chips inclusos", "10k msgs/mês", "Anti-ban basic", "Suporte por email"] },
-  { name: "Pro", monthly: 297, highlight: true, features: ["20 chips inclusos", "50k msgs/mês", "Anti-ban full + Warmup", "Marketplace + saldo R$50 grátis", "Suporte prioritário"] },
-  { name: "Scale", monthly: 697, features: ["50 chips inclusos", "Msgs ilimitadas", "Multi-server", "API white-label", "Suporte 24/7"] },
+  { name: "Starter", monthly: 49, features: ["1 chip conectado", "1.000 msgs/dia", "1 campanha por vez", "500 contatos/lista", "Sem aquecimento", "Suporte por email"] },
+  { name: "Pro", monthly: 149, highlight: true, features: ["3 chips conectados", "5.000 msgs/dia", "5 campanhas simultâneas", "5.000 contatos/lista", "Aquecimento básico", "CRM com 5 agentes", "Suporte prioritário"] },
+  { name: "Scale", monthly: 399, features: ["20 chips conectados", "25.000 msgs/dia", "Campanhas ilimitadas", "Contatos ilimitados/lista", "Aquecimento avançado com IA", "CRM com agentes ilimitados", "Suporte 24/7"] },
 ];
 
 function PricingBlock() {
