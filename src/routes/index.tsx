@@ -5,6 +5,7 @@ import {
   Zap, ShieldCheck, Flame, ShoppingCart, MessageSquare, BarChart3,
   ArrowRight, Check, Sparkles, Workflow, Inbox, Bot, Users,
   TrendingDown, Clock, PhoneOff, AlertTriangle, DollarSign,
+  MapPin, UserSearch, ListChecks, UsersRound, Wallet, Star,
 } from "lucide-react";
 import { Meteors } from "@/components/magicui/meteors";
 import { GridPattern } from "@/components/magicui/grid-pattern";
@@ -90,13 +91,15 @@ function Landing() {
             <Logo to="/" size="sm" />
           </div>
 
-          <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
+          <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
             <a href="#features" className="transition-colors hover:text-foreground">{t("nav.features")}</a>
+            <a href="#tools" className="transition-colors hover:text-foreground">Ferramentas</a>
             <a href="#how" className="transition-colors hover:text-foreground">{t("nav.how")}</a>
             <a href="#anti-ban" className="transition-colors hover:text-foreground">{t("nav.antiban")}</a>
             <a href="#pricing" className="transition-colors hover:text-foreground">{t("nav.pricing")}</a>
             <a href="#faq" className="transition-colors hover:text-foreground">{t("nav.faq")}</a>
           </nav>
+
 
           <div className="flex items-center gap-2">
             <LangSwitcher />
@@ -300,8 +303,153 @@ function Landing() {
         </div>
       </section>
 
+      {/* TOOLBOX — power tools que pagam o plano sozinhos */}
+      <section id="tools" className="relative overflow-hidden border-y border-border/60 bg-card/30 py-24">
+        <div className="absolute inset-0 -z-10 opacity-30" style={{
+          backgroundImage: "radial-gradient(circle at 80% 10%, oklch(0.7 0.18 160 / 0.18), transparent 50%), radial-gradient(circle at 10% 90%, oklch(0.65 0.2 260 / 0.15), transparent 50%)",
+        }} />
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+              <Sparkles className="h-3.5 w-3.5" /> Pay-per-use · Sem mensalidade extra
+            </div>
+            <h2 className="mt-4 font-display text-4xl font-bold tracking-tight md:text-5xl">
+              Ferramentas que <span className="text-aurora">pagam o plano sozinhas</span>
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Gere leads, valide bases e organize sua agenda em minutos. Cobrança por uso — você só paga o que extrair. Saldo nunca expira.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-14 grid max-w-6xl gap-4 md:grid-cols-2">
+            {/* Google Maps */}
+            <div className="group relative overflow-hidden rounded-3xl border border-border/60 bg-background/70 p-7 backdrop-blur transition-all hover:border-primary/40 hover:shadow-glow">
+              <BorderBeam size={200} duration={11} />
+              <div className="flex items-start justify-between">
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                  <MapPin className="h-5 w-5" />
+                </div>
+                <span className="rounded-full border border-success/40 bg-success/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-success">R$ 5 / busca</span>
+              </div>
+              <h3 className="mt-4 font-display text-xl font-semibold">Extrator de leads do Google Maps</h3>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                Até <strong className="text-foreground">60 leads por busca</strong> com nome, telefone formatado, endereço, site e categoria. Filtro por raio no mapa, cidade ou texto livre.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Toggle "apenas com telefone"</li>
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Valida WhatsApp na hora (+R$ 0,02/lead)</li>
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Reembolso automático se vier 0 leads</li>
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Exporta CSV direto pra campanha</li>
+              </ul>
+            </div>
+
+            {/* Validador */}
+            <div className="group relative overflow-hidden rounded-3xl border border-border/60 bg-background/70 p-7 backdrop-blur transition-all hover:border-primary/40 hover:shadow-glow">
+              <div className="flex items-start justify-between">
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                  <ListChecks className="h-5 w-5" />
+                </div>
+                <span className="rounded-full border border-success/40 bg-success/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-success">R$ 0,02 / número</span>
+              </div>
+              <h3 className="mt-4 font-display text-xl font-semibold">Validador de números em massa</h3>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                Cole 10 mil números, descubra em segundos quais têm WhatsApp ativo. <strong className="text-foreground">Sua entrega salta de 40% pra 95%</strong> e seu chip para de queimar à toa.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Importa CSV ou cola lista</li>
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Formato BR automático</li>
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Exporta só os válidos</li>
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Protege seus chips de ban por número inválido</li>
+              </ul>
+            </div>
+
+            {/* Extrator de grupo */}
+            <div className="group relative overflow-hidden rounded-3xl border border-border/60 bg-background/70 p-7 backdrop-blur transition-all hover:border-primary/40 hover:shadow-glow">
+              <div className="flex items-start justify-between">
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                  <UsersRound className="h-5 w-5" />
+                </div>
+                <span className="rounded-full border border-success/40 bg-success/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-success">R$ 0,01 / membro</span>
+              </div>
+              <h3 className="mt-4 font-display text-xl font-semibold">Extrator de membros de grupo</h3>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                Cola o link do grupo, recebe a lista completa de membros pronta pra prospecção. <strong className="text-foreground">Público hiper-segmentado</strong> que já demonstrou interesse no nicho.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Funciona em grupos onde você é membro</li>
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Nome + número + foto + admin</li>
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> CSV pronto pra campanha segmentada</li>
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Lead 10x mais quente que tráfego frio</li>
+              </ul>
+            </div>
+
+            {/* Contatos não salvos */}
+            <div className="group relative overflow-hidden rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/10 to-background/70 p-7 backdrop-blur transition-all hover:shadow-glow">
+              <div className="flex items-start justify-between">
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                  <UserSearch className="h-5 w-5" />
+                </div>
+                <span className="rounded-full bg-gradient-to-r from-primary to-primary-glow px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-glow">Incluído no Pro</span>
+              </div>
+              <h3 className="mt-4 font-display text-xl font-semibold">Recupere contatos não salvos</h3>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                Quantos clientes te chamaram e ficaram perdidos na sua agenda? Identificamos todos os números sem nome salvo e <strong className="text-foreground">geramos um .vcf pra importar no celular em 1 toque</strong>.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Lista com foto, pushName e última mensagem</li>
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Exporta CSV ou .vcf (vCard)</li>
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Transforma conversa esquecida em venda</li>
+                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Grátis em todos os planos pagos</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Wallet strip */}
+          <div className="mx-auto mt-10 flex max-w-3xl flex-wrap items-center justify-center gap-4 rounded-2xl border border-border/60 bg-background/70 p-5 text-center backdrop-blur">
+            <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Wallet className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left text-sm text-muted-foreground">
+              <strong className="text-foreground">Carteira pré-paga com PIX.</strong> Recarga mínima R$ 20. Saldo nunca expira. Você vê o custo antes de cada ação — sem surpresa.
+            </div>
+            <Button asChild size="sm" className="bg-gradient-to-br from-primary to-primary-glow shadow-glow">
+              <Link to="/auth">Começar com R$ 5 grátis <ArrowRight className="ml-2 h-3.5 w-3.5" /></Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* HOW IT WORKS — animated mockups */}
       <HowItWorks />
+
+      {/* SOCIAL PROOF */}
+      <section className="container mx-auto px-4 py-24">
+        <div className="mx-auto max-w-2xl text-center">
+          <div className="text-xs font-semibold uppercase tracking-wider text-primary">Quem já tá faturando</div>
+          <h2 className="mt-2 font-display text-4xl font-bold tracking-tight md:text-5xl">
+            Mais de <span className="text-aurora">2.300 negócios</span> escalando no zap
+          </h2>
+        </div>
+        <div className="mx-auto mt-12 grid max-w-6xl gap-4 md:grid-cols-3">
+          {[
+            { name: "Bruno M.", role: "Loja de suplementos · SP", text: "Extraí 1.800 leads do Maps em 3 buscas. Disparei na quinta, no sábado fechei R$ 11k. O Perseidas se pagou em 1 fim de semana.", stars: 5 },
+            { name: "Camila R.", role: "Clínica estética · BH", text: "Achei 340 clientes que tinham me chamado e nunca foram salvos. Mandei campanha de retorno e agendei 47 sessões. Surreal.", stars: 5 },
+            { name: "Diego A.", role: "Infoprodutor · Curitiba", text: "Validei minha base de 22 mil leads, descartei 9 mil zumbis. Entrega subiu, ban sumiu. Era isso que eu precisava há 2 anos.", stars: 5 },
+          ].map((t) => (
+            <div key={t.name} className="rounded-3xl border border-border/60 bg-card/60 p-6 backdrop-blur">
+              <div className="flex gap-0.5 text-amber-400">
+                {Array.from({ length: t.stars }).map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
+              </div>
+              <p className="mt-3 text-sm leading-relaxed">"{t.text}"</p>
+              <div className="mt-4 border-t border-border/60 pt-3 text-xs">
+                <div className="font-semibold">{t.name}</div>
+                <div className="text-muted-foreground">{t.role}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
 
       {/* ANTI-BAN STRIP */}
       <section id="anti-ban" className="border-y border-border/60 bg-card/30 py-24">
