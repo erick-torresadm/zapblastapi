@@ -541,6 +541,46 @@ function FlowsInner() {
     setSelectedId(null);
   };
 
+  const duplicateSelected = () => {
+    if (!selectedId) return;
+    const src = nodes.find((n) => n.id === selectedId);
+    if (!src || src.type === "start") return;
+    const newId = `n_${Date.now()}`;
+    setNodes((nds) => nds.concat({
+      ...src,
+      id: newId,
+      position: { x: src.position.x + 40, y: src.position.y + 40 },
+      selected: false,
+      data: { ...src.data, label: `${(src.data as StepData).label} (cópia)` },
+    } as Node));
+    setSelectedId(newId);
+    toast.success("Passo duplicado");
+  };
+
+  // ---------- Validação (orfãos, sem entrada, configs faltando) ----------
+  const validation = useMemo(() => {
+    const warnings: string[] = [];
+    if (!nodes.length) return { warnings: ["Adicione pelo menos um passo"] };
+    const hasStart = nodes.some((n) => n.type === "start");
+    if (!hasStart) warnings.push("Falta o nó Início");
+    const targets = new Set(edges.map((e) => e.target));
+    nodes.forEach((n) => {
+      if (n.type === "start") return;
+      if (n.type === "comment") return;
+      if (!targets.has(n.id)) warnings.push(`"${(n.data as StepData).label || n.id}" não está conectado`);
+      const d = n.data as StepData;
+      if (n.type === "message" && !d.message) warnings.push(`"${d.label}" sem mensagem`);
+      if (n.type === "ask" && !d.message) warnings.push(`"${d.label}" sem pergunta`);
+      if (n.type === "menu" && !d.menuOptions) warnings.push(`"${d.label}" sem opções de menu`);
+      if (n.type === "media" && !d.mediaUrl) warnings.push(`"${d.label}" sem URL de mídia`);
+      if ((n.type === "webhook" || n.type === "http_request") && !d.webhookUrl && !d.url) warnings.push(`"${d.label}" sem URL`);
+      if (n.type === "jump" && !d.jumpTo) warnings.push(`"${d.label}" sem destino`);
+      if (n.type === "tag" && !d.tag) warnings.push(`"${d.label}" sem tag`);
+    });
+    return { warnings: warnings.slice(0, 8) };
+  }, [nodes, edges]);
+
+
   const exportJson = () => {
     const blob = new Blob([JSON.stringify({ name: flowName, nodes, edges }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
