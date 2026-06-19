@@ -11,3 +11,14 @@ export const getBillingStateFn = createServerFn({ method: "GET" })
     ]);
     return { plans: plansRes.data ?? [], subscription: subRes.data ?? null };
   });
+
+// Expõe a config pública da Efí (Payee Code + env) pro frontend tokenizar cartão
+export const getEfiPublicConfigFn = createServerFn({ method: "GET" }).handler(async () => {
+  const env = (process.env.EFI_ENV ?? "sandbox") as "prod" | "sandbox";
+  const payeeCode =
+    env === "prod"
+      ? process.env.EFI_PAYEE_CODE_PROD
+      : process.env.EFI_PAYEE_CODE_SANDBOX;
+  if (!payeeCode) throw new Error("Payee code não configurado para o ambiente " + env);
+  return { env, payeeCode };
+});
