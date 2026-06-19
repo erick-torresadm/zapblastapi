@@ -602,18 +602,28 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       return;
     }
 
-    if (node.type === "ask") {
-      const tpl = String(data.message ?? "");
+    if (node.type === "ask" || node.type === "menu") {
+      let tpl = String(data.message ?? "");
+      if (node.type === "menu") {
+        const opts = String(data.menuOptions ?? "")
+          .split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+        if (opts.length && !/\b1\b/.test(tpl)) {
+          tpl = tpl + (tpl ? "\n\n" : "") + opts.map((o, i) => `${i + 1}. ${o}`).join("\n");
+        }
+      }
       if (tpl && inst) {
         if (!(await gateSafetyOrDefer())) return;
         await sendTextSafely(renderTemplate(tpl, vars));
       }
-      await supabaseAdmin.from("flow_runs").update({
-        status: "waiting", waiting_for: String(data.variable ?? "resposta"),
-      }).eq("id", runId);
-      await logStep("ok", undefined, { waiting_for: String(data.variable ?? "resposta") });
+      const variable = String(data.variable ?? (node.type === "menu" ? "menu_opcao" : "resposta"));
+      const timeoutSecs = Math.max(0, Number(data.timeoutSeconds ?? 0));
+      const patch: Record<string, unknown> = { status: "waiting", waiting_for: variable };
+      if (timeoutSecs > 0) patch.wait_until = new Date(Date.now() + timeoutSecs * 1000).toISOString();
+      await supabaseAdmin.from("flow_runs").update(patch).eq("id", runId);
+      await logStep("ok", undefined, { waiting_for: variable, timeout_seconds: timeoutSecs || null });
       return;
     }
+
 
     if (node.type === "delay") {
       if (run.status === "waiting" && run.wait_until && new Date(run.wait_until).getTime() <= Date.now()) {
