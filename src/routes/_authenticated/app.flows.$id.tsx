@@ -720,12 +720,23 @@ function FlowsInner() {
           </CardContent>
         </Card>
 
-        {/* Canvas */}
-        <div
-          ref={wrapperRef}
-          className="relative flex-1 overflow-hidden rounded-xl border border-border/60 bg-[var(--background)]"
-          onDragOver={onDragOver}
-          onDrop={onDrop}
+        {/* Canvas + validação */}
+        <div className="flex flex-1 flex-col gap-2 overflow-hidden">
+          {validation.warnings.length > 0 && (
+            <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+              <div className="flex-1">
+                <span className="font-medium">{validation.warnings.length} aviso(s):</span>{" "}
+                {validation.warnings.join(" · ")}
+              </div>
+            </div>
+          )}
+          <div
+            ref={wrapperRef}
+            className="relative flex-1 overflow-hidden rounded-xl border border-border/60 bg-[var(--background)]"
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+
         >
           <ReactFlow
             nodes={nodes}
