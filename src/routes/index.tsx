@@ -149,8 +149,12 @@ function Landing() {
         </div>
       </section>
 
+      {/* HOW IT WORKS — animated mockups */}
+      <HowItWorks />
+
       {/* ANTI-BAN STRIP */}
       <section id="anti-ban" className="border-y border-border/60 bg-card/30 py-24">
+
         <div className="container mx-auto grid gap-12 px-4 md:grid-cols-2 md:items-center">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-primary">Por que menos bans?</div>
