@@ -10,6 +10,7 @@ import { GridPattern } from "@/components/magicui/grid-pattern";
 import { BorderBeam } from "@/components/magicui/border-beam";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { Logo } from "@/components/Logo";
+import { HowItWorks } from "@/components/landing/HowItWorks";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -36,7 +37,7 @@ function Landing() {
 
           <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
             <a href="#features" className="transition-colors hover:text-foreground">Recursos</a>
-            <a href="#features" className="transition-colors hover:text-foreground">Fluxos</a>
+            <a href="#how" className="transition-colors hover:text-foreground">Como funciona</a>
             <a href="#features" className="transition-colors hover:text-foreground">CRM</a>
             <a href="#anti-ban" className="transition-colors hover:text-foreground">Anti-ban</a>
             <a href="#pricing" className="transition-colors hover:text-foreground">Planos</a>
@@ -148,8 +149,12 @@ function Landing() {
         </div>
       </section>
 
+      {/* HOW IT WORKS — animated mockups */}
+      <HowItWorks />
+
       {/* ANTI-BAN STRIP */}
       <section id="anti-ban" className="border-y border-border/60 bg-card/30 py-24">
+
         <div className="container mx-auto grid gap-12 px-4 md:grid-cols-2 md:items-center">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-primary">Por que menos bans?</div>
