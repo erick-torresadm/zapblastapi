@@ -66,14 +66,8 @@ Deno.serve(async (req) => {
     if (!qrRes.ok) throw new Error(`QR code falhou: ${await qrRes.text()}`);
     const qr = await qrRes.json();
 
-    // Registra pendente para reconciliar via webhook PIX
-    await supabase.from("subscriptions").upsert({
-      user_id: userId,
-      plan_id,
-      status: "pending",
-      payment_provider: "efi_pix",
-      provider_subscription_id: txid,
-    }, { onConflict: "user_id" });
+    // TODO: persistir txid em tabela própria de cobranças PIX para reconciliar via webhook
+
 
     return new Response(
       JSON.stringify({
