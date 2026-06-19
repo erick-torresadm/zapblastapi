@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Sparkles, Building2, CreditCard } from "lucide-react";
 import { getBillingStateFn } from "@/lib/billing.functions";
 import { CardCheckoutDialog } from "@/components/billing/CardCheckoutDialog";
+import { PixAnnualDialog } from "@/components/billing/PixAnnualDialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/billing")({ component: BillingPage });
