@@ -1120,14 +1120,31 @@ export async function resumeFlowRunsForReply(
     if (!flow) continue;
     const node = flow.nodes.find((n) => n.id === r.current_node_id);
     if (!node) continue;
-    const newVars = { ...(r.variables ?? {}), [r.waiting_for]: args.text ?? "" };
-    const edge = nextEdge(flow, node.id);
+    const reply = args.text ?? "";
+    const newVars = { ...(r.variables ?? {}), [r.waiting_for]: reply };
+    // Menu: roteia pelo número da opção (1..N) → handle "opt_N"; vazio/inválido → "invalid"
+    let handle: string | undefined;
+    if (node.type === "menu") {
+      const data = (node.data ?? {}) as Record<string, unknown>;
+      const opts = String(data.menuOptions ?? "").split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+      const digit = (reply.match(/\d+/)?.[0]) ?? "";
+      const idx = digit ? Number(digit) : NaN;
+      if (Number.isFinite(idx) && idx >= 1 && idx <= opts.length) {
+        handle = `opt_${idx}`;
+        newVars[`${r.waiting_for}_label`] = opts[idx - 1];
+      } else {
+        handle = "invalid";
+      }
+    }
+    const edge = nextEdge(flow, node.id, handle);
     await supabaseAdmin.from("flow_runs").update({
       variables: newVars,
       waiting_for: null,
+      wait_until: null,
       status: "pending",
       current_node_id: edge?.target ?? null,
       ...(edge ? {} : { finished_at: new Date().toISOString(), status: "done" }),
+
     }).eq("id", r.id);
   }
 }
