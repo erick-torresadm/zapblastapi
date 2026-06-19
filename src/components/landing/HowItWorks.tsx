@@ -1,8 +1,8 @@
-import { motion, useInView } from "motion/react";
+import { motion, useInView, AnimatePresence } from "motion/react";
 import { useRef, useState, useEffect } from "react";
 import {
   Smartphone, Workflow, MessageSquare, BarChart3, Check,
-  Send, Bot, User, Flame, Sparkles, ArrowRight,
+  Send, Bot, User, Flame, Sparkles, ArrowRight, Type, Clock, Reply, MousePointer2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
