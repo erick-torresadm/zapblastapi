@@ -5,10 +5,12 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Sparkles, Building2, CreditCard, QrCode } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Check, X, Crown, Sparkles, Building2, CreditCard, QrCode, AlertTriangle, Clock } from "lucide-react";
 import { getBillingStateFn } from "@/lib/billing.functions";
 import { CardCheckoutDialog } from "@/components/billing/CardCheckoutDialog";
 import { PixAnnualDialog } from "@/components/billing/PixAnnualDialog";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/billing")({ component: BillingPage });
