@@ -56,8 +56,10 @@ function CampaignsPage() {
           <h1 className="text-2xl font-bold">Campanhas</h1>
           <p className="text-sm text-muted-foreground">Crie e gerencie seus disparos</p>
         </div>
-        <Button asChild><Link to="/app/campaigns/new"><Plus className="mr-2 h-4 w-4" />Nova campanha</Link></Button>
+        <NewCampaignButton />
       </div>
+      <PastDueAlert />
+{/*
 
       <Card>
         <CardHeader><CardTitle>Todas</CardTitle></CardHeader>
