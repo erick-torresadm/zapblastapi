@@ -629,7 +629,16 @@ function FlowsInner() {
                 <SheetDescription className="text-xs">Toque para adicionar ao canvas</SheetDescription>
               </SheetHeader>
               <div className="space-y-2 overflow-y-auto p-3" style={{ maxHeight: "calc(100vh - 80px)" }}>
-                {(Object.keys(STEP_META) as StepType[]).filter((t) => t !== "start").map((t) => {
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input placeholder="Buscar bloco…" value={paletteSearch} onChange={(e) => setPaletteSearch(e.target.value)} className="h-8 pl-7 text-xs" />
+                </div>
+                {(Object.keys(STEP_META) as StepType[]).filter((t) => t !== "start").filter((t) => {
+                  const q = paletteSearch.toLowerCase().trim();
+                  if (!q) return true;
+                  const m = STEP_META[t];
+                  return m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || t.includes(q);
+                }).map((t) => {
                   const m = STEP_META[t]; const Icon = m.icon;
                   return (
                     <button
@@ -649,6 +658,7 @@ function FlowsInner() {
                   );
                 })}
               </div>
+
             </SheetContent>
           </Sheet>
           <Button variant="outline" size="sm" onClick={exportJson} className="hidden sm:inline-flex"><Download className="mr-2 h-4 w-4" />Exportar</Button>
