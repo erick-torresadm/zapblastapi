@@ -182,14 +182,24 @@ export type Database = {
       }
       chat_messages: {
         Row: {
+          caption: string | null
           chat_type: string
           contact_jid: string | null
           contact_phone: string
           created_at: string
           direction: string
+          duration_seconds: number | null
           evolution_message_id: string | null
           id: string
           instance_id: string | null
+          is_ptt: boolean | null
+          media_filename: string | null
+          media_mime: string | null
+          media_size: number | null
+          media_type: string | null
+          media_url: string | null
+          quoted_text: string | null
+          reaction: string | null
           read_at: string | null
           sent_by_agent_id: string | null
           status: string
@@ -197,14 +207,24 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          caption?: string | null
           chat_type?: string
           contact_jid?: string | null
           contact_phone: string
           created_at?: string
           direction: string
+          duration_seconds?: number | null
           evolution_message_id?: string | null
           id?: string
           instance_id?: string | null
+          is_ptt?: boolean | null
+          media_filename?: string | null
+          media_mime?: string | null
+          media_size?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          quoted_text?: string | null
+          reaction?: string | null
           read_at?: string | null
           sent_by_agent_id?: string | null
           status?: string
@@ -212,14 +232,24 @@ export type Database = {
           user_id: string
         }
         Update: {
+          caption?: string | null
           chat_type?: string
           contact_jid?: string | null
           contact_phone?: string
           created_at?: string
           direction?: string
+          duration_seconds?: number | null
           evolution_message_id?: string | null
           id?: string
           instance_id?: string | null
+          is_ptt?: boolean | null
+          media_filename?: string | null
+          media_mime?: string | null
+          media_size?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          quoted_text?: string | null
+          reaction?: string | null
           read_at?: string | null
           sent_by_agent_id?: string | null
           status?: string
@@ -452,51 +482,81 @@ export type Database = {
         Row: {
           assigned_agent_id: string | null
           chat_type: string
+          contact_about: string | null
+          contact_avatar_url: string | null
+          contact_company: string | null
+          contact_email: string | null
           contact_jid: string | null
           contact_name: string | null
           contact_phone: string
           created_at: string
+          custom_fields: Json
           id: string
           instance_id: string | null
           last_message_at: string
           last_message_direction: string | null
           last_message_text: string | null
+          last_message_type: string | null
           owner_user_id: string
+          presence: string | null
+          presence_at: string | null
+          profile_synced_at: string | null
           status: string
+          tags: Json
           unread_count: number
           updated_at: string
         }
         Insert: {
           assigned_agent_id?: string | null
           chat_type?: string
+          contact_about?: string | null
+          contact_avatar_url?: string | null
+          contact_company?: string | null
+          contact_email?: string | null
           contact_jid?: string | null
           contact_name?: string | null
           contact_phone: string
           created_at?: string
+          custom_fields?: Json
           id?: string
           instance_id?: string | null
           last_message_at?: string
           last_message_direction?: string | null
           last_message_text?: string | null
+          last_message_type?: string | null
           owner_user_id: string
+          presence?: string | null
+          presence_at?: string | null
+          profile_synced_at?: string | null
           status?: string
+          tags?: Json
           unread_count?: number
           updated_at?: string
         }
         Update: {
           assigned_agent_id?: string | null
           chat_type?: string
+          contact_about?: string | null
+          contact_avatar_url?: string | null
+          contact_company?: string | null
+          contact_email?: string | null
           contact_jid?: string | null
           contact_name?: string | null
           contact_phone?: string
           created_at?: string
+          custom_fields?: Json
           id?: string
           instance_id?: string | null
           last_message_at?: string
           last_message_direction?: string | null
           last_message_text?: string | null
+          last_message_type?: string | null
           owner_user_id?: string
+          presence?: string | null
+          presence_at?: string | null
+          profile_synced_at?: string | null
           status?: string
+          tags?: Json
           unread_count?: number
           updated_at?: string
         }
@@ -544,6 +604,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_quick_replies: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          owner_user_id: string
+          shortcut: string
+          text: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          owner_user_id: string
+          shortcut: string
+          text: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          owner_user_id?: string
+          shortcut?: string
+          text?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       evolution_servers: {
         Row: {

@@ -356,6 +356,39 @@ export async function fetchProfilePictureUrl(server: EvolutionServer, instanceNa
   );
 }
 
+/**
+ * Download base64 of a received media message.
+ * Pass the raw `message` object from a `messages.upsert` webhook payload.
+ * Returns `{ base64, mimetype, fileName? }` (Evolution v2 response).
+ */
+export async function getBase64FromMediaMessage(
+  server: EvolutionServer,
+  instanceName: string,
+  message: { key: { id?: string; remoteJid?: string; fromMe?: boolean }; message?: unknown },
+  convertToMp4 = false,
+): Promise<{ base64: string; mimetype?: string; fileName?: string } | null> {
+  try {
+    const res = await evoFetch(
+      server,
+      `/chat/getBase64FromMediaMessage/${encodeURIComponent(instanceName)}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ message, convertToMp4 }),
+      },
+    );
+    const b64 = (res as { base64?: string }).base64;
+    if (!b64) return null;
+    return {
+      base64: b64,
+      mimetype: (res as { mimetype?: string }).mimetype,
+      fileName: (res as { fileName?: string }).fileName,
+    };
+  } catch (e) {
+    console.warn("[evolution] getBase64FromMediaMessage failed", e);
+    return null;
+  }
+}
+
 export async function markMessageAsRead(
   server: EvolutionServer,
   instanceName: string,
