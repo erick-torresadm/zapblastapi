@@ -569,3 +569,32 @@ export async function fetchAllGroups(
   );
   return (Array.isArray(r) ? r : []) as GroupInfo[];
 }
+
+// ============================================================================
+// 8) Contacts (saved/unsaved)
+// ============================================================================
+
+export type EvolutionContact = {
+  id: string;              // JID
+  remoteJid?: string;
+  pushName?: string | null;
+  profilePicUrl?: string | null;
+  /** Saved name (from device address book sync). Empty/null means not saved. */
+  name?: string | null;
+  verifiedName?: string | null;
+  [k: string]: unknown;
+};
+
+/** Fetch all contacts the instance knows about (chats + address book sync). */
+export async function findContacts(
+  server: EvolutionServer,
+  instanceName: string,
+): Promise<EvolutionContact[]> {
+  const r = await evoFetchRaw(
+    server,
+    `/chat/findContacts/${encodeURIComponent(instanceName)}`,
+    { method: "POST", body: JSON.stringify({ where: {} }) },
+  );
+  return (Array.isArray(r) ? r : []) as EvolutionContact[];
+}
+
