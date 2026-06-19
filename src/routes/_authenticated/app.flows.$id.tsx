@@ -680,7 +680,16 @@ function FlowsInner() {
             <CardDescription className="text-xs">Arraste para o canvas</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {(Object.keys(STEP_META) as StepType[]).filter((t) => t !== "start").map((t) => {
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder="Buscar bloco…" value={paletteSearch} onChange={(e) => setPaletteSearch(e.target.value)} className="h-8 pl-7 text-xs" />
+            </div>
+            {(Object.keys(STEP_META) as StepType[]).filter((t) => t !== "start").filter((t) => {
+              const q = paletteSearch.toLowerCase().trim();
+              if (!q) return true;
+              const m = STEP_META[t];
+              return m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || t.includes(q);
+            }).map((t) => {
               const m = STEP_META[t]; const Icon = m.icon;
               return (
                 <div
@@ -704,6 +713,7 @@ function FlowsInner() {
                 </div>
               );
             })}
+
             <Button size="sm" variant="outline" className="w-full" onClick={() => addNode("message")}>
               <Plus className="mr-2 h-3.5 w-3.5" />Adicionar mensagem
             </Button>
