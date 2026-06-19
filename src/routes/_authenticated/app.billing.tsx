@@ -17,6 +17,9 @@ export const Route = createFileRoute("/_authenticated/app/billing")({ component:
 
 function brl(cents: number) { return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
 function brlNoDecimals(cents: number) { return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }); }
+function hasPaidSubscription({ sub, isTrialing }: { sub: { plan_id?: string | null; status?: string } | null | undefined; isTrialing: boolean }) {
+  return !!sub?.plan_id && !isTrialing && (sub.status === "active" || sub.status === "past_due");
+}
 
 const planIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   starter: Sparkles, pro: Crown, scale: Building2, enterprise: Building2,
