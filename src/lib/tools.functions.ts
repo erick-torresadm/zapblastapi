@@ -8,7 +8,11 @@ export const TOOL_PRICES = {
   validator_per_number_cents: 2,    // R$ 0,02
   group_extract_per_contact_cents: 10, // R$ 0,10
   group_extract_min_charge_cents: 100,  // cobra ao menos R$ 1,00 mesmo se grupo for minúsculo
+  maps_search_flat_cents: 500,      // R$ 5,00 por busca (até 60 leads)
+  maps_search_max_leads: 60,
+  maps_whatsapp_check_per_lead_cents: 2, // toggle opcional: valida cada lead no WhatsApp
 } as const;
+
 
 export const getToolsPricingFn = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

@@ -11,11 +11,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Users, ShieldCheck, Download, Wallet, Sparkles, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Users, ShieldCheck, Download, Wallet, Sparkles, Loader2, MapPin, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { validateNumbersFn, extractGroupFn, getToolsPricingFn } from "@/lib/tools.functions";
 import { listInstancesFn } from "@/lib/instances.functions";
 import { getWalletFn } from "@/lib/wallet.functions";
+import { MapsExtractorCard } from "@/components/tools/MapsExtractorCard";
+import { UnsavedContactsCard } from "@/components/tools/UnsavedContactsCard";
 
 export const Route = createFileRoute("/_authenticated/app/tools")({ component: ToolsPage });
 
@@ -88,8 +90,14 @@ function ToolsPage() {
         </Card>
       )}
 
-      <Tabs defaultValue="validator" className="space-y-4">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+      <Tabs defaultValue="maps" className="space-y-4">
+        <TabsList className="grid w-full max-w-3xl grid-cols-2 md:grid-cols-4">
+          <TabsTrigger value="maps">
+            <MapPin className="mr-2 h-4 w-4" /> Google Maps
+          </TabsTrigger>
+          <TabsTrigger value="unsaved">
+            <UserPlus className="mr-2 h-4 w-4" /> Não salvos
+          </TabsTrigger>
           <TabsTrigger value="validator">
             <ShieldCheck className="mr-2 h-4 w-4" /> Validador
           </TabsTrigger>
@@ -97,6 +105,21 @@ function ToolsPage() {
             <Users className="mr-2 h-4 w-4" /> Extrair grupo
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="maps">
+          <MapsExtractorCard
+            flatPrice={pricing?.maps_search_flat_cents ?? 500}
+            waCheckPrice={pricing?.maps_whatsapp_check_per_lead_cents ?? 2}
+            maxLeads={pricing?.maps_search_max_leads ?? 60}
+            balance={balance}
+            instances={connectedInstances}
+            onSuccess={() => refetchWallet()}
+          />
+        </TabsContent>
+
+        <TabsContent value="unsaved">
+          <UnsavedContactsCard instances={connectedInstances} />
+        </TabsContent>
 
         <TabsContent value="validator">
           <ValidatorCard
