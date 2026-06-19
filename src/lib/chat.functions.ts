@@ -34,6 +34,7 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
     conversation_id: z.string().uuid(),
     text: z.string().min(1).max(4000),
     instance_id: z.string().uuid().optional(),
+    reply_to_id: z.string().uuid().optional(),
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
