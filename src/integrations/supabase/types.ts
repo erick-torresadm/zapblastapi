@@ -1012,6 +1012,8 @@ export type Database = {
           active: boolean
           created_at: string
           description: string | null
+          efi_plan_id_prod: number | null
+          efi_plan_id_sandbox: number | null
           featured: boolean
           id: string
           max_chips: number
@@ -1028,6 +1030,8 @@ export type Database = {
           active?: boolean
           created_at?: string
           description?: string | null
+          efi_plan_id_prod?: number | null
+          efi_plan_id_sandbox?: number | null
           featured?: boolean
           id?: string
           max_chips?: number
@@ -1044,6 +1048,8 @@ export type Database = {
           active?: boolean
           created_at?: string
           description?: string | null
+          efi_plan_id_prod?: number | null
+          efi_plan_id_sandbox?: number | null
           featured?: boolean
           id?: string
           max_chips?: number
@@ -1061,9 +1067,14 @@ export type Database = {
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
+          card_brand: string | null
+          card_last4: string | null
           created_at: string
           current_period_end: string | null
+          efi_subscription_id: number | null
           id: string
+          next_charge_at: string | null
+          payment_method: string | null
           plan_id: string | null
           status: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id: string | null
@@ -1073,9 +1084,14 @@ export type Database = {
         }
         Insert: {
           cancel_at_period_end?: boolean
+          card_brand?: string | null
+          card_last4?: string | null
           created_at?: string
           current_period_end?: string | null
+          efi_subscription_id?: number | null
           id?: string
+          next_charge_at?: string | null
+          payment_method?: string | null
           plan_id?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
@@ -1085,9 +1101,14 @@ export type Database = {
         }
         Update: {
           cancel_at_period_end?: boolean
+          card_brand?: string | null
+          card_last4?: string | null
           created_at?: string
           current_period_end?: string | null
+          efi_subscription_id?: number | null
           id?: string
+          next_charge_at?: string | null
+          payment_method?: string | null
           plan_id?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null

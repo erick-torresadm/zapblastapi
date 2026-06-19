@@ -1,59 +1,62 @@
-## Diagnóstico (já confirmado no banco)
 
-Os gatilhos ESTÃO sendo identificados:
-- Trigger `teste1` (instance `chip02`) bateu 3x hoje (`last_triggered_at = 23:36`).
-- 3 `flow_runs` foram criados — mas todos terminaram com `status=failed`, `error="Número sem WhatsApp"`.
+# Cartão recorrente mensal via Efí
 
-Causa raiz:
-1. O nó `message` do fluxo chama `checkWhatsappNumbers()` (Evolution `/chat/whatsappNumbers`) com `validate_numbers=true`. O número que chegou no webhook (`274333033341090`, 15 dígitos) é, na prática, um LID/JID alternativo que a Evolution não reconhece como número válido — então `exists=false` e o run é marcado como `failed` antes de enviar a primeira mensagem.
-2. O log de passos (`flow_run_steps`) está vazio para esses runs — o motor falhou tão cedo que não há rastro visível para o usuário no painel.
-3. Não há fila visível no painel mostrando "fluxo disparado por gatilho" — o usuário só vê o card de Bot, sem feedback de execução.
-4. Mensagens chegando como `@lid` ou outros domínios estão sendo descartadas silenciosamente no webhook (`return { skipped: chatType }`), sem log — o que mascara o caso em que "outro número meu" não é `@s.whatsapp.net`.
+Vou usar a API de **Planos + Assinaturas** da Efí, que já cobra automaticamente todo mês no cartão do cliente. Tudo na mesma conta Efí que já configuramos pro Pix.
 
-## O que vou fazer
+## O que será feito
 
-### 1. Webhook — tornar a entrada do trigger robusta (`src/routes/api/public/evolution-webhook.$token.ts`)
-- Quando o JID for `@lid`, extrair o número real do campo `key.senderPn` ou `data.pushName` quando presente, e tratar como `user` para fins de trigger (mantendo o CRM separado se quisermos).
-- Adicionar logs estruturados (`console.log("[webhook]", ...)`) em cada etapa: evento recebido, instância resolvida, chat_type, fromMe, texto recebido — visíveis em `server-function-logs`.
-- Não bloquear `triggerKeywordFlows` para tipos não-user quando vier `senderPn` válido.
+### 1. Banco de dados (migration)
+- Adicionar em `subscription_plans`:
+  - `efi_plan_id_sandbox` (int)
+  - `efi_plan_id_prod` (int)
+- Adicionar em `subscriptions`:
+  - `efi_subscription_id` (int) — ID da assinatura na Efí
+  - `payment_method` (text) — 'card' | 'pix' | 'trial'
+  - `card_last4` (text)
+  - `card_brand` (text)
+  - `next_charge_at` (timestamptz)
 
-### 2. Motor de fluxo — não falhar o run inteiro por validação (`src/lib/flow-engine.server.ts`)
-- Mudar o comportamento de `validate_numbers`: se a checagem retornar `exists=false`, **registrar um aviso** (`flow_run_steps` com status `skipped` + nota) e **prosseguir** com o envio mesmo assim (a Evolution vai rejeitar com 400 se for inválido de fato; isso já é tratado). Hoje o run morre sem nem tentar enviar.
-- Adicionar logs em `triggerKeywordFlows`: quantos triggers ativos, quais bateram, qual instância foi escolhida, ID do run criado.
-- Garantir que `flow_run_steps` recebe um step "triggered" assim que o run é criado pelo gatilho (para a fila do painel).
+### 2. Edge Functions novas
+- **`efi-create-plan`** (admin) — cria o "Plano" na Efí (intervalo mensal, repetições infinitas) e salva o `plan_id` no `subscription_plans`. Roda 1x por plano.
+- **`efi-subscribe-card`** — recebe `plan_id` + `payment_token` (tokenizado no frontend) + dados do cliente, cria a assinatura na Efí com `POST /v1/plan/:id/subscription/one-step`, atualiza `subscriptions` do usuário.
+- **`efi-cancel-subscription`** — cancela na Efí + marca `status='canceled'` localmente.
+- **`efi-webhook`** (estender o que já existe pro Pix) — tratar eventos de assinatura: `paid`, `unpaid`, `canceled`, `refunded`. Atualiza `status` da subscription e credita/debita conforme.
 
-### 3. Painel — nova aba "Disparos" na página Bot (`src/routes/_authenticated/app.keywords.tsx` + nova server fn)
-- Acima da lista de gatilhos, mostrar uma **fila em tempo real** (auto-refresh a cada 5s) com os últimos 20 disparos:
-  - Quando (`started_at`), palavra-chave que bateu, contato, fluxo, chip, status (`pending` / `waiting` / `running` / `completed` / `failed` + mensagem de erro).
-- Server function `listRecentFlowRunsFn` lê `flow_runs` (+ `flow_run_steps` para erro) do user, ordenado por `started_at desc`, limit 50.
-- Badge com contador "X disparos hoje".
+### 3. Frontend
+- Componente `CardCheckout.tsx`:
+  - Carrega o **Efí Payee Script** (`https://api.efipay.com.br/v1/cdn/<payee_code>/<timestamp>`) que tokeniza o cartão no browser (PCI-safe — o número do cartão nunca passa pelo nosso backend).
+  - Formulário: número, validade, CVV, nome, CPF, email, telefone.
+  - Ao submeter: gera `payment_token` → envia pra edge function `efi-subscribe-card`.
+- Na página de planos (`/planos` ou onde está hoje): botão "Assinar com Cartão" ao lado do "Pagar com Pix".
+- Página `/minha-assinatura`: mostrar cartão (•••• 4242), próximo débito, botão cancelar.
 
-### 4. Endpoint de teste manual de gatilho (`/api/public/flow-trigger-test` POST)
-- Permite simular um webhook: recebe `{ keyword, phone }`, dispara `triggerKeywordFlows` como se fosse uma mensagem real. Botão "Testar" em cada linha da página Bot. Resultado aparece imediatamente na fila de disparos.
-- Protegido pelo `apikey` (publishable key) já usado nos outros workers.
-
-### 5. Verificar/criar agendamento do worker
-- Confirmar que `pg_cron` está chamando `/api/public/flow-worker` a cada minuto (os runs estão sendo avançados, então provavelmente já existe; vou validar via `cron.job` com permissão admin). Se faltar, criar a schedule.
+### 4. Secrets necessários
+Já temos tudo: `EFI_CLIENT_ID_PROD/SANDBOX`, `EFI_CLIENT_SECRET_PROD/SANDBOX`, `EFI_CERT_PROD_BASE64`, `EFI_CERT_SANDBOX_BASE64`.
+Precisaremos pegar o **Payee Code (Identificador de Conta)** no painel da Efí pra usar no script de tokenização do frontend — vou pedir quando chegar nessa etapa.
 
 ## Detalhes técnicos
 
+**Fluxo de assinatura (one-step):**
 ```text
-Caminho de uma mensagem com palavra-chave:
-Evolution → webhook → log → triggerKeywordFlows
-                              ├─ match (keywords + mode + cooldown + fromMe)
-                              ├─ createFlowRun (status=pending, +step "triggered")
-                              └─ pg_cron (/api/public/flow-worker, 1/min)
-                                  └─ advanceFlowRun
-                                      ├─ message → (validate? warn, segue) → sendText
-                                      └─ next node...
+Frontend                          Backend (Edge)              Efí API
+  │  tokeniza cartão (JS Efí)        │                           │
+  │ ──────── payment_token ────────► │                           │
+  │                                  │ ── POST /plan/:id/        │
+  │                                  │    subscription/one-step ►│
+  │                                  │ ◄──── subscription_id ────│
+  │ ◄──── { status, sub_id } ─────── │ ── UPDATE subscriptions   │
 ```
 
-Arquivos a editar:
-- `src/routes/api/public/evolution-webhook.$token.ts` — logs + tratamento de `@lid`
-- `src/lib/flow-engine.server.ts` — `validate_numbers` vira warning; logs; step "triggered"
-- `src/routes/_authenticated/app.keywords.tsx` — UI da fila de disparos
-- `src/lib/keywords.functions.ts` — nova `listRecentFlowRunsFn`
-- `src/routes/api/public/flow-trigger-test.ts` — endpoint de teste (novo)
-- Migration: opcional, só se faltar o pg_cron schedule.
+**Webhook de assinatura:** Efí chama nossa URL com `notification` token → fazemos GET nesse token pra buscar os eventos (`charge.status = paid|unpaid|canceled`) → atualizamos a `subscription` correspondente via `efi_subscription_id`.
 
-Tudo é alteração de presentação + lógica server, sem mudar schema (exceto cron, se faltar).
+**Trial vs cartão:** o usuário no trial de 7 dias pode "Adicionar cartão" antes do fim do trial → assinatura na Efí com `payment_method=card`. Quando trial expirar, primeira cobrança roda automaticamente.
+
+## Ordem de implementação
+1. Migration (DB)
+2. Edge function `efi-create-plan` + rodar uma vez pra criar o plano "Pro" na Efí
+3. Edge function `efi-subscribe-card`
+4. Componente `CardCheckout` + integrar na página de planos
+5. Estender webhook pra eventos de subscription
+6. Edge function `efi-cancel-subscription` + UI em `/minha-assinatura`
+
+Posso começar? Vou seguir essa ordem e te avisar quando precisar do **Payee Code** (etapa 4).

@@ -1,1 +1,4 @@
 project_id = "syabtrbzwfgnafyyaibq"
+
+[functions.efi-webhook]
+verify_jwt = false
