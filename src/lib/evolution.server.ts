@@ -500,3 +500,72 @@ export function isInQuietHours(startHour: number, endHour: number, now: Date = n
   if (startHour < endHour) return h >= startHour && h < endHour;
   return h >= startHour || h < endHour;
 }
+
+// ============================================================================
+// 7) Groups
+// ============================================================================
+
+export type GroupParticipant = {
+  id: string;            // JID (5511...@s.whatsapp.net or ...@lid)
+  admin?: "admin" | "superadmin" | null;
+};
+
+export type GroupInfo = {
+  id: string;            // group JID like 5511...-1709...@g.us
+  subject?: string;
+  size?: number;
+  participants?: GroupParticipant[];
+  [k: string]: unknown;
+};
+
+/** Extract invite code from any of: full URL, "chat.whatsapp.com/CODE", or plain code. */
+export function parseGroupInviteCode(input: string): string | null {
+  if (!input) return null;
+  const s = String(input).trim();
+  const m = s.match(/chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9_-]{10,})/i);
+  if (m) return m[1];
+  if (/^[A-Za-z0-9_-]{10,}$/.test(s)) return s;
+  return null;
+}
+
+/** Look up group info from an invite code (no need to be a member). */
+export async function inviteInfoGroup(
+  server: EvolutionServer,
+  instanceName: string,
+  inviteCode: string,
+): Promise<GroupInfo> {
+  const r = await evoFetch(
+    server,
+    `/group/inviteInfo/${encodeURIComponent(instanceName)}?inviteCode=${encodeURIComponent(inviteCode)}`,
+    { method: "GET" },
+  );
+  return r as GroupInfo;
+}
+
+/** Get full group info (incl. participants) by group JID. The instance must be a member. */
+export async function findGroupInfos(
+  server: EvolutionServer,
+  instanceName: string,
+  groupJid: string,
+): Promise<GroupInfo> {
+  const r = await evoFetch(
+    server,
+    `/group/findGroupInfos/${encodeURIComponent(instanceName)}?groupJid=${encodeURIComponent(groupJid)}`,
+    { method: "GET" },
+  );
+  return r as GroupInfo;
+}
+
+/** Fetch all groups the instance participates in. */
+export async function fetchAllGroups(
+  server: EvolutionServer,
+  instanceName: string,
+  getParticipants = false,
+): Promise<GroupInfo[]> {
+  const r = await evoFetchRaw(
+    server,
+    `/group/fetchAllGroups/${encodeURIComponent(instanceName)}?getParticipants=${getParticipants ? "true" : "false"}`,
+    { method: "GET" },
+  );
+  return (Array.isArray(r) ? r : []) as GroupInfo[];
+}
