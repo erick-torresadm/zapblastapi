@@ -147,8 +147,14 @@ function BillingPage() {
               </CardContent>
               <CardFooter className="flex-col gap-2">
                 {showAnnual ? (
-                  <Button className="w-full" variant={isCurrent ? "outline" : p.featured ? "default" : "outline"} disabled>
-                    {isCurrent ? "Plano atual" : "Assinar anual via PIX (em breve)"}
+                  <Button
+                    className="w-full"
+                    variant={isCurrent ? "outline" : p.featured ? "default" : "outline"}
+                    disabled={isCurrent}
+                    onClick={() => setPixPlan({ id: p.id, name: p.name, annual: annualTotal })}
+                  >
+                    <QrCode className="h-4 w-4 mr-2" />
+                    {isCurrent ? "Plano atual" : "Assinar anual via PIX"}
                   </Button>
                 ) : (
                   <Button
