@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Zap, ShieldCheck, Flame, ShoppingCart, MessageSquare, BarChart3,
   ArrowRight, Check, Sparkles, Workflow, Inbox, Bot, Users,
+  TrendingDown, Clock, PhoneOff, AlertTriangle, DollarSign,
 } from "lucide-react";
 import { Meteors } from "@/components/magicui/meteors";
 import { GridPattern } from "@/components/magicui/grid-pattern";
@@ -155,6 +156,113 @@ function Landing() {
           </div>
         </div>
       </section>
+
+      {/* PAIN / PERDA DE VENDAS */}
+      <section id="perdas" className="relative overflow-hidden border-y border-border/60 bg-card/30 py-24">
+        <div className="absolute inset-0 -z-10 opacity-40" style={{
+          backgroundImage: "radial-gradient(circle at 15% 20%, oklch(0.62 0.21 25 / 0.18), transparent 45%), radial-gradient(circle at 85% 80%, oklch(0.68 0.19 35 / 0.14), transparent 45%)",
+        }} />
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-3xl text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-destructive">
+              <AlertTriangle className="h-3.5 w-3.5" /> Atenção, dono de negócio
+            </div>
+            <h2 className="mt-4 font-display text-4xl font-bold tracking-tight md:text-5xl">
+              Cada dia sem automação é <span className="text-destructive">dinheiro saindo do seu caixa</span>.
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Enquanto seu concorrente responde em 30 segundos e dispara campanhas pra 10 mil contatos com 1 clique, você ainda digita uma mensagem por vez. O lead que esfriou hoje, comprou de outro amanhã.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-12 grid max-w-5xl gap-4 md:grid-cols-3">
+            {[
+              { icon: Clock, stat: "5 min", label: "é o tempo médio em que um lead esfria. Sem resposta automática nesse intervalo, a chance de conversão cai 80%.", tone: "destructive" as const },
+              { icon: PhoneOff, stat: "63%", label: "dos clientes desistem da compra quando não recebem retorno no mesmo dia. Eles vão pro próximo.", tone: "destructive" as const },
+              { icon: TrendingDown, stat: "R$ 12k/mês", label: "é o que uma loja média perde só não enviando lembrete de carrinho abandonado e remarketing no WhatsApp.", tone: "destructive" as const },
+            ].map((c) => (
+              <div key={c.stat} className="rounded-2xl border border-destructive/30 bg-background/60 p-6 backdrop-blur transition-all hover:border-destructive/50 hover:shadow-lg">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/15 text-destructive">
+                  <c.icon className="h-5 w-5" />
+                </div>
+                <div className="mt-4 font-display text-3xl font-bold text-destructive">{c.stat}</div>
+                <p className="mt-2 text-sm text-muted-foreground">{c.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mx-auto mt-12 max-w-5xl rounded-3xl border border-border/60 bg-background/70 p-8 backdrop-blur md:p-10">
+            <div className="grid gap-8 md:grid-cols-2">
+              {/* SEM PERSEIDAS */}
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-destructive">Sem Perseidas</div>
+                <h3 className="mt-2 font-display text-2xl font-semibold">A rotina que está te custando vendas</h3>
+                <ul className="mt-5 space-y-3 text-sm">
+                  {[
+                    "Lead chega à meia-noite e só é respondido às 9h do dia seguinte — já comprou em outro lugar.",
+                    "Sua equipe copia e cola a mesma mensagem 200 vezes por dia.",
+                    "Lançamento de promoção depende de mandar manualmente pra cada contato.",
+                    "Carrinho abandonado vira prejuízo porque ninguém lembrou o cliente.",
+                    "Você não sabe qual mensagem converte mais — chuta no escuro.",
+                    "Chip queima toda semana e você perde a base de conversa.",
+                  ].map((x) => (
+                    <li key={x} className="flex gap-2 text-muted-foreground">
+                      <span className="mt-1 text-destructive">✕</span>{x}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* COM PERSEIDAS */}
+              <div className="relative rounded-2xl border border-primary/40 bg-primary/5 p-6">
+                <div className="absolute -top-3 left-6 rounded-full bg-gradient-to-r from-primary to-primary-glow px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-glow">
+                  Com Perseidas
+                </div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-primary">Com Perseidas</div>
+                <h3 className="mt-2 font-display text-2xl font-semibold">A rotina que converte enquanto você dorme</h3>
+                <ul className="mt-5 space-y-3 text-sm">
+                  {[
+                    "Bot responde em 3 segundos, 24/7, qualifica o lead e só passa pra equipe quem está pronto pra comprar.",
+                    "Disparo em massa pra 10 mil contatos em minutos, com texto rotacionado pra não cair.",
+                    "Fluxo automático de carrinho abandonado recupera 18–25% do que ia pro lixo.",
+                    "Relatório mostra qual mensagem vende mais — você dobra o que funciona.",
+                    "Anti-ban e aquecimento mantêm seus chips vivos por meses, não dias.",
+                    "Cada real investido vira no mínimo R$ 7 de retorno (média dos nossos clientes).",
+                  ].map((x) => (
+                    <li key={x} className="flex gap-2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                      <span>{x}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* CALCULADORA DE PERDA */}
+            <div className="mt-8 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                  <DollarSign className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-display text-xl font-bold">Faça as contas. Doi, mas é real.</h4>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Se seu ticket médio é <strong className="text-foreground">R$ 200</strong> e você perde só <strong className="text-foreground">3 vendas por dia</strong> por demora ou esquecimento, são <strong className="text-destructive">R$ 18.000 por mês</strong> escorrendo pelo ralo. Em 1 ano: <strong className="text-destructive">R$ 216 mil</strong>. O Perseidas custa menos que um pacote de café por dia.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-col items-center gap-3 text-center">
+              <Button asChild size="lg" className="bg-gradient-to-br from-primary to-primary-glow shadow-glow">
+                <Link to="/auth">Parar de perder vendas agora — 7 dias grátis <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+              <p className="text-xs text-muted-foreground">Sem cartão. Sem fidelidade. Cancela em 1 clique se não converter.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
       {/* FEATURES BENTO */}
       <section id="features" className="container mx-auto px-4 py-24">
