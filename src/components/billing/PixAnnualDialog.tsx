@@ -16,6 +16,19 @@ type Props = {
 
 type PixData = { txid: string; qrcode: string; imagem_qrcode: string; valor: string; expires_in: number };
 
+async function functionErrorMessage(error: unknown) {
+  const context = (error as { context?: Response })?.context;
+  if (context instanceof Response) {
+    try {
+      const body = await context.clone().json();
+      return body?.details?.mensagem ?? body?.details?.error_description ?? body?.details ?? body?.error;
+    } catch {
+      return await context.clone().text();
+    }
+  }
+  return (error as Error)?.message;
+}
+
 export function PixAnnualDialog({ open, onOpenChange, planId, planName, annualCents }: Props) {
   const [pix, setPix] = useState<PixData | null>(null);
   const [copied, setCopied] = useState(false);
@@ -23,7 +36,7 @@ export function PixAnnualDialog({ open, onOpenChange, planId, planName, annualCe
   const create = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("efi-pix-annual", { body: { plan_id: planId } });
-      if (error) throw error;
+      if (error) throw new Error((await functionErrorMessage(error)) ?? "Falha ao gerar PIX");
       if (data?.error) throw new Error(data.details ?? data.error);
       return data as PixData;
     },
