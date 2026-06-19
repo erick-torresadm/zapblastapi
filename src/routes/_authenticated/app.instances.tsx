@@ -216,3 +216,30 @@ function InstancesPage() {
     </div>
   );
 }
+
+function NewChipTrigger({ serversAvailable }: { serversAvailable: boolean }) {
+  const limits = usePlanLimits();
+  const blocked = !limits.canConnectChip;
+  const reason = !limits.canAct
+    ? "Teste grátis expirado. Assine pra conectar novos chips."
+    : limits.data?.limits && limits.data?.usage && limits.data.limits.max_chips !== -1 && limits.data.usage.chips >= limits.data.limits.max_chips
+      ? `Limite do plano ${limits.plan}: ${limits.data.limits.max_chips} chip${limits.data.limits.max_chips > 1 ? "s" : ""}. Faça upgrade.`
+      : !serversAvailable ? "Sem servidores disponíveis" : "";
+
+  if (blocked || !serversAvailable) {
+    return (
+      <Button asChild variant="outline" title={reason}>
+        <Link to="/app/billing">
+          <Plus className="mr-2 h-4 w-4" />
+          {blocked ? "Limite atingido — fazer upgrade" : "Novo chip"}
+        </Link>
+      </Button>
+    );
+  }
+  return (
+    <DialogTrigger asChild>
+      <Button><Plus className="mr-2 h-4 w-4" />Novo chip</Button>
+    </DialogTrigger>
+  );
+}
+
