@@ -80,22 +80,22 @@ async function getToken(): Promise<string> {
     return _token.value;
   }
   const { base, clientId, clientSecret } = creds(env);
-  const client = getClient(env);
+  if (!clientId || !clientSecret) {
+    throw new Error(`Efí cobrancas: configure EFI_CLIENT_ID_${env === "prod" ? "PROD" : "SANDBOX"} e EFI_CLIENT_SECRET_${env === "prod" ? "PROD" : "SANDBOX"}`);
+  }
   const basic = btoa(`${clientId}:${clientSecret}`);
-  const res = await fetch(`${base}/oauth/token`, {
+  // API de cobranças NÃO usa mTLS; OAuth em /v1/authorize
+  const res = await fetch(`${base}/v1/authorize`, {
     method: "POST",
-    // deno-lint-ignore no-explicit-any
-    client,
     headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/json" },
     body: JSON.stringify({ grant_type: "client_credentials" }),
-  // deno-lint-ignore no-explicit-any
-  } as any);
+  });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Efí OAuth (cobrancas) ${res.status}: ${txt}`);
   }
   const json = await res.json();
-  _token = { value: json.access_token, expiresAt: Date.now() + json.expires_in * 1000, env };
+  _token = { value: json.access_token, expiresAt: Date.now() + (json.expires_in ?? 3600) * 1000, env };
   return _token.value;
 }
 
@@ -103,18 +103,14 @@ export async function efiFetch(path: string, init: RequestInit = {}): Promise<Re
   const env = getEnv();
   const { base } = creds(env);
   const token = await getToken();
-  const client = getClient(env);
   return await fetch(`${base}${path}`, {
     ...init,
-    // deno-lint-ignore no-explicit-any
-    client,
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
     },
-  // deno-lint-ignore no-explicit-any
-  } as any);
+  });
 }
 
 export function efiEnv(): EfiEnv {
