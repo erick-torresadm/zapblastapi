@@ -28,7 +28,6 @@ const operationNav = [
   { to: "/app/servers", label: "Servidores", icon: Server },
 ];
 const accountNav = [
-  { to: "/app/marketplace", label: "Marketplace", icon: ShoppingCart },
   { to: "/app/wallet", label: "Carteira", icon: Wallet },
   { to: "/app/billing", label: "Planos", icon: CreditCard },
 ];
