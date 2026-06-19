@@ -36,10 +36,14 @@ let _clientEnv: EfiEnv | null = null;
 async function getClient(env: EfiEnv) {
   if (_client && _clientEnv === env) return _client;
   const { certB64 } = creds(env);
-  const p12 = Uint8Array.from(atob(certB64), (c) => c.charCodeAt(0));
-  // Deno.createHttpClient accepts PKCS#12 via the "p12" field (Deno >=1.x with --unstable in older versions; in Supabase Edge Functions it's available).
+  if (!certB64) throw new Error(`Certificado ausente: configure EFI_CERT_${env === "prod" ? "PROD" : "SANDBOX"}_BASE64`);
   // deno-lint-ignore no-explicit-any
-  _client = (Deno as any).createHttpClient({ p12: { data: p12, password: "" } });
+  const createHttpClient = (Deno as any).createHttpClient;
+  if (typeof createHttpClient !== "function") {
+    throw new Error("Deno.createHttpClient indisponível neste runtime — mTLS não suportado");
+  }
+  const p12 = Uint8Array.from(atob(certB64), (c) => c.charCodeAt(0));
+  _client = createHttpClient({ p12: { data: p12, password: "" } });
   _clientEnv = env;
   return _client;
 }
