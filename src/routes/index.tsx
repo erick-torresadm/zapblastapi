@@ -359,8 +359,11 @@ function PriceCard({
         className={`mt-7 w-full ${highlight ? "bg-gradient-to-br from-primary to-primary-glow shadow-glow" : ""}`}
         variant={highlight ? "default" : "outline"}
       >
-        <Link to="/auth">{showAnnual ? `Assinar anual` : `Assinar mensal`}</Link>
+        <a href={`/auth?next=${encodeURIComponent(`/app/billing?cycle=${cycle}`)}`}>
+          {showAnnual ? `Assinar anual` : `Assinar mensal`}
+        </a>
       </Button>
+
     </div>
   );
 }
