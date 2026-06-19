@@ -1,8 +1,8 @@
-import { motion, useInView } from "motion/react";
+import { motion, useInView, AnimatePresence } from "motion/react";
 import { useRef, useState, useEffect } from "react";
 import {
   Smartphone, Workflow, MessageSquare, BarChart3, Check,
-  Send, Bot, User, Flame, Sparkles, ArrowRight,
+  Send, Bot, User, Flame, Sparkles, ArrowRight, Type, Clock, Reply, MousePointer2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -196,78 +196,162 @@ function ChipsPanel() {
 }
 
 function FlowPanel() {
-  const nodes = [
-    { x: "10%", y: "20%", label: "Mensagem recebida", icon: MessageSquare, color: "primary" },
-    { x: "50%", y: "20%", label: "Contém 'preço'?", icon: Sparkles, color: "amber" },
-    { x: "75%", y: "55%", label: "Enviar áudio", icon: Bot, color: "purple" },
-    { x: "25%", y: "70%", label: "Aguardar 30s", icon: Workflow, color: "blue" },
-    { x: "55%", y: "80%", label: "Notificar atendente", icon: User, color: "emerald" },
+  // Loop the whole "build the flow" sequence
+  const [cycle, setCycle] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setCycle((c) => c + 1), 6500);
+    return () => clearInterval(t);
+  }, []);
+
+  // Layout in % so arrows align mathematically
+  const blocks = [
+    { id: "trigger", x: 18, y: 26, label: "Mensagem recebida", sub: "quando: contém 'preço'", icon: MessageSquare, tone: "primary" as const },
+    { id: "text",    x: 75, y: 26, label: "Enviar texto",      sub: "'Oi! 👋 Vou te mandar…'", icon: Type, tone: "purple" as const },
+    { id: "wait",    x: 75, y: 70, label: "Aguardar",          sub: "30 segundos",            icon: Clock, tone: "amber" as const },
+    { id: "reply",   x: 18, y: 70, label: "Enviar resposta",   sub: "áudio + imagem",         icon: Reply, tone: "emerald" as const },
   ];
+
+  const toneRing: Record<string, string> = {
+    primary: "ring-primary/50 bg-primary/15 text-primary",
+    purple:  "ring-purple-400/50 bg-purple-400/15 text-purple-300",
+    amber:   "ring-amber-400/50 bg-amber-400/15 text-amber-300",
+    emerald: "ring-emerald-400/50 bg-emerald-400/15 text-emerald-300",
+  };
+
+  // Timing per step (s) — block snap, then arrow draws to next
+  const stepDelay = (i: number) => 0.2 + i * 0.9;
+  const arrowDelay = (i: number) => stepDelay(i) + 0.45;
+  const doneDelay = stepDelay(blocks.length) + 0.1; // after last block
+
   return (
     <motion.div
-      key="flow"
+      key={`flow-${cycle}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: 0.3 }}
       className="relative h-full p-4"
     >
       {/* grid bg */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.2)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.2)_1px,transparent_1px)] bg-[size:24px_24px]" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.18)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.18)_1px,transparent_1px)] bg-[size:22px_22px]" />
 
-      {/* connection lines */}
+      {/* arrows — drawn AFTER each block snaps */}
       <svg className="absolute inset-0 h-full w-full" style={{ pointerEvents: "none" }}>
+        <defs>
+          <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <polygon points="0 0, 6 3, 0 6" fill="hsl(var(--primary))" />
+          </marker>
+        </defs>
+        {/* trigger -> text (top horizontal) */}
         <motion.line
-          x1="20%" y1="28%" x2="48%" y2="28%"
-          stroke="hsl(var(--primary))" strokeWidth="1.5" strokeDasharray="3 3"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.3, duration: 0.6 }}
+          x1="26%" y1="26%" x2="67%" y2="26%"
+          stroke="hsl(var(--primary))" strokeWidth="1.8"
+          markerEnd="url(#arrowhead)"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ delay: arrowDelay(0), duration: 0.4, ease: "easeOut" }}
         />
+        {/* text -> wait (right vertical) */}
         <motion.line
-          x1="58%" y1="32%" x2="78%" y2="55%"
-          stroke="hsl(var(--primary))" strokeWidth="1.5" strokeDasharray="3 3"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.6, duration: 0.6 }}
+          x1="75%" y1="34%" x2="75%" y2="62%"
+          stroke="hsl(var(--primary))" strokeWidth="1.8"
+          markerEnd="url(#arrowhead)"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ delay: arrowDelay(1), duration: 0.4, ease: "easeOut" }}
         />
+        {/* wait -> reply (bottom horizontal, right→left) */}
         <motion.line
-          x1="50%" y1="32%" x2="30%" y2="70%"
-          stroke="hsl(var(--muted-foreground))" strokeWidth="1.5" strokeDasharray="3 3"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.6, duration: 0.6 }}
-        />
-        <motion.line
-          x1="35%" y1="78%" x2="55%" y2="82%"
-          stroke="hsl(var(--muted-foreground))" strokeWidth="1.5" strokeDasharray="3 3"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.9, duration: 0.6 }}
+          x1="67%" y1="70%" x2="26%" y2="70%"
+          stroke="hsl(var(--primary))" strokeWidth="1.8"
+          markerEnd="url(#arrowhead)"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ delay: arrowDelay(2), duration: 0.4, ease: "easeOut" }}
         />
       </svg>
 
-      {nodes.map((n, i) => {
-        const Icon = n.icon;
+      {/* blocks — snap in one by one */}
+      {blocks.map((b, i) => {
+        const Icon = b.icon;
+        // direction of entrance: drift in from outside the canvas
+        const from =
+          i === 0 ? { x: -40, y: -20 } :
+          i === 1 ? { x: 40, y: -20 } :
+          i === 2 ? { x: 40, y: 20 } :
+                    { x: -40, y: 20 };
         return (
           <motion.div
-            key={n.label}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.15, type: "spring", stiffness: 200 }}
-            className="absolute flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-2.5 py-1.5 shadow-md"
-            style={{ left: n.x, top: n.y, transform: "translate(-50%, -50%)" }}
+            key={b.id}
+            initial={{ opacity: 0, scale: 0.4, x: from.x, y: from.y }}
+            animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+            transition={{
+              delay: stepDelay(i),
+              type: "spring",
+              stiffness: 360,
+              damping: 18,
+              mass: 0.6,
+            }}
+            className="absolute z-10"
+            style={{ left: `${b.x}%`, top: `${b.y}%`, transform: "translate(-50%, -50%)" }}
           >
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/15 text-primary">
-              <Icon className="h-3 w-3" />
+            {/* snap pulse ring */}
+            <motion.span
+              className={cn("pointer-events-none absolute inset-0 rounded-xl ring-2", toneRing[b.tone])}
+              initial={{ opacity: 0, scale: 1 }}
+              animate={{ opacity: [0, 0.7, 0], scale: [1, 1.35, 1.5] }}
+              transition={{ delay: stepDelay(i) + 0.05, duration: 0.55 }}
+            />
+            <div className="relative flex min-w-[130px] items-center gap-2 rounded-xl border border-border/70 bg-card/95 px-2.5 py-1.5 shadow-lg backdrop-blur">
+              <div className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-md ring-1", toneRing[b.tone])}>
+                <Icon className="h-3 w-3" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-semibold leading-tight text-foreground">{b.label}</div>
+                <div className="truncate text-[9px] leading-tight text-muted-foreground">{b.sub}</div>
+              </div>
             </div>
-            <span className="text-[10px] font-medium text-foreground">{n.label}</span>
           </motion.div>
         );
       })}
 
-      {/* moving pulse */}
+      {/* "Pronto" button — appears after flow built, gets clicked */}
       <motion.div
-        className="absolute h-2 w-2 rounded-full bg-primary shadow-glow"
-        initial={{ left: "10%", top: "20%", opacity: 0 }}
-        animate={{
-          left: ["10%", "50%", "75%"],
-          top: ["20%", "20%", "55%"],
-          opacity: [0, 1, 1, 0],
-        }}
-        transition={{ delay: 1.2, duration: 2, repeat: Infinity, repeatDelay: 1 }}
-      />
+        className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: doneDelay, type: "spring", stiffness: 300, damping: 18 }}
+      >
+        <motion.button
+          type="button"
+          className="relative flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary-glow px-4 py-1.5 text-[11px] font-semibold text-primary-foreground shadow-glow"
+          animate={{ scale: [1, 0.92, 1.04, 1] }}
+          transition={{ delay: doneDelay + 0.9, duration: 0.5, times: [0, 0.3, 0.65, 1] }}
+        >
+          <Check className="h-3 w-3" />
+          Pronto
+          {/* success ring burst */}
+          <motion.span
+            className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-primary/60"
+            initial={{ opacity: 0, scale: 1 }}
+            animate={{ opacity: [0, 0.8, 0], scale: [1, 1.6, 1.9] }}
+            transition={{ delay: doneDelay + 1.0, duration: 0.7 }}
+          />
+        </motion.button>
+
+        {/* fake cursor flies in and clicks */}
+        <motion.div
+          className="pointer-events-none absolute -right-6 -bottom-5 text-foreground drop-shadow"
+          initial={{ opacity: 0, x: 30, y: 20 }}
+          animate={{
+            opacity: [0, 1, 1, 1, 0],
+            x: [30, 0, 0, 0, -4],
+            y: [20, 0, 0, 0, -4],
+          }}
+          transition={{ delay: doneDelay + 0.3, duration: 1.4, times: [0, 0.4, 0.55, 0.75, 1] }}
+        >
+          <MousePointer2 className="h-4 w-4 fill-foreground" />
+        </motion.div>
+      </motion.div>
     </motion.div>
   );
 }
