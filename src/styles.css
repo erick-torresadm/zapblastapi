@@ -215,6 +215,15 @@
   --shadow-glow: 0 0 60px -10px oklch(0.58 0.21 275 / 0.30);
   --shadow-elegant: 0 20px 60px -20px oklch(0.20 0.04 280 / 0.18);
   --shadow-card: 0 10px 30px -10px oklch(0.20 0.04 280 / 0.10);
+
+  /* ===== Chat / CRM ===== */
+  --chat-bg: oklch(0.96 0.01 280);
+  --chat-out: oklch(0.62 0.18 275);
+  --chat-out-fg: oklch(0.99 0.005 280);
+  --chat-in: oklch(1 0 0);
+  --chat-in-fg: oklch(0.18 0.04 280);
+  --chat-tick-read: oklch(0.55 0.18 235);
+  --chat-quoted-border: oklch(0.58 0.21 275);
 }
 
 @layer base {
