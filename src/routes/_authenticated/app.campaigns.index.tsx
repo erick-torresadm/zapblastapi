@@ -59,7 +59,6 @@ function CampaignsPage() {
         <NewCampaignButton />
       </div>
       <PastDueAlert />
-{/*
 
       <Card>
         <CardHeader><CardTitle>Todas</CardTitle></CardHeader>
