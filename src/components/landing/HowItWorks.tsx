@@ -173,19 +173,20 @@ function ChipsPanel() {
 }
 
 function FlowPanel() {
+  const { t } = useI18n();
   // Loop the whole "build the flow" sequence
   const [cycle, setCycle] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setCycle((c) => c + 1), 6500);
-    return () => clearInterval(t);
+    const tm = setInterval(() => setCycle((c) => c + 1), 6500);
+    return () => clearInterval(tm);
   }, []);
 
   // Layout in % so arrows align mathematically
   const blocks = [
-    { id: "trigger", x: 18, y: 26, label: "Mensagem recebida", sub: "quando: contém 'preço'", icon: MessageSquare, tone: "primary" as const },
-    { id: "text",    x: 75, y: 26, label: "Enviar texto",      sub: "'Oi! 👋 Vou te mandar…'", icon: Type, tone: "purple" as const },
-    { id: "wait",    x: 75, y: 70, label: "Aguardar",          sub: "30 segundos",            icon: Clock, tone: "amber" as const },
-    { id: "reply",   x: 18, y: 70, label: "Enviar resposta",   sub: "áudio + imagem",         icon: Reply, tone: "emerald" as const },
+    { id: "trigger", x: 18, y: 26, label: t("how.flow.trigger"), sub: t("how.flow.trigger_sub"), icon: MessageSquare, tone: "primary" as const },
+    { id: "text",    x: 75, y: 26, label: t("how.flow.text"),    sub: t("how.flow.text_sub"),    icon: Type,           tone: "purple" as const },
+    { id: "wait",    x: 75, y: 70, label: t("how.flow.wait"),    sub: t("how.flow.wait_sub"),    icon: Clock,          tone: "amber" as const },
+    { id: "reply",   x: 18, y: 70, label: t("how.flow.reply"),   sub: t("how.flow.reply_sub"),   icon: Reply,          tone: "emerald" as const },
   ];
 
   const toneRing: Record<string, string> = {
@@ -305,7 +306,7 @@ function FlowPanel() {
           transition={{ delay: doneDelay + 0.9, duration: 0.5, times: [0, 0.3, 0.65, 1] }}
         >
           <Check className="h-3 w-3" />
-          Pronto
+          {t("how.flow.done")}
           {/* success ring burst */}
           <motion.span
             className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-primary/60"
