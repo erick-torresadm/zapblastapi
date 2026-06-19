@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Play, Pause, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { startCampaignFn, pauseCampaignFn } from "@/lib/campaigns.functions";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 
 export const Route = createFileRoute("/_authenticated/app/campaigns/")({ component: CampaignsPage });
 
