@@ -1,82 +1,95 @@
-## Objetivo
+# Anti-abuso do trial de 10 dias
 
-Reestruturar os planos com limites mais agressivos pra incentivar upgrade, dar trial Pro de 10 dias sem cartão, e bloquear ações sensíveis (disparos, conexão de chips) quando o trial expira — mantendo o histórico e CRM acessíveis.
+Hoje só checamos IP (máx. 2 contas/IP em 30 dias). É trivial driblar com 4G, VPN ou navegador anônimo. O usuário pode exportar os fluxos como JSON e re-subir numa conta nova quantas vezes quiser. Abaixo o plano em camadas — cada uma já corta uma parte grande dos abusadores.
 
-## 1. Banco de dados
+## 1. Identidade dura no cadastro
 
-### Atualizar planos existentes
+Sem isso o resto é decoração.
 
-| Slug | Nome | Preço/mês | Chips | Msgs/dia | Campanhas ativas | Contatos/lista | CRM agentes | Warmup |
-|------|------|-----------|-------|----------|------------------|----------------|-------------|--------|
-| starter | Starter | R$ 49 | **1** | 1.000 | 1 | 500 | 1 | desligado |
-| pro | Pro | R$ 149 | **3** | 5.000 | 5 | 5.000 | 5 | básico |
-| scale | Scale | R$ 399 | **20** | 25.000 | ilimitado | ilimitado | ilimitado | avançado |
+- **CPF/CNPJ obrigatório, único e validado** (dígito + Receita pública). Salva como hash `sha256(cpf+pepper)` em `signup_identity_log`. Bloqueia se já houve trial nesse documento.
+- **Telefone + OTP** (SMS/WhatsApp) obrigatório. Hash do telefone normalizado (E.164) também na blocklist.
+- **E-mail normalizado**: remove `.` e `+tag` do Gmail, lowercase, hashea. Bloqueia variações do mesmo e-mail (`fulano.silva+1@gmail`).
+- **Bloqueia domínios descartáveis** (mailinator, tempmail, 10minutemail, guerrillamail). Lista mantida no DB.
 
-- Renomeia `enterprise` → `scale` (slug + nome + descrição).
-- Adiciona colunas em `subscription_plans`: `max_active_campaigns int`, `max_contacts_per_list int`, `max_crm_agents int`, `warmup_tier text` (`off|basic|advanced`). Valor `-1` = ilimitado.
-- Atualiza `description` com features e limites visíveis.
+## 2. Device fingerprint
 
-### Trial de 10 dias no Pro
+- Coleta no signup um hash estável: UA + idioma + timezone + resolução + canvas + fontes (lib `@fingerprintjs/fingerprintjs` open source).
+- Grava em `signup_device_log`. Mesmo fingerprint → bloqueio com a mesma mensagem do IP.
+- Não é à prova de balas (incógnito limpa), mas pega 70% dos casos "abro outro navegador".
 
-- Altera `handle_new_user()`: trial de **10 dias** (hoje são 7) já no plano Pro, `status='trialing'`, sem cartão.
-- Adiciona coluna `trial_ends_at timestamptz` em `subscriptions` (hoje não existe; o code já tentou ler).
-- Cron diário (`pg_cron`) que muda `status` de `trialing` → `past_due` quando `trial_ends_at < now()` e não há `efi_subscription_id`.
+## 3. IP endurecido
 
-### Helper de enforcement
+- Janela passa de 30 → 90 dias.
+- Limita também por **/24 (IPv4)** e **/64 (IPv6)** com peso menor (3 contas).
+- Loga ASN/país (ipinfo ou cf-ipcountry header) para revisão manual.
+- Sinaliza (não bloqueia) faixas conhecidas de VPN/Tor — flag para revisão.
 
-Função `public.get_user_plan_limits(_user uuid)` retorna json com todos os limites efetivos do usuário (junta `subscriptions` + `subscription_plans`). Usada pelas server functions e edge functions de disparo.
+## 4. Cartão ou Pix de garantia no trial
 
-Função `public.user_can_act(_user uuid, _action text)` retorna boolean. `_action` ∈ `connect_chip`, `send_campaign`, `create_campaign`. Retorna `false` se status é `past_due`/`canceled`/`incomplete`.
+Esse é o filtro definitivo. Sem custo real pro cliente legítimo, mas mata o ciclo "criar conta → 10 dias grátis → repetir".
 
-## 2. Backend: enforcement
+Opções (escolher uma):
+- **(A) Cartão obrigatório com pré-autorização R$ 1**: a Efí faz o tokenize; sem cobrar nada o cartão fica vinculado. Hash do `card_fingerprint` (BIN + últimos 4 + nome) entra na blocklist.
+- **(B) Pix de R$ 1 reembolsado**: chato pro usuário, mas amarra CPF + chave Pix.
+- **(C) Trial só com plano contratado** (cobrança após 10 dias, com cancelamento livre) — é o que Netflix, Spotify e quase todo SaaS sério faz.
 
-### Server functions a atualizar
+Recomendo **(A)** para manter atrito baixo e funil de conversão alto.
 
-- `src/lib/billing.functions.ts` — adicionar `getPlanLimitsFn` que retorna limites + uso atual (chips conectados, campanhas ativas, etc).
-- Server fn de criar campanha → checa `user_can_act('create_campaign')` + `max_active_campaigns`.
-- Server fn de conectar instância WhatsApp → checa `max_chips` vs `whatsapp_instances` ativas + `user_can_act('connect_chip')`.
-- Server fn de adicionar contato à lista → checa `max_contacts_per_list`.
-- Edge functions de envio (campanha, warmup) → bail-out se `user_can_act('send_campaign') = false`.
+## 5. Blocklist unificada
 
-Todas retornam erro tipado `{ error: "plan_limit_exceeded", limit_type, current, max }` pra UI tratar.
+Tabela única `trial_abuse_blocklist` com colunas `kind` (`cpf|phone|email_norm|fingerprint|ip|card_fp|asn`) + `value_hash` + `reason` + `expires_at`. A função `checkSignupFn` consulta todas as camadas numa só ida ao banco.
 
-## 3. UI
+Quando uma conta é encerrada por inadimplência/abuso, admin marca "queimar identidade" → joga CPF/telefone/fingerprint/cartão na blocklist permanente.
 
-### Página de billing (`/app/billing`)
+## 6. Reduzir o valor do "backup de fluxo"
 
-- Card "Seu plano" no topo já existe — adiciona barra de progresso de uso: `Chips: 1/3`, `Campanhas: 2/5`, `Mensagens hoje: 800/5000`.
-- Banner amarelo quando `trialing` e faltam ≤ 3 dias: "Seu trial Pro acaba em X dias".
-- Banner vermelho quando `past_due`: "Trial expirado. Disparos e novos chips bloqueados — assine pra continuar".
-- Comparativo dos 3 planos com tabela de features (✓/✗) embaixo dos cards, deixando óbvio o que cada um libera.
+O export do JSON em `app.flows.$id.tsx` (botão "Exportar") é o que viabiliza a migração entre contas. Não dá pra remover (legítimos usam pra versionar), mas:
 
-### Bloqueios visuais (soft block)
+- **Exportar exige conta paga** (plano ativo, não trial). Reduz a transferência entre contas grátis.
+- **Marca d'água no JSON**: campo `__origin: { user_id_hash, exported_at }`. Se aparecer o mesmo hash em outra conta nova importando, levanta flag.
+- **Importar fluxo de mesma origem em conta nova com <7 dias** → exige aprovação manual.
 
-- Botão "Conectar novo chip" desabilitado com tooltip "Limite do Starter: 1 chip. Faça upgrade" quando atingiu `max_chips`.
-- Botão "Criar campanha" desabilitado quando atingiu `max_active_campaigns` ou `past_due`.
-- Modal "Limite atingido" com CTA "Ver planos" sempre que o backend retorna `plan_limit_exceeded`.
-- CRM, histórico, contatos continuam navegáveis mesmo em `past_due`.
+## 7. Sinais comportamentais (passivos, só logam)
 
-### Hook `usePlanLimits()`
+Não bloqueiam sozinhos, mas viram dashboard pro admin revisar:
 
-Centraliza leitura dos limites + uso pra todos os componentes consultarem (`canConnectChip`, `canCreateCampaign`, `daysLeftInTrial`, `isTrialExpired`).
+- Várias contas com mesmo `Accept-Language` + fuso + range de horário de uso.
+- Conta nova que importa fluxo enorme nos primeiros 10 minutos.
+- CPF/telefone com padrão sequencial.
+- Mesmo número de WhatsApp conectado anteriormente em outra conta (já temos `whatsapp_instances.phone_number` — fácil cruzar).
 
-## 4. Landing page (`/`)
+## 8. UX honesto
 
-- Atualiza seção `Pricing` com os novos limites e renomeia Enterprise → Scale.
-- Adiciona linha "10 dias grátis no Pro, sem cartão" no hero/CTA principal.
-- Tabela comparativa de features deixando evidente o que tem em cada tier.
-
-## 5. Ordem de execução
-
-1. Migration: novas colunas + rename + update de dados + função de limites + cron + trigger atualizado.
-2. Server functions de enforcement.
-3. Hook `usePlanLimits` + componentes de bloqueio.
-4. UI da billing com barras de progresso e banners.
-5. Landing atualizada.
+Na tela de cadastro deixar claro: "Detectamos tentativa de criar nova conta para reutilizar o trial. Fale com o suporte." — não revela qual sinal disparou (para não ensinar a contornar).
 
 ## Detalhes técnicos
 
-- O cron de expiração roda 1x/dia via `pg_cron`; sem ele, o trial só "expira" quando o usuário acessa (fallback no `get_user_plan_limits`).
-- `whatsapp_instances` já existe (34 colunas) — uso atual de chips = count de instâncias com `status='connected'`.
-- Warmup tier `off` desabilita o botão "Aquecimento" inteiro no Starter.
-- Edge functions PIX/cartão já fazem upsert do `plan_id` com status=`active` — basta limpar `trial_ends_at` no upsert pra parar o cron de derrubar a conta paga.
+### Migrações
+- `trial_abuse_blocklist(id, kind, value_hash, reason, expires_at, created_at)` + índice `(kind, value_hash)`.
+- `signup_identity_log(user_id, cpf_hash, phone_hash, email_norm_hash, created_at)`.
+- `signup_device_log(user_id, fingerprint_hash, ip, asn, country, ua, created_at)`.
+- `disposable_email_domains(domain primary key)`.
+- Adicionar `card_fingerprint_hash` em `subscriptions` (vindo da Efí).
+
+### Server functions
+- `preSignupCheckFn(input: { email, phone, cpf, fingerprint })` → consulta tudo, retorna `{ ok, reason? }`.
+- `recordSignupFn` (extensão da atual) → grava nas 3 tabelas e roda blocklist insert se houver hit suave.
+- `requestSignupOtpFn` / `confirmSignupOtpFn` → Twilio Verify ou Evolution (PTT/SMS gateway que já temos).
+- Webhook Efí: ao receber `card_fingerprint`, gravar e re-checar blocklist.
+
+### Frontend
+- `/auth` ganha passos: e-mail → OTP → CPF + telefone → fingerprint silencioso → cartão (Efí tokenizer iframe).
+- Botão "Exportar fluxo" desabilitado para `status = 'trialing'`.
+
+### Ordem sugerida de execução
+1. Migrações + blocklist unificada + e-mail normalizado + domínios descartáveis (rápido, ganho imediato).
+2. Fingerprint do device (1 lib, baixo risco).
+3. CPF + OTP de telefone (mais trabalho, maior impacto).
+4. Cartão na Efí no trial (o golpe final).
+5. Restrições de export + marca d'água.
+6. Dashboard admin com os sinais comportamentais.
+
+### O que NÃO recomendo
+- Banir por IP puro com janela longa — mata cliente legítimo em coworking/casa compartilhada.
+- KYC com selfie/documento foto — atrito gigante, derruba conversão.
+- Encurtar trial — não resolve o problema, só piora UX do cliente honesto.
