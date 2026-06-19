@@ -953,8 +953,149 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       return;
     }
 
+    // ============ Novos nós utilitários ============
+
+    if (node.type === "comment") {
+      // sticky note: não executa, só segue.
+      await goNext();
+      return;
+    }
+
+    if (node.type === "end") {
+      await logStep("ok", undefined, { ended: true, reason: data.reason ?? null });
+      await supabaseAdmin.from("flow_runs").update({ status: "done", finished_at: new Date().toISOString(), current_node_id: null }).eq("id", runId);
+      return;
+    }
+
+    if (node.type === "jump") {
+      const targetId = String(data.jumpTo ?? "").trim();
+      const found = targetId ? flow!.nodes.find((n) => n.id === targetId) : undefined;
+      if (!found) {
+        await logStep("skipped", "Nó destino não encontrado");
+        await goNext();
+        return;
+      }
+      await logStep("ok", undefined, { jumped_to: targetId });
+      await supabaseAdmin.from("flow_runs").update({
+        current_node_id: targetId, status: "pending", waiting_for: null, wait_until: null,
+      }).eq("id", runId);
+      return;
+    }
+
+    if (node.type === "set_variable") {
+      const updates: Record<string, string> = {};
+      // Modo único: {variable, value}
+      const single = String(data.variable ?? "").trim();
+      if (single) updates[single] = renderTemplate(String(data.value ?? ""), vars);
+      // Modo múltiplo: pairs string "var=valor" por linha
+      const pairsRaw = String(data.pairs ?? "");
+      pairsRaw.split(/\r?\n/).forEach((line) => {
+        const idx = line.indexOf("=");
+        if (idx <= 0) return;
+        const k = line.slice(0, idx).trim();
+        const v = renderTemplate(line.slice(idx + 1).trim(), vars);
+        if (k) updates[k] = v;
+      });
+      if (Object.keys(updates).length) {
+        await supabaseAdmin.from("flow_runs").update({ variables: { ...vars, ...updates } }).eq("id", runId);
+      }
+      await logStep("ok", undefined, { set: Object.keys(updates) });
+      await goNext();
+      return;
+    }
+
+    if (node.type === "random_split") {
+      // weights: "a=2\nb=1\nc=1" -> handles "a","b","c"
+      const raw = String(data.weights ?? "a=1\nb=1");
+      const items = raw.split(/\r?\n/).map((l) => {
+        const [k, v] = l.split("=");
+        const w = Math.max(0, Number(v ?? 1));
+        return { handle: (k ?? "").trim(), weight: Number.isFinite(w) ? w : 1 };
+      }).filter((x) => x.handle);
+      const total = items.reduce((s, x) => s + x.weight, 0);
+      let pick = items[0]?.handle ?? "a";
+      if (total > 0) {
+        let r = Math.random() * total;
+        for (const it of items) { r -= it.weight; if (r <= 0) { pick = it.handle; break; } }
+      }
+      await logStep("ok", undefined, { picked: pick });
+      await goNext(pick);
+      return;
+    }
+
+    if (node.type === "time_window") {
+      // Horário comercial em BR (UTC-3). Handles: "in" / "out".
+      const startH = Math.max(0, Math.min(23, Number(data.startHour ?? 9)));
+      const endH = Math.max(0, Math.min(24, Number(data.endHour ?? 18)));
+      const days = String(data.days ?? "1,2,3,4,5").split(",").map((d) => Number(d.trim())).filter((d) => Number.isFinite(d));
+      const now = new Date();
+      const brHour = (now.getUTCHours() - 3 + 24) % 24;
+      const brDow = (now.getUTCDay() + (now.getUTCHours() < 3 ? 6 : 0)) % 7; // 0=dom
+      const inDay = days.includes(brDow);
+      const inHour = startH <= endH ? (brHour >= startH && brHour < endH) : (brHour >= startH || brHour < endH);
+      const inside = inDay && inHour;
+      await logStep("ok", undefined, { inside, brHour, brDow });
+      await goNext(inside ? "in" : "out");
+      return;
+    }
+
+    if (node.type === "update_contact") {
+      const { data: c } = await supabaseAdmin.from("contacts").select("name, email, variables").eq("id", run.contact_id).maybeSingle();
+      const patch: Record<string, unknown> = {};
+      const cv = (c?.variables ?? {}) as Record<string, unknown>;
+      const nextVars = { ...cv };
+      if (data.contactName) patch.name = renderTemplate(String(data.contactName), vars);
+      if (data.contactEmail) patch.email = renderTemplate(String(data.contactEmail), vars);
+      const customRaw = String(data.customFields ?? "");
+      customRaw.split(/\r?\n/).forEach((line) => {
+        const idx = line.indexOf("=");
+        if (idx <= 0) return;
+        const k = line.slice(0, idx).trim();
+        const v = renderTemplate(line.slice(idx + 1).trim(), vars);
+        if (k) nextVars[k] = v;
+      });
+      if (Object.keys(nextVars).length !== Object.keys(cv).length || Object.keys(nextVars).some((k) => nextVars[k] !== cv[k])) {
+        patch.variables = nextVars;
+      }
+      if (Object.keys(patch).length) {
+        await supabaseAdmin.from("contacts").update(patch).eq("id", run.contact_id);
+      }
+      await logStep("ok", undefined, { updated: Object.keys(patch) });
+      await goNext();
+      return;
+    }
+
+    if (node.type === "note") {
+      const body = renderTemplate(String(data.note ?? ""), vars).trim();
+      if (body) {
+        const { data: conv } = await supabaseAdmin.from("crm_conversations")
+          .select("id").eq("owner_user_id", run.user_id).eq("contact_phone", run.contact_phone).maybeSingle();
+        if (conv?.id) {
+          await supabaseAdmin.from("crm_notes").insert({
+            conversation_id: conv.id, user_id: run.user_id, body, source: "flow",
+          });
+        }
+      }
+      await logStep("ok", undefined, { saved: !!body });
+      await goNext();
+      return;
+    }
+
+    if (node.type === "assign_agent") {
+      const agentId = String(data.agentId ?? "").trim() || null;
+      const status = String(data.conversationStatus ?? "open");
+      const { error: convErr } = await supabaseAdmin.from("crm_conversations")
+        .update({ assigned_agent_id: agentId, status, updated_at: new Date().toISOString() })
+        .eq("owner_user_id", run.user_id)
+        .eq("contact_phone", run.contact_phone);
+      await logStep(convErr ? "error" : "ok", convErr?.message, { agentId, status });
+      await goNext();
+      return;
+    }
+
     await logStep("ok");
     await goNext();
+
   } catch (e) {
     const msg = (e as Error).message;
     await logStep("error", msg);
