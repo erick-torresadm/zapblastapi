@@ -802,7 +802,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       return;
     }
 
-    }
+
 
     if (node.type === "sticker") {
       const url = String(data.stickerUrl ?? "");
