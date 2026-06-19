@@ -208,9 +208,17 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   const { data: run } = await supabaseAdmin.from("flow_runs").select("*").eq("id", runId).maybeSingle();
   if (!run || run.status === "done" || run.status === "failed" || run.status === "stopped") return;
   let allowSafetyReprocess = false;
+  let askTimedOut = false;
   if (run.status === "waiting") {
-    if (run.waiting_for) return;
-    if (run.wait_until && new Date(run.wait_until).getTime() > Date.now()) {
+    if (run.waiting_for) {
+      // ask/menu com timeout configurado → expira sem resposta
+      if (run.wait_until && new Date(run.wait_until).getTime() <= Date.now()) {
+        askTimedOut = true;
+      } else {
+        return;
+      }
+    }
+    if (!askTimedOut && run.wait_until && new Date(run.wait_until).getTime() > Date.now()) {
       const { data: lastSafetyStep } = await supabaseAdmin.from("flow_run_steps")
         .select("id, output")
         .eq("run_id", runId)
@@ -227,9 +235,11 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
   if (!["pending", "waiting"].includes(run.status)) return;
 
   let claim = supabaseAdmin.from("flow_runs").update({ status: "running" }).eq("id", runId).eq("status", run.status);
-  if (run.status === "waiting" && !allowSafetyReprocess) claim = claim.lte("wait_until", new Date().toISOString()).is("waiting_for", null);
+  if (run.status === "waiting" && !allowSafetyReprocess && !askTimedOut) claim = claim.lte("wait_until", new Date().toISOString()).is("waiting_for", null);
+  if (askTimedOut) claim = claim.not("waiting_for", "is", null);
   const { data: claimed } = await claim.select("id").maybeSingle();
   if (!claimed) return;
+
 
   const flow = await loadFlow(supabaseAdmin, run.flow_id);
   if (!flow) {
