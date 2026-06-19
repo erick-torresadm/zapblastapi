@@ -2,3 +2,6 @@ project_id = "syabtrbzwfgnafyyaibq"
 
 [functions.efi-webhook]
 verify_jwt = false
+
+[functions.efi-pix-annual]
+verify_jwt = true

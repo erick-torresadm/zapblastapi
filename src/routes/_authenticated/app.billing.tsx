@@ -5,9 +5,10 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Sparkles, Building2, CreditCard } from "lucide-react";
+import { Check, Crown, Sparkles, Building2, CreditCard, QrCode } from "lucide-react";
 import { getBillingStateFn } from "@/lib/billing.functions";
 import { CardCheckoutDialog } from "@/components/billing/CardCheckoutDialog";
+import { PixAnnualDialog } from "@/components/billing/PixAnnualDialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/billing")({ component: BillingPage });
@@ -33,6 +34,7 @@ function BillingPage() {
   const [cycle, setCycle] = useState<Cycle>(initialCycle);
 
   const [cardPlan, setCardPlan] = useState<{ id: string; name: string; price: number } | null>(null);
+  const [pixPlan, setPixPlan] = useState<{ id: string; name: string; annual: number } | null>(null);
   const sub = data?.subscription;
   const isActive = sub?.status === "active" || sub?.status === "trialing";
 
@@ -145,8 +147,14 @@ function BillingPage() {
               </CardContent>
               <CardFooter className="flex-col gap-2">
                 {showAnnual ? (
-                  <Button className="w-full" variant={isCurrent ? "outline" : p.featured ? "default" : "outline"} disabled>
-                    {isCurrent ? "Plano atual" : "Assinar anual via PIX (em breve)"}
+                  <Button
+                    className="w-full"
+                    variant={isCurrent ? "outline" : p.featured ? "default" : "outline"}
+                    disabled={isCurrent}
+                    onClick={() => setPixPlan({ id: p.id, name: p.name, annual: annualTotal })}
+                  >
+                    <QrCode className="h-4 w-4 mr-2" />
+                    {isCurrent ? "Plano atual" : "Assinar anual via PIX"}
                   </Button>
                 ) : (
                   <Button
@@ -187,6 +195,16 @@ function BillingPage() {
           planName={cardPlan.name}
           priceCents={cardPlan.price}
           onSuccess={() => qc.invalidateQueries({ queryKey: ["billing"] })}
+        />
+      )}
+
+      {pixPlan && (
+        <PixAnnualDialog
+          open={!!pixPlan}
+          onOpenChange={(o) => !o && setPixPlan(null)}
+          planId={pixPlan.id}
+          planName={pixPlan.name}
+          annualCents={pixPlan.annual}
         />
       )}
     </div>

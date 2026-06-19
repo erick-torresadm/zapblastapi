@@ -35,7 +35,7 @@ function detectBrand(num: string): string {
   return "visa";
 }
 
-function loadEfiScript(payeeCode: string): Promise<void> {
+function loadEfiScript(payeeCode: string, env: "prod" | "sandbox"): Promise<void> {
   return new Promise((resolve, reject) => {
     if (document.getElementById(payeeCode)) {
       const wait = setInterval(() => {
@@ -45,11 +45,12 @@ function loadEfiScript(payeeCode: string): Promise<void> {
       return;
     }
     const v = Math.floor(Math.random() * 1_000_000);
+    const host = env === "prod" ? "api.gerencianet.com.br" : "sandbox.gerencianet.com.br";
     const s = document.createElement("script");
-    s.src = `https://api.efipay.com.br/v1/cdn/${payeeCode}/${v}`;
+    s.src = `https://${host}/v1/cdn/${payeeCode}/${v}`;
     s.async = false;
     s.id = payeeCode;
-    s.onerror = () => reject(new Error("Falha ao carregar SDK Efí"));
+    s.onerror = () => reject(new Error("Falha ao carregar SDK Efí (verifique payee code)"));
     document.head.appendChild(s);
     const wait = setInterval(() => {
       if (window.$gn) { clearInterval(wait); resolve(); }
@@ -90,7 +91,7 @@ export function CardCheckoutDialog({ open, onOpenChange, planId, planName, price
   useEffect(() => {
     if (!open || !cfg?.payeeCode || scriptLoaded.current) return;
     setLoadingSdk(true);
-    loadEfiScript(cfg.payeeCode)
+    loadEfiScript(cfg.payeeCode, cfg.env)
       .then(() => { scriptLoaded.current = true; })
       .catch((e) => toast.error(String(e.message ?? e)))
       .finally(() => setLoadingSdk(false));
