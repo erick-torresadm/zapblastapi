@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Sparkles, Building2 } from "lucide-react";
+import { Check, Crown, Sparkles, Building2, CreditCard } from "lucide-react";
 import { getBillingStateFn } from "@/lib/billing.functions";
+import { CardCheckoutDialog } from "@/components/billing/CardCheckoutDialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/billing")({ component: BillingPage });
@@ -22,8 +23,10 @@ type Cycle = "monthly" | "annual";
 
 function BillingPage() {
   const fn = useServerFn(getBillingStateFn);
+  const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["billing"], queryFn: () => fn() });
   const [cycle, setCycle] = useState<Cycle>("annual");
+  const [cardPlan, setCardPlan] = useState<{ id: string; name: string; price: number } | null>(null);
   const sub = data?.subscription;
   const isActive = sub?.status === "active" || sub?.status === "trialing";
 
@@ -134,10 +137,22 @@ function BillingPage() {
                   <div className="flex items-center gap-2 font-medium"><Check className="h-4 w-4 text-success" /> Pagamento único no ano</div>
                 )}
               </CardContent>
-              <CardFooter>
-                <Button className="w-full" variant={isCurrent ? "outline" : p.featured ? "default" : "outline"} disabled>
-                  {isCurrent ? "Plano atual" : showAnnual ? "Assinar anual (em breve)" : "Assinar mensal (em breve)"}
-                </Button>
+              <CardFooter className="flex-col gap-2">
+                {showAnnual ? (
+                  <Button className="w-full" variant={isCurrent ? "outline" : p.featured ? "default" : "outline"} disabled>
+                    {isCurrent ? "Plano atual" : "Assinar anual via PIX (em breve)"}
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full"
+                    variant={isCurrent ? "outline" : p.featured ? "default" : "outline"}
+                    disabled={isCurrent}
+                    onClick={() => setCardPlan({ id: p.id, name: p.name, price: p.price_cents })}
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    {isCurrent ? "Plano atual" : "Assinar no cartão"}
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           );
