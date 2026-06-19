@@ -1,51 +1,29 @@
-import { motion, useInView, AnimatePresence } from "motion/react";
+import { motion, useInView } from "motion/react";
 import { useRef, useState, useEffect } from "react";
 import {
   Smartphone, Workflow, MessageSquare, BarChart3, Check,
   Send, Bot, User, Flame, Sparkles, ArrowRight, Type, Clock, Reply, MousePointer2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
-const STEPS = [
-  {
-    n: "01",
-    title: "Conecte seu chip",
-    desc: "Escaneie o QR Code ou compre um chip BR no marketplace. Aquecimento automático começa em segundos.",
-    icon: Smartphone,
-    accent: "from-blue-500/20 to-cyan-500/10",
-  },
-  {
-    n: "02",
-    title: "Monte seu fluxo",
-    desc: "Arraste blocos: cliente digita 'preço' → bot manda áudio + imagem + texto com 'digitando…' simulado.",
-    icon: Workflow,
-    accent: "from-purple-500/20 to-pink-500/10",
-  },
-  {
-    n: "03",
-    title: "Dispare ou atenda",
-    desc: "Campanha em massa anti-ban OU inbox CRM multi-atendente. Você escolhe — ou faz os dois.",
-    icon: MessageSquare,
-    accent: "from-orange-500/20 to-red-500/10",
-  },
-  {
-    n: "04",
-    title: "Monitore tudo",
-    desc: "Entregas, leituras, respostas, health score por chip. Pausa automática se algo cheira a ban.",
-    icon: BarChart3,
-    accent: "from-emerald-500/20 to-teal-500/10",
-  },
+const STEP_DEFS = [
+  { n: "01", k: "step1", icon: Smartphone, accent: "from-blue-500/20 to-cyan-500/10" },
+  { n: "02", k: "step2", icon: Workflow,   accent: "from-purple-500/20 to-pink-500/10" },
+  { n: "03", k: "step3", icon: MessageSquare, accent: "from-orange-500/20 to-red-500/10" },
+  { n: "04", k: "step4", icon: BarChart3,  accent: "from-emerald-500/20 to-teal-500/10" },
 ];
 
 export function HowItWorks() {
+  const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
   const [active, setActive] = useState(0);
 
   useEffect(() => {
     if (!inView) return;
-    const t = setInterval(() => setActive((a) => (a + 1) % 4), 4500);
-    return () => clearInterval(t);
+    const tm = setInterval(() => setActive((a) => (a + 1) % 4), 4500);
+    return () => clearInterval(tm);
   }, [inView]);
 
   return (
@@ -54,19 +32,17 @@ export function HowItWorks() {
 
       <div className="container relative mx-auto px-4">
         <div className="mx-auto max-w-2xl text-center">
-          <div className="text-xs font-semibold uppercase tracking-wider text-primary">Como funciona</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-primary">{t("how.kicker")}</div>
           <h2 className="mt-2 font-display text-4xl font-bold tracking-tight md:text-5xl">
-            Do <span className="text-aurora">QR Code</span> ao primeiro venda
+            {t("how.title1")} <span className="text-aurora">{t("how.title2")}</span> {t("how.title3")}
           </h2>
-          <p className="mt-4 text-muted-foreground">
-            4 passos. 5 minutos. Sem código, sem servidor, sem dor de cabeça.
-          </p>
+          <p className="mt-4 text-muted-foreground">{t("how.subtitle")}</p>
         </div>
 
         <div className="mx-auto mt-16 grid max-w-7xl gap-10 lg:grid-cols-[1fr_1.3fr] lg:items-start">
           {/* STEPS LIST */}
           <div className="space-y-3">
-            {STEPS.map((s, i) => {
+            {STEP_DEFS.map((s, i) => {
               const Icon = s.icon;
               const isActive = active === i;
               return (
@@ -77,7 +53,7 @@ export function HowItWorks() {
                   transition={{ delay: i * 0.1, duration: 0.5 }}
                   onClick={() => setActive(i)}
                   className={cn(
-                    "group relative flex w-full gap-4 rounded-2xl border p-5 text-left transition-all",
+                    "group relative flex w-full gap-4 rounded-3xl border p-5 text-left transition-all",
                     isActive
                       ? "border-primary/50 bg-card shadow-glow"
                       : "border-border/40 bg-card/30 hover:border-border/70 hover:bg-card/60",
@@ -91,7 +67,7 @@ export function HowItWorks() {
                   )}
                   <div
                     className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ring-1 transition-all",
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ring-1 transition-all",
                       s.accent,
                       isActive ? "ring-primary/40 scale-110" : "ring-border/50",
                     )}
@@ -102,15 +78,16 @@ export function HowItWorks() {
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs text-muted-foreground/60">{s.n}</span>
                       <h3 className={cn("font-display text-lg font-semibold transition-colors", isActive ? "text-foreground" : "text-foreground/80")}>
-                        {s.title}
+                        {t(`how.${s.k}.title`)}
                       </h3>
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{s.desc}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{t(`how.${s.k}.desc`)}</p>
                   </div>
                 </motion.button>
               );
             })}
           </div>
+
 
           {/* PREVIEW PANEL — animated mockup */}
           <div className="relative">
@@ -196,19 +173,20 @@ function ChipsPanel() {
 }
 
 function FlowPanel() {
+  const { t } = useI18n();
   // Loop the whole "build the flow" sequence
   const [cycle, setCycle] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setCycle((c) => c + 1), 6500);
-    return () => clearInterval(t);
+    const tm = setInterval(() => setCycle((c) => c + 1), 6500);
+    return () => clearInterval(tm);
   }, []);
 
   // Layout in % so arrows align mathematically
   const blocks = [
-    { id: "trigger", x: 18, y: 26, label: "Mensagem recebida", sub: "quando: contém 'preço'", icon: MessageSquare, tone: "primary" as const },
-    { id: "text",    x: 75, y: 26, label: "Enviar texto",      sub: "'Oi! 👋 Vou te mandar…'", icon: Type, tone: "purple" as const },
-    { id: "wait",    x: 75, y: 70, label: "Aguardar",          sub: "30 segundos",            icon: Clock, tone: "amber" as const },
-    { id: "reply",   x: 18, y: 70, label: "Enviar resposta",   sub: "áudio + imagem",         icon: Reply, tone: "emerald" as const },
+    { id: "trigger", x: 18, y: 26, label: t("how.flow.trigger"), sub: t("how.flow.trigger_sub"), icon: MessageSquare, tone: "primary" as const },
+    { id: "text",    x: 75, y: 26, label: t("how.flow.text"),    sub: t("how.flow.text_sub"),    icon: Type,           tone: "purple" as const },
+    { id: "wait",    x: 75, y: 70, label: t("how.flow.wait"),    sub: t("how.flow.wait_sub"),    icon: Clock,          tone: "amber" as const },
+    { id: "reply",   x: 18, y: 70, label: t("how.flow.reply"),   sub: t("how.flow.reply_sub"),   icon: Reply,          tone: "emerald" as const },
   ];
 
   const toneRing: Record<string, string> = {
@@ -328,7 +306,7 @@ function FlowPanel() {
           transition={{ delay: doneDelay + 0.9, duration: 0.5, times: [0, 0.3, 0.65, 1] }}
         >
           <Check className="h-3 w-3" />
-          Pronto
+          {t("how.flow.done")}
           {/* success ring burst */}
           <motion.span
             className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-primary/60"
