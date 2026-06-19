@@ -24,6 +24,15 @@ const planIcons: Record<string, React.ComponentType<{ className?: string }>> = {
 
 type Cycle = "monthly" | "annual";
 
+function Feat({ ok, children }: { ok?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={cn("flex items-center gap-2", !ok && "text-muted-foreground/60")}>
+      {ok ? <Check className="h-4 w-4 text-success flex-shrink-0" /> : <X className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />}
+      <span>{children}</span>
+    </div>
+  );
+}
+
 function BillingPage() {
   const fn = useServerFn(getBillingStateFn);
   const qc = useQueryClient();
