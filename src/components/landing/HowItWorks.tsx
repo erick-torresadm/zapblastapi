@@ -1,51 +1,29 @@
-import { motion, useInView, AnimatePresence } from "motion/react";
+import { motion, useInView } from "motion/react";
 import { useRef, useState, useEffect } from "react";
 import {
   Smartphone, Workflow, MessageSquare, BarChart3, Check,
   Send, Bot, User, Flame, Sparkles, ArrowRight, Type, Clock, Reply, MousePointer2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
-const STEPS = [
-  {
-    n: "01",
-    title: "Conecte seu chip",
-    desc: "Escaneie o QR Code ou compre um chip BR no marketplace. Aquecimento automático começa em segundos.",
-    icon: Smartphone,
-    accent: "from-blue-500/20 to-cyan-500/10",
-  },
-  {
-    n: "02",
-    title: "Monte seu fluxo",
-    desc: "Arraste blocos: cliente digita 'preço' → bot manda áudio + imagem + texto com 'digitando…' simulado.",
-    icon: Workflow,
-    accent: "from-purple-500/20 to-pink-500/10",
-  },
-  {
-    n: "03",
-    title: "Dispare ou atenda",
-    desc: "Campanha em massa anti-ban OU inbox CRM multi-atendente. Você escolhe — ou faz os dois.",
-    icon: MessageSquare,
-    accent: "from-orange-500/20 to-red-500/10",
-  },
-  {
-    n: "04",
-    title: "Monitore tudo",
-    desc: "Entregas, leituras, respostas, health score por chip. Pausa automática se algo cheira a ban.",
-    icon: BarChart3,
-    accent: "from-emerald-500/20 to-teal-500/10",
-  },
+const STEP_DEFS = [
+  { n: "01", k: "step1", icon: Smartphone, accent: "from-blue-500/20 to-cyan-500/10" },
+  { n: "02", k: "step2", icon: Workflow,   accent: "from-purple-500/20 to-pink-500/10" },
+  { n: "03", k: "step3", icon: MessageSquare, accent: "from-orange-500/20 to-red-500/10" },
+  { n: "04", k: "step4", icon: BarChart3,  accent: "from-emerald-500/20 to-teal-500/10" },
 ];
 
 export function HowItWorks() {
+  const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
   const [active, setActive] = useState(0);
 
   useEffect(() => {
     if (!inView) return;
-    const t = setInterval(() => setActive((a) => (a + 1) % 4), 4500);
-    return () => clearInterval(t);
+    const tm = setInterval(() => setActive((a) => (a + 1) % 4), 4500);
+    return () => clearInterval(tm);
   }, [inView]);
 
   return (
