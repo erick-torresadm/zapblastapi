@@ -24,8 +24,9 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const nav = useNavigate();
   const [loading, setLoading] = useState(false);
-  const checkIp = useServerFn(checkSignupIpFn);
-  const recordIp = useServerFn(recordSignupIpFn);
+  const preCheck = useServerFn(preSignupCheckFn);
+  const recordSignup = useServerFn(recordSignupFn);
+  const fpRef = useRef<string | null>(null);
 
   const nextPath = (() => {
     if (typeof window === "undefined") return "/app";
@@ -37,6 +38,8 @@ function AuthPage() {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) window.location.replace(nextPath);
     });
+    // device fingerprint (silencioso) — usado para anti-abuso
+    FingerprintJS.load().then((fp) => fp.get()).then((r) => { fpRef.current = r.visitorId; }).catch(() => {});
   }, [nav, nextPath]);
 
 
@@ -64,19 +67,20 @@ function AuthPage() {
 
     setLoading(true);
     try {
-      // 1) Bloqueia múltiplos cadastros do mesmo IP
-      const ipCheck = await checkIp();
-      if (!ipCheck.ok) { setLoading(false); return toast.error(ipCheck.reason); }
+      // 1) Anti-abuso (IP/sub-rede/fingerprint/e-mail normalizado/domínio descartável/blocklist)
+      const check = await preCheck({ data: { email, fingerprint: fpRef.current } });
+      if (!check.ok) { setLoading(false); return toast.error(check.reason); }
 
-      // 2) Cria conta (sem confirmação de e-mail — auto-login)
+      // 2) Cria conta
       const { error } = await supabase.auth.signUp({
         email, password,
         options: { data: { full_name: name } },
       });
       if (error) { setLoading(false); return toast.error(error.message); }
 
-      // 3) Registra IP do novo usuário
-      try { await recordIp(); } catch (e) { console.warn("[signup] recordIp falhou", e); }
+      // 3) Registra sinais do novo usuário
+      try { await recordSignup({ data: { fingerprint: fpRef.current, email } }); }
+      catch (e) { console.warn("[signup] recordSignup falhou", e); }
 
       setLoading(false);
       toast.success("🎉 Conta criada! Seu teste Pro de 7 dias começou agora.", {
