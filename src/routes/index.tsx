@@ -99,8 +99,7 @@ function Landing() {
             <a href="#pricing" className="transition-colors hover:text-foreground">{t("nav.pricing")}</a>
             <a href="#faq" className="transition-colors hover:text-foreground">{t("nav.faq")}</a>
           </nav>
-            <a href="#faq" className="transition-colors hover:text-foreground">{t("nav.faq")}</a>
-          </nav>
+
 
           <div className="flex items-center gap-2">
             <LangSwitcher />
