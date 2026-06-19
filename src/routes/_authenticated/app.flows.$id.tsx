@@ -193,18 +193,30 @@ function StepNode({ data, selected, type }: NodeProps) {
   : stepType === "media"          ? (d.mediaUrl ? `${(d.mediatype ?? "image").toUpperCase()}: ${d.mediaUrl.slice(0, 40)}…` : "Configure a mídia…")
   : stepType === "typing"         ? `${d.presence === "recording" ? "Gravando" : "Digitando"} por ${d.seconds ?? 3}s`
   : stepType === "ask"            ? (d.message ? `Pergunta: ${d.message}` : "Configure a pergunta…")
+  : stepType === "menu"           ? (d.message || "Configure o menu…")
   : stepType === "ai"             ? (d.systemPrompt || "Configure o prompt da IA…")
   : stepType === "transfer_human" ? "Encaminha a conversa para um humano"
   : stepType === "delay"          ? `Aguardar ${d.delaySeconds ?? 60}s`
   : stepType === "condition"      ? `Se "${d.conditionField || "campo"}" = "${d.conditionEquals || "valor"}"`
   : stepType === "tag"            ? `Adicionar tag: ${d.tag || "—"}`
   : stepType === "webhook"        ? (d.webhookUrl || "Configure a URL")
+  : stepType === "http_request"   ? `${d.method ?? "POST"} ${d.url || "Configure a URL"}`
   : stepType === "sticker"        ? (d.stickerUrl ? `Sticker: ${d.stickerUrl.slice(0, 36)}…` : "Configure o sticker…")
   : stepType === "location"       ? (Number.isFinite(d.latitude) && Number.isFinite(d.longitude) ? `📍 ${d.latitude}, ${d.longitude}` : "Configure a localização…")
   : stepType === "contact_card"   ? (d.contactName ? `${d.contactName} • ${d.contactPhone ?? "—"}` : "Configure o contato…")
   : stepType === "poll"           ? (d.pollQuestion ? `Enquete: ${d.pollQuestion}` : "Configure a enquete…")
   : stepType === "reaction"       ? `Reagir com ${d.emoji ?? "👍"}`
+  : stepType === "set_variable"   ? (d.variable ? `${d.variable} = ${String(d.value ?? "").slice(0, 30)}` : "Configure as variáveis…")
+  : stepType === "random_split"   ? `Pesos: ${(d.weights ?? "a=1, b=1").split(/\r?\n/).join(", ").slice(0, 40)}`
+  : stepType === "jump"           ? (d.jumpTo ? `→ ${d.jumpTo}` : "Escolha o nó destino…")
+  : stepType === "end"            ? (d.reason ? `Fim: ${d.reason}` : "Encerra o fluxo")
+  : stepType === "time_window"    ? `${d.startHour ?? 9}h–${d.endHour ?? 18}h (dias ${d.days ?? "1-5"})`
+  : stepType === "update_contact" ? (d.contactName || d.contactEmail || d.customFields ? "Atualiza dados do contato" : "Configure os campos…")
+  : stepType === "note"           ? (d.note ? `Nota: ${String(d.note).slice(0, 40)}` : "Escreva a nota…")
+  : stepType === "assign_agent"   ? (d.agentId ? `Agente: ${d.agentId.slice(0, 8)}…` : "Configure o agente…")
+  : stepType === "comment"        ? (d.note || d.message || "Anotação")
   : "Ponto de entrada — o fluxo começa aqui";
+
 
 
   return (
