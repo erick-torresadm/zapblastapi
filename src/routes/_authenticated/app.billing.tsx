@@ -19,7 +19,7 @@ function brl(cents: number) { return (cents / 100).toLocaleString("pt-BR", { sty
 function brlNoDecimals(cents: number) { return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }); }
 
 const planIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  starter: Sparkles, pro: Crown, enterprise: Building2,
+  starter: Sparkles, pro: Crown, scale: Building2, enterprise: Building2,
 };
 
 type Cycle = "monthly" | "annual";
