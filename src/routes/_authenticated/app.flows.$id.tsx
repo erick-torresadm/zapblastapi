@@ -36,7 +36,10 @@ import {
   Play, MessageSquare, Clock, GitBranch, Tag, Webhook, Trash2, Save, Download, Plus,
   ArrowLeft, Rocket, CheckCircle2, Loader2, Image as ImageIcon, Keyboard,
   Smile, MapPin, Contact as ContactIcon, BarChart3, Heart,
+  Search, Copy as CopyIcon, AlertTriangle, ListOrdered, Shuffle, Variable,
+  CornerDownRight, StopCircle, Globe, CalendarClock, UserPlus, StickyNote, Users,
 } from "lucide-react";
+
 
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
