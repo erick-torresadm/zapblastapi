@@ -25,7 +25,13 @@ function BillingPage() {
   const fn = useServerFn(getBillingStateFn);
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["billing"], queryFn: () => fn() });
-  const [cycle, setCycle] = useState<Cycle>("annual");
+  const initialCycle: Cycle = (() => {
+    if (typeof window === "undefined") return "annual";
+    const c = new URLSearchParams(window.location.search).get("cycle");
+    return c === "monthly" ? "monthly" : "annual";
+  })();
+  const [cycle, setCycle] = useState<Cycle>(initialCycle);
+
   const [cardPlan, setCardPlan] = useState<{ id: string; name: string; price: number } | null>(null);
   const sub = data?.subscription;
   const isActive = sub?.status === "active" || sub?.status === "trialing";
