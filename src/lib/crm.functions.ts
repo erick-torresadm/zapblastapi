@@ -100,9 +100,10 @@ export const listConversationsFn = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     let q = supabase.from("crm_conversations" as any)
-      .select("id,owner_user_id,instance_id,contact_phone,contact_jid,contact_name,contact_avatar_url,contact_about,contact_email,contact_company,tags,custom_fields,assigned_agent_id,status,last_message_at,last_message_text,last_message_direction,last_message_type,unread_count,presence,presence_at")
+      .select("id,owner_user_id,instance_id,contact_phone,contact_jid,contact_name,contact_avatar_url,contact_about,contact_email,contact_company,tags,custom_fields,assigned_agent_id,status,last_message_at,last_message_text,last_message_direction,last_message_type,unread_count,presence,presence_at,pinned_at,archived_at,muted_until,last_seen_at")
+      .order("pinned_at", { ascending: false, nullsFirst: false })
       .order("last_message_at", { ascending: false })
-      .limit(300);
+      .limit(500);
     if (data.workspace) q = q.eq("owner_user_id", data.workspace);
     if (data.status) q = q.eq("status", data.status);
     if (data.filter === "mine") q = q.eq("assigned_agent_id", userId);
