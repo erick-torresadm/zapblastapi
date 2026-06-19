@@ -206,14 +206,26 @@ function BillingPage() {
                 <CardDescription className="pt-2">{p.description}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 text-sm flex-1">
-                <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> Até {p.max_chips} chips simultâneos</div>
-                <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {p.max_messages_per_day.toLocaleString("pt-BR")} mensagens/dia</div>
-                <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> Aquecimento automático</div>
-                <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> Marketplace de chips</div>
+                <Feat ok>Até <strong>{p.max_chips}</strong> chip{p.max_chips > 1 ? "s" : ""} simultâneo{p.max_chips > 1 ? "s" : ""}</Feat>
+                <Feat ok><strong>{p.max_messages_per_day.toLocaleString("pt-BR")}</strong> mensagens/dia</Feat>
+                <Feat ok={(p.max_active_campaigns ?? 1) !== 0}>
+                  {(p.max_active_campaigns ?? 1) === -1 ? "Campanhas ilimitadas" : `${p.max_active_campaigns} campanha${p.max_active_campaigns > 1 ? "s" : ""} simultânea${p.max_active_campaigns > 1 ? "s" : ""}`}
+                </Feat>
+                <Feat ok={(p.max_contacts_per_list ?? 0) !== 0}>
+                  {(p.max_contacts_per_list ?? 0) === -1 ? "Contatos ilimitados/lista" : `${(p.max_contacts_per_list ?? 0).toLocaleString("pt-BR")} contatos/lista`}
+                </Feat>
+                <Feat ok={(p.max_crm_agents ?? 1) !== 0}>
+                  {(p.max_crm_agents ?? 1) === -1 ? "CRM com agentes ilimitados" : `CRM com ${p.max_crm_agents} agente${p.max_crm_agents > 1 ? "s" : ""}`}
+                </Feat>
+                <Feat ok={(p.warmup_tier ?? "off") !== "off"}>
+                  {p.warmup_tier === "advanced" ? "Aquecimento avançado com IA" : p.warmup_tier === "basic" ? "Aquecimento básico" : "Aquecimento desligado"}
+                </Feat>
+                <Feat ok>Marketplace de chips</Feat>
                 {showAnnual && (
-                  <div className="flex items-center gap-2 font-medium"><Check className="h-4 w-4 text-success" /> Pagamento único no ano</div>
+                  <Feat ok><strong>Pagamento único no ano</strong></Feat>
                 )}
               </CardContent>
+
               <CardFooter className="flex-col gap-2">
                 {showAnnual ? (
                   <Button
