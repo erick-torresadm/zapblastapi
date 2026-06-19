@@ -96,3 +96,43 @@ export async function efiFetch(path: string, init: RequestInit = {}): Promise<Re
 export function efiEnv(): EfiEnv {
   return getEnv();
 }
+
+// ===== PIX API (base separada) =====
+let _pixToken: { value: string; expiresAt: number; env: EfiEnv } | null = null;
+
+function pixBase(env: EfiEnv) {
+  return env === "prod" ? PIX_PROD_BASE : PIX_SANDBOX_BASE;
+}
+
+async function getPixToken(): Promise<string> {
+  const env = getEnv();
+  if (_pixToken && _pixToken.env === env && _pixToken.expiresAt > Date.now() + 30_000) return _pixToken.value;
+  const { clientId, clientSecret } = creds(env);
+  const client = await getClient(env);
+  const basic = btoa(`${clientId}:${clientSecret}`);
+  const res = await fetch(`${pixBase(env)}/oauth/token`, {
+    method: "POST",
+    // deno-lint-ignore no-explicit-any
+    client,
+    headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ grant_type: "client_credentials" }),
+  // deno-lint-ignore no-explicit-any
+  } as any);
+  if (!res.ok) throw new Error(`Efí PIX OAuth failed (${res.status}): ${await res.text()}`);
+  const json = await res.json();
+  _pixToken = { value: json.access_token, expiresAt: Date.now() + json.expires_in * 1000, env };
+  return _pixToken.value;
+}
+
+export async function efiPixFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const env = getEnv();
+  const token = await getPixToken();
+  const client = await getClient(env);
+  return await fetch(`${pixBase(env)}${path}`, {
+    ...init,
+    // deno-lint-ignore no-explicit-any
+    client,
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers ?? {}) },
+  // deno-lint-ignore no-explicit-any
+  } as any);
+}
