@@ -96,7 +96,7 @@ function WalletPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Adicionar saldo</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">⚠️ Modo desenvolvimento: o saldo é creditado direto sem cobrança real. Stripe será conectado em breve.</p>
+          <p className="text-sm text-muted-foreground">💳 Pagamento via PIX ou cartão de crédito (Efí Bank). Saldo cai na hora após confirmação.</p>
           <div className="grid grid-cols-2 gap-2">
             {TOPUP_VALUES.map((v) => (
               <Button key={v} variant={amount === v ? "default" : "outline"} onClick={() => setAmount(v)}>
