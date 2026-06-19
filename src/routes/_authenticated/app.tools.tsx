@@ -11,11 +11,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Users, ShieldCheck, Download, Wallet, Sparkles, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Users, ShieldCheck, Download, Wallet, Sparkles, Loader2, MapPin, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { validateNumbersFn, extractGroupFn, getToolsPricingFn } from "@/lib/tools.functions";
 import { listInstancesFn } from "@/lib/instances.functions";
 import { getWalletFn } from "@/lib/wallet.functions";
+import { MapsExtractorCard } from "@/components/tools/MapsExtractorCard";
+import { UnsavedContactsCard } from "@/components/tools/UnsavedContactsCard";
 
 export const Route = createFileRoute("/_authenticated/app/tools")({ component: ToolsPage });
 
