@@ -5,10 +5,12 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Sparkles, Building2, CreditCard, QrCode } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Check, X, Crown, Sparkles, Building2, CreditCard, QrCode, AlertTriangle, Clock } from "lucide-react";
 import { getBillingStateFn } from "@/lib/billing.functions";
 import { CardCheckoutDialog } from "@/components/billing/CardCheckoutDialog";
 import { PixAnnualDialog } from "@/components/billing/PixAnnualDialog";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/billing")({ component: BillingPage });
@@ -17,10 +19,19 @@ function brl(cents: number) { return (cents / 100).toLocaleString("pt-BR", { sty
 function brlNoDecimals(cents: number) { return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }); }
 
 const planIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  starter: Sparkles, pro: Crown, enterprise: Building2,
+  starter: Sparkles, pro: Crown, scale: Building2, enterprise: Building2,
 };
 
 type Cycle = "monthly" | "annual";
+
+function Feat({ ok, children }: { ok?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={cn("flex items-center gap-2", !ok && "text-muted-foreground/60")}>
+      {ok ? <Check className="h-4 w-4 text-success flex-shrink-0" /> : <X className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />}
+      <span>{children}</span>
+    </div>
+  );
+}
 
 function BillingPage() {
   const fn = useServerFn(getBillingStateFn);
@@ -37,6 +48,11 @@ function BillingPage() {
   const [pixPlan, setPixPlan] = useState<{ id: string; name: string; annual: number } | null>(null);
   const sub = data?.subscription;
   const isActive = sub?.status === "active" || sub?.status === "trialing";
+  const limits = usePlanLimits();
+
+  const pct = (used: number, max: number) => (max === -1 ? 0 : Math.min(100, Math.round((used / Math.max(1, max)) * 100)));
+  const lim = limits.data?.limits;
+  const use = limits.data?.usage;
 
   return (
     <div className="space-y-6 p-6">
@@ -45,6 +61,29 @@ function BillingPage() {
         <p className="text-muted-foreground">Escolha o plano ideal pra escalar seus disparos.</p>
       </div>
 
+      {/* Banner: trial acabando ou expirado */}
+      {limits.isTrialing && limits.trialDaysLeft !== null && limits.trialDaysLeft <= 3 && limits.trialDaysLeft > 0 && (
+        <Card className="border-warning bg-warning/10">
+          <CardContent className="flex items-center gap-3 py-4">
+            <Clock className="h-5 w-5 text-warning flex-shrink-0" />
+            <div className="flex-1 text-sm">
+              <strong>Seu teste grátis acaba em {limits.trialDaysLeft} {limits.trialDaysLeft === 1 ? "dia" : "dias"}.</strong>
+              {" "}Assine pra não perder seus chips e campanhas.
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {limits.isPastDue && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex items-center gap-3 py-4">
+            <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0" />
+            <div className="flex-1 text-sm">
+              <strong>Teste grátis expirado.</strong> Disparos e novos chips estão bloqueados. Seus dados e CRM continuam acessíveis — assine pra reativar.
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {sub && (
         <Card className={cn(isActive && "border-primary/60 bg-primary/5")}>
           <CardHeader>
@@ -52,7 +91,7 @@ function BillingPage() {
               <Crown className="h-5 w-5 text-primary" />
               Seu plano: {sub.subscription_plans?.name ?? "Sem plano"}
               <Badge variant={isActive ? "default" : "destructive"}>
-                {sub.status === "active" ? "Ativo" : sub.status === "trialing" ? "Período de teste" : sub.status}
+                {limits.isPastDue ? "Expirado" : sub.status === "active" ? "Ativo" : sub.status === "trialing" ? `Teste grátis — ${limits.trialDaysLeft ?? "?"} dias restantes` : sub.status}
               </Badge>
               {sub.payment_method && (
                 <Badge variant="outline" className="capitalize">
@@ -62,11 +101,37 @@ function BillingPage() {
             </CardTitle>
             <CardDescription>
               {sub.current_period_end && `Renova em ${new Date(sub.current_period_end).toLocaleDateString("pt-BR")}`}
-              
             </CardDescription>
           </CardHeader>
+          {lim && use && (
+            <CardContent className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Chips conectados</span>
+                  <span className="font-medium">{use.chips} / {limits.fmtLimit(lim.max_chips)}</span>
+                </div>
+                <Progress value={pct(use.chips, lim.max_chips)} className="h-2" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Campanhas ativas</span>
+                  <span className="font-medium">{use.active_campaigns} / {limits.fmtLimit(lim.max_active_campaigns)}</span>
+                </div>
+                <Progress value={pct(use.active_campaigns, lim.max_active_campaigns)} className="h-2" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Mensagens hoje</span>
+                  <span className="font-medium">{use.messages_today.toLocaleString("pt-BR")} / {limits.fmtLimit(lim.max_messages_per_day)}</span>
+                </div>
+                <Progress value={pct(use.messages_today, lim.max_messages_per_day)} className="h-2" />
+              </div>
+            </CardContent>
+          )}
         </Card>
       )}
+
+
 
 
       {/* Toggle Mensal / Anual */}
@@ -150,14 +215,26 @@ function BillingPage() {
                 <CardDescription className="pt-2">{p.description}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 text-sm flex-1">
-                <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> Até {p.max_chips} chips simultâneos</div>
-                <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {p.max_messages_per_day.toLocaleString("pt-BR")} mensagens/dia</div>
-                <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> Aquecimento automático</div>
-                <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> Marketplace de chips</div>
+                <Feat ok>Até <strong>{p.max_chips}</strong> chip{p.max_chips > 1 ? "s" : ""} simultâneo{p.max_chips > 1 ? "s" : ""}</Feat>
+                <Feat ok><strong>{p.max_messages_per_day.toLocaleString("pt-BR")}</strong> mensagens/dia</Feat>
+                <Feat ok={(p.max_active_campaigns ?? 1) !== 0}>
+                  {(p.max_active_campaigns ?? 1) === -1 ? "Campanhas ilimitadas" : `${p.max_active_campaigns} campanha${p.max_active_campaigns > 1 ? "s" : ""} simultânea${p.max_active_campaigns > 1 ? "s" : ""}`}
+                </Feat>
+                <Feat ok={(p.max_contacts_per_list ?? 0) !== 0}>
+                  {(p.max_contacts_per_list ?? 0) === -1 ? "Contatos ilimitados/lista" : `${(p.max_contacts_per_list ?? 0).toLocaleString("pt-BR")} contatos/lista`}
+                </Feat>
+                <Feat ok={(p.max_crm_agents ?? 1) !== 0}>
+                  {(p.max_crm_agents ?? 1) === -1 ? "CRM com agentes ilimitados" : `CRM com ${p.max_crm_agents} agente${p.max_crm_agents > 1 ? "s" : ""}`}
+                </Feat>
+                <Feat ok={(p.warmup_tier ?? "off") !== "off"}>
+                  {p.warmup_tier === "advanced" ? "Aquecimento avançado com IA" : p.warmup_tier === "basic" ? "Aquecimento básico" : "Aquecimento desligado"}
+                </Feat>
+                <Feat ok>Marketplace de chips</Feat>
                 {showAnnual && (
-                  <div className="flex items-center gap-2 font-medium"><Check className="h-4 w-4 text-success" /> Pagamento único no ano</div>
+                  <Feat ok><strong>Pagamento único no ano</strong></Feat>
                 )}
               </CardContent>
+
               <CardFooter className="flex-col gap-2">
                 {showAnnual ? (
                   <Button
@@ -195,7 +272,10 @@ function BillingPage() {
           </div>
           <div>
             💚 <strong>PIX no anual</strong> tem o melhor preço — pagamento à vista com 30% de desconto.
-            Cartão será aceito em mensal e anual (parcelado). Por enquanto, todos os usuários têm acesso liberado pra testar.
+            Cartão será aceito em mensal e anual (parcelado).
+          </div>
+          <div>
+            🎁 Novos usuários ganham <strong>10 dias grátis no plano Pro</strong>, sem cartão.
           </div>
         </CardContent>
       </Card>
@@ -207,7 +287,7 @@ function BillingPage() {
           planId={cardPlan.id}
           planName={cardPlan.name}
           priceCents={cardPlan.price}
-          onSuccess={() => qc.invalidateQueries({ queryKey: ["billing"] })}
+          onSuccess={() => { qc.invalidateQueries({ queryKey: ["billing"] }); qc.invalidateQueries({ queryKey: ["plan-limits"] }); }}
         />
       )}
 

@@ -1016,7 +1016,10 @@ export type Database = {
           efi_plan_id_sandbox: number | null
           featured: boolean
           id: string
+          max_active_campaigns: number
           max_chips: number
+          max_contacts_per_list: number
+          max_crm_agents: number
           max_messages_per_day: number
           name: string
           price_annual_cents: number | null
@@ -1025,6 +1028,7 @@ export type Database = {
           sort_order: number
           stripe_price_id: string | null
           stripe_price_id_annual: string | null
+          warmup_tier: string
         }
         Insert: {
           active?: boolean
@@ -1034,7 +1038,10 @@ export type Database = {
           efi_plan_id_sandbox?: number | null
           featured?: boolean
           id?: string
+          max_active_campaigns?: number
           max_chips?: number
+          max_contacts_per_list?: number
+          max_crm_agents?: number
           max_messages_per_day?: number
           name: string
           price_annual_cents?: number | null
@@ -1043,6 +1050,7 @@ export type Database = {
           sort_order?: number
           stripe_price_id?: string | null
           stripe_price_id_annual?: string | null
+          warmup_tier?: string
         }
         Update: {
           active?: boolean
@@ -1052,7 +1060,10 @@ export type Database = {
           efi_plan_id_sandbox?: number | null
           featured?: boolean
           id?: string
+          max_active_campaigns?: number
           max_chips?: number
+          max_contacts_per_list?: number
+          max_crm_agents?: number
           max_messages_per_day?: number
           name?: string
           price_annual_cents?: number | null
@@ -1061,6 +1072,7 @@ export type Database = {
           sort_order?: number
           stripe_price_id?: string | null
           stripe_price_id_annual?: string | null
+          warmup_tier?: string
         }
         Relationships: []
       }
@@ -1079,6 +1091,7 @@ export type Database = {
           status: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          trial_ends_at: string | null
           updated_at: string
           user_id: string
         }
@@ -1096,6 +1109,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1113,6 +1127,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1445,6 +1460,8 @@ export type Database = {
         }
         Returns: number
       }
+      expire_trials: { Args: never; Returns: number }
+      get_user_plan_limits: { Args: { _user_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

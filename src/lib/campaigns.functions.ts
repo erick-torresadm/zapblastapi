@@ -10,6 +10,14 @@ export const startCampaignFn = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { renderSpintax } = await import("@/lib/spintax");
 
+    // Enforcement de plano
+    const { data: limits } = await supabase.rpc("get_user_plan_limits" as never, { _user_id: userId } as never);
+    const l = limits as unknown as { can_act?: boolean; limits?: { max_active_campaigns: number }; usage?: { active_campaigns: number } } | null;
+    if (!l?.can_act) throw new Error("Teste grátis expirado. Assine pra disparar campanhas.");
+    if (l.limits && l.usage && l.limits.max_active_campaigns !== -1 && l.usage.active_campaigns >= l.limits.max_active_campaigns) {
+      throw new Error(`Limite do seu plano: ${l.limits.max_active_campaigns} campanha(s) ativa(s). Faça upgrade pra rodar mais.`);
+    }
+
     const { data: campaign } = await supabase.from("campaigns").select("*").eq("id", data.campaign_id).maybeSingle();
     if (!campaign) throw new Error("Campanha não encontrada");
     if (campaign.user_id !== userId) throw new Error("Não autorizado");

@@ -12,6 +12,40 @@ export const getBillingStateFn = createServerFn({ method: "GET" })
     return { plans: plansRes.data ?? [], subscription: subRes.data ?? null };
   });
 
+export type PlanLimits = {
+  has_subscription: boolean;
+  status?: "active" | "trialing" | "past_due" | "canceled" | "incomplete";
+  plan_slug?: string;
+  plan_name?: string;
+  trial_ends_at?: string | null;
+  trial_expired?: boolean;
+  can_act: boolean;
+  limits?: {
+    max_chips: number;
+    max_messages_per_day: number;
+    max_active_campaigns: number;
+    max_contacts_per_list: number;
+    max_crm_agents: number;
+    warmup_tier: "off" | "basic" | "advanced";
+  };
+  usage?: {
+    chips: number;
+    active_campaigns: number;
+    messages_today: number;
+  };
+};
+
+export const getPlanLimitsFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<PlanLimits> => {
+    const { supabase, userId } = context;
+    // Expira trials vencidos antes de ler (best-effort)
+    await supabase.rpc("expire_trials" as never).then(() => {}, () => {});
+    const { data, error } = await supabase.rpc("get_user_plan_limits" as never, { _user_id: userId } as never);
+    if (error) throw error;
+    return (data as unknown as PlanLimits) ?? { has_subscription: false, can_act: false };
+  });
+
 // Expõe a config pública da Efí (Payee Code + env) pro frontend tokenizar cartão
 export const getEfiPublicConfigFn = createServerFn({ method: "GET" }).handler(async () => {
   const env = (process.env.EFI_ENV ?? "sandbox") as "prod" | "sandbox";
