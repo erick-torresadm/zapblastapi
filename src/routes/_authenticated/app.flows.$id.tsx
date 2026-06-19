@@ -1264,10 +1264,16 @@ function FlowsInner() {
 
 
                   {t !== "start" && (
-                    <Button variant="destructive" className="w-full" onClick={deleteSelected}>
-                      <Trash2 className="mr-2 h-4 w-4" />Remover passo
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" onClick={duplicateSelected}>
+                        <CopyIcon className="mr-2 h-4 w-4" />Duplicar
+                      </Button>
+                      <Button variant="destructive" className="flex-1" onClick={deleteSelected}>
+                        <Trash2 className="mr-2 h-4 w-4" />Remover
+                      </Button>
+                    </div>
                   )}
+
                 </div>
               </>
             );
