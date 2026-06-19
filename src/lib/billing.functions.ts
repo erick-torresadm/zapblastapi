@@ -20,14 +20,14 @@ export const getBillingStateFn = createServerFn({ method: "GET" })
       if (proPlan) {
         const now = new Date();
         const trialEnd = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
-        await supabaseAdmin.from("subscriptions").upsert({
+        await supabaseAdmin.from("subscriptions").insert({
           user_id: userId,
           plan_id: proPlan.id,
           status: "trialing",
           trial_ends_at: trialEnd.toISOString(),
           current_period_start: now.toISOString(),
           current_period_end: trialEnd.toISOString(),
-        }, { onConflict: "user_id" });
+        } as never);
         const refetch = await supabase.from("subscriptions").select("*, subscription_plans(*)").eq("user_id", userId).maybeSingle();
         subscription = refetch.data;
       }
