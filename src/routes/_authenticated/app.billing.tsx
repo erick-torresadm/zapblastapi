@@ -284,7 +284,7 @@ function BillingPage() {
           planId={cardPlan.id}
           planName={cardPlan.name}
           priceCents={cardPlan.price}
-          onSuccess={() => qc.invalidateQueries({ queryKey: ["billing"] })}
+          onSuccess={() => { qc.invalidateQueries({ queryKey: ["billing"] }); qc.invalidateQueries({ queryKey: ["plan-limits"] }); }}
         />
       )}
 
