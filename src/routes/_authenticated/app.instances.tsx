@@ -97,7 +97,7 @@ function InstancesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Chips conectados</h1>
-          <p className="text-sm text-muted-foreground">Cada chip é uma instância do Evolution API</p>
+          <p className="text-sm text-muted-foreground">Cada chip é uma conexão de WhatsApp rodando na nossa infraestrutura</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <NewChipTrigger serversAvailable={!!servers?.length} />
@@ -124,7 +124,7 @@ function InstancesPage() {
                 <Select name="server_id" required>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {servers?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}{s.is_shared ? " · Plataforma" : ""}</SelectItem>)}
+                    {servers?.map((s) => <SelectItem key={s.id} value={s.id}>{s.is_shared ? "Infraestrutura Perseidas (recomendado)" : s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -138,7 +138,7 @@ function InstancesPage() {
 
       {!servers?.length && (
         <Card><CardContent className="py-6 text-center text-sm text-muted-foreground">
-          Nenhum servidor disponível ainda. Aguarde o admin liberar o servidor da plataforma ou conecte o seu em <strong>Servidores</strong>.
+          A infraestrutura está sendo preparada. Tente novamente em alguns instantes ou fale com o suporte.
         </CardContent></Card>
       )}
 
@@ -156,7 +156,7 @@ function InstancesPage() {
                   return (
                     <TableRow key={i.id}>
                       <TableCell className="font-medium">{i.instance_name}<div className="text-xs text-muted-foreground">{i.phone_number ?? "—"}</div></TableCell>
-                      <TableCell className="flex items-center gap-2">{i.server_name}{i.server_is_shared && <Badge variant="outline" className="gap-1 text-[10px]"><Shield className="h-3 w-3" />Plataforma</Badge>}</TableCell>
+                      <TableCell className="flex items-center gap-2">{i.server_is_shared ? <Badge variant="outline" className="gap-1 text-[10px]"><Shield className="h-3 w-3" />Perseidas</Badge> : <span>{i.server_name}</span>}</TableCell>
                       <TableCell><Badge className={s.cls}>{s.label}</Badge></TableCell>
                       <TableCell>{i.sent_today}</TableCell>
                       <TableCell>{i.daily_limit}</TableCell>
@@ -196,7 +196,7 @@ function InstancesPage() {
                     <span className="text-xs">{qrData.error}</span>
                   </>
                 ) : (qrData?.tries ?? 0) >= 4 ? (
-                  <span>Evolution ainda não devolveu o QR. Tente novamente em alguns segundos.</span>
+                  <span>A conexão ainda não devolveu o QR. Tente novamente em alguns segundos.</span>
                 ) : (
                   <span>Gerando QR…</span>
                 )}

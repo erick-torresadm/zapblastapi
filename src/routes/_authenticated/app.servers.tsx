@@ -81,17 +81,17 @@ function ServersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Servidores Evolution</h1>
+          <h1 className="text-2xl font-bold">{isAdmin ? "Servidores Evolution" : "Infraestrutura"}</h1>
           <p className="text-sm text-muted-foreground">
-            {isAdmin ? "Gerencie servidores próprios e o servidor global compartilhado." : "Use o servidor compartilhado da plataforma ou conecte o seu."}
+            {isAdmin ? "Gerencie servidores próprios e o servidor global compartilhado." : "Sua conta já está rodando na infraestrutura gerenciada da Perseidas. Avançado: você também pode conectar uma infra própria."}
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Novo servidor</Button></DialogTrigger>
+          <DialogTrigger asChild><Button variant={isAdmin ? "default" : "outline"}><Plus className="mr-2 h-4 w-4" />{isAdmin ? "Novo servidor" : "Conectar infra própria"}</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Conectar servidor Evolution</DialogTitle>
-              <DialogDescription>Informe a URL base e a API key global do seu Evolution.</DialogDescription>
+              <DialogTitle>{isAdmin ? "Conectar servidor Evolution" : "Conectar infraestrutura própria (avançado)"}</DialogTitle>
+              <DialogDescription>{isAdmin ? "Informe a URL base e a API key global do seu Evolution." : "Opcional. Informe a URL base e a chave da sua infra de mensageria — recomendado apenas para times técnicos."}</DialogDescription>
             </DialogHeader>
             <form
               onSubmit={(e) => {
@@ -129,8 +129,8 @@ function ServersPage() {
           <CardHeader className="flex flex-row items-center gap-3 space-y-0">
             <div className="rounded-lg bg-primary/10 p-2"><Server className="h-5 w-5 text-primary" /></div>
             <div>
-              <CardTitle className="text-base">Servidor compartilhado disponível</CardTitle>
-              <CardDescription>Você já pode criar chips usando o Evolution da plataforma — sem configuração.</CardDescription>
+              <CardTitle className="text-base">Infraestrutura Perseidas ativa</CardTitle>
+              <CardDescription>Seus chips já estão rodando na nossa infraestrutura gerenciada — sem configuração nenhuma da sua parte.</CardDescription>
             </div>
           </CardHeader>
         </Card>
@@ -150,8 +150,8 @@ function ServersPage() {
                     <TableCell className="font-medium">{s.name}</TableCell>
                     <TableCell>
                       {s.is_shared
-                        ? <Badge className="bg-primary/20 text-primary border-primary/30">Compartilhado</Badge>
-                        : <Badge variant="outline">Pessoal</Badge>}
+                        ? <Badge className="bg-primary/20 text-primary border-primary/30">Perseidas</Badge>
+                        : <Badge variant="outline">Própria</Badge>}
                     </TableCell>
                     {isAdmin && <TableCell className="font-mono text-xs">{s.base_url}</TableCell>}
                     <TableCell>
