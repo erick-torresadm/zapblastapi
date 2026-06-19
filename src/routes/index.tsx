@@ -222,7 +222,7 @@ function Landing() {
           <Meteors number={15} />
           <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl">Pronto pra rodar tudo num lugar só?</h2>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Crie sua conta, conecte seu chip e tenha disparo, fluxo e CRM ativos em 5 minutos. 7 dias grátis no plano Pro.
+            Crie sua conta, conecte seu chip e tenha disparo, fluxo e CRM ativos em 5 minutos. <strong>10 dias grátis no plano Pro</strong>, sem cartão.
           </p>
           <Button asChild size="lg" className="mt-8 bg-gradient-to-br from-primary to-primary-glow shadow-glow">
             <Link to="/auth">
