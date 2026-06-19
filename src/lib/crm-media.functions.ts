@@ -158,7 +158,7 @@ export const fetchContactProfileFn = createServerFn({ method: "POST" })
       if (about) patch.contact_about = typeof about === "string" ? about : null;
     } catch (e) { console.warn("profile fail", e); }
 
-    await supabase.from("crm_conversations").update(patch).eq("id", conv.id);
+    await (supabase.from("crm_conversations") as any).update(patch).eq("id", conv.id);
     return { ok: true, ...patch };
   });
 
