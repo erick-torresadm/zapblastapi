@@ -99,12 +99,9 @@ function InstancesPage() {
           <h1 className="text-2xl font-bold">Chips conectados</h1>
           <p className="text-sm text-muted-foreground">Cada chip é uma instância do Evolution API</p>
         </div>
-        <NewChipButton servers={servers} open={open} setOpen={setOpen} />
-      </div>
-      <PlanGate />
+        <Dialog open={open} onOpenChange={setOpen}>
+          <NewChipTrigger serversAvailable={!!servers?.length} />
 
-      <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><span /></DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Adicionar chip</DialogTitle>
