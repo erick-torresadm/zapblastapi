@@ -25,7 +25,6 @@ const operationNav = [
   { to: "/app/team", label: "Equipe", icon: UserCog },
 
   { to: "/app/anti-ban", label: "Anti-ban", icon: ShieldCheck },
-  { to: "/app/servers", label: "Servidores", icon: Server },
 ];
 const accountNav = [
   { to: "/app/wallet", label: "Carteira", icon: Wallet },
@@ -131,6 +130,14 @@ export function AppSidebar() {
                     <Link to="/app/admin/catalog">
                       <Shield className="h-4 w-4" />
                       <span>Catálogo</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={path.startsWith("/app/servers")} className="h-9 rounded-lg">
+                    <Link to="/app/servers">
+                      <Server className="h-4 w-4" />
+                      <span>Servidores</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
