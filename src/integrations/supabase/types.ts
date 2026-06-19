@@ -638,6 +638,21 @@ export type Database = {
         }
         Relationships: []
       }
+      disposable_email_domains: {
+        Row: {
+          added_at: string
+          domain: string
+        }
+        Insert: {
+          added_at?: string
+          domain: string
+        }
+        Update: {
+          added_at?: string
+          domain?: string
+        }
+        Relationships: []
+      }
       evolution_servers: {
         Row: {
           api_key: string
@@ -671,6 +686,30 @@ export type Database = {
           updated_at?: string
           user_id?: string
           webhook_token?: string
+        }
+        Relationships: []
+      }
+      flow_export_log: {
+        Row: {
+          exported_at: string
+          fingerprint_hash: string | null
+          flow_id: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          exported_at?: string
+          fingerprint_hash?: string | null
+          flow_id?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          exported_at?: string
+          fingerprint_hash?: string | null
+          flow_id?: string | null
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1076,25 +1115,73 @@ export type Database = {
         }
         Relationships: []
       }
-      signup_ip_log: {
+      signup_device_log: {
         Row: {
+          asn: string | null
+          country: string | null
           created_at: string
+          email_norm_hash: string | null
+          fingerprint_hash: string | null
           id: string
-          ip: string
+          ip: string | null
+          ip_subnet: string | null
           user_agent: string | null
           user_id: string | null
         }
         Insert: {
+          asn?: string | null
+          country?: string | null
           created_at?: string
+          email_norm_hash?: string | null
+          fingerprint_hash?: string | null
           id?: string
-          ip: string
+          ip?: string | null
+          ip_subnet?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
         Update: {
+          asn?: string | null
+          country?: string | null
+          created_at?: string
+          email_norm_hash?: string | null
+          fingerprint_hash?: string | null
+          id?: string
+          ip?: string | null
+          ip_subnet?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      signup_ip_log: {
+        Row: {
+          asn: string | null
+          country: string | null
+          created_at: string
+          id: string
+          ip: string
+          ip_subnet: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          asn?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          ip: string
+          ip_subnet?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          asn?: string | null
+          country?: string | null
           created_at?: string
           id?: string
           ip?: string
+          ip_subnet?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
@@ -1233,6 +1320,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      trial_abuse_blocklist: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          reason: string | null
+          value_hash: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          kind: string
+          reason?: string | null
+          value_hash: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          reason?: string | null
+          value_hash?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -1562,6 +1679,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      normalize_email: { Args: { _email: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
