@@ -6,7 +6,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Server, Smartphone, Users, Send, Inbox, UserCog,
-  LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, Bot,
+  LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, Bot, Sparkles,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ const operationNav = [
   { to: "/app/flows", label: "Fluxos", icon: Workflow },
   { to: "/app/keywords", label: "Bot", icon: Bot },
   { to: "/app/inbox", label: "Conversas (CRM)", icon: Inbox },
+  { to: "/app/tools", label: "Ferramentas", icon: Sparkles },
   { to: "/app/team", label: "Equipe", icon: UserCog },
 
   { to: "/app/anti-ban", label: "Anti-ban", icon: ShieldCheck },
