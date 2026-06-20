@@ -1,7 +1,55 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { parseGroupInviteCode, inviteInfoGroup } from "@/lib/evolution.server";
+import { parseGroupInviteCode, inviteInfoGroup, fetchInstances } from "@/lib/evolution.server";
+
+// Resolve the connected phone of an instance. Tries DB first, then Evolution API
+// (ownerJid / number). Persists the result so subsequent calls are fast.
+export async function resolveInstancePhone(
+  supabaseAdmin: { from: (t: string) => { select: (...a: unknown[]) => unknown; update: (...a: unknown[]) => unknown } },
+  instanceId: string,
+): Promise<string | null> {
+  const sb = supabaseAdmin as unknown as {
+    from: (t: string) => {
+      select: (s: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: Record<string, unknown> | null }> } };
+      update: (p: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<unknown> };
+    };
+  };
+  const { data: inst } = await sb.from("whatsapp_instances")
+    .select("phone_number, instance_name, server_id")
+    .eq("id", instanceId).maybeSingle();
+  if (!inst) return null;
+  const dbPhone = String(inst.phone_number ?? "").replace(/\D/g, "");
+  if (dbPhone.length >= 10) return dbPhone;
+
+  const { data: srv } = await sb.from("evolution_servers")
+    .select("base_url, api_key")
+    .eq("id", String(inst.server_id)).maybeSingle();
+  if (!srv) return null;
+
+  try {
+    const raw = await fetchInstances({ base_url: String(srv.base_url), api_key: String(srv.api_key) }, String(inst.instance_name));
+    const arr = Array.isArray(raw) ? raw : [raw];
+    for (const r of arr as Array<Record<string, unknown>>) {
+      const candidates: unknown[] = [
+        r.ownerJid, r.number, r.phoneNumber, r.owner,
+        (r.instance as Record<string, unknown> | undefined)?.ownerJid,
+        (r.instance as Record<string, unknown> | undefined)?.number,
+        (r.instance as Record<string, unknown> | undefined)?.owner,
+        (r.connection as Record<string, unknown> | undefined)?.user,
+      ];
+      for (const c of candidates) {
+        if (!c) continue;
+        const cleaned = String(c).split("@")[0].replace(/\D/g, "");
+        if (cleaned.length >= 10 && cleaned.length <= 15) {
+          await sb.from("whatsapp_instances").update({ phone_number: cleaned }).eq("id", instanceId);
+          return cleaned;
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  return null;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // helpers
