@@ -101,7 +101,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
               if (fromHistory) {
                 realPhone = fromHistory.phone;
                 lidResolutionSource = "history";
-                console.log("[webhook] LID resolvido via histórico", { remoteJid, phone: realPhone, src: fromHistory.source });
+                console.log("[webhook] LID resolvido via histórico", { remoteJid, phone: realPhone });
               }
             }
             if (realPhone) {

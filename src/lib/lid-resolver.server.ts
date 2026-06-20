@@ -64,7 +64,8 @@ export function extractPhoneFromPayload(payload: AnyRec): string | null {
  *   c) chat_messages com contact_jid == lid e contact_phone real
  */
 export async function resolveLidFromHistory(
-  supabaseAdmin: { rpc: (fn: string, args: AnyRec) => Promise<{ data: unknown; error: unknown }> },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabaseAdmin: any,
   args: { user_id: string; instance_id: string | null; lid_jid: string },
 ): Promise<{ phone: string; jid: string } | null> {
   const lid = args.lid_jid;
