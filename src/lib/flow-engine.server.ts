@@ -493,7 +493,20 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
               console.warn("[flow] failed to prefetch ogg, falling back to URL", (e as Error).message);
             }
           }
-          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, audioPayload, { encoding });
+          try {
+            response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, audioPayload, { encoding });
+          } catch (audioErr) {
+            console.warn("[flow] sendWhatsAppAudio failed, falling back to regular audio media", {
+              target: t,
+              err: (audioErr as Error).message,
+            });
+            response = await sendMedia(evoSrv, inst.instance_name, t, {
+              mediatype: "audio",
+              media: url,
+              caption,
+              fileName,
+            });
+          }
 
         } else {
           response = await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
