@@ -38,6 +38,18 @@ function InstancesPage() {
   const delFn = useServerFn(deleteInstanceFn);
   const listServersFn = useServerFn(listAvailableServersFn);
   const listInsts = useServerFn(listInstancesFn);
+  const refreshPhoneFn = useServerFn(refreshInstancePhoneFn);
+
+  const refreshPhone = useMutation({
+    mutationFn: async (instance_id: string) => refreshPhoneFn({ data: { instance_id } }),
+    onSuccess: (res) => {
+      if (res.phone) toast.success(`Número identificado: ${res.phone}`);
+      else toast.error("Não consegui identificar o número. Reconecte o chip (escaneie o QR de novo).");
+      qc.invalidateQueries({ queryKey: ["instances"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const { data: servers } = useQuery({
     queryKey: ["available-servers"],
