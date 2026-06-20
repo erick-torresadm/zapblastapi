@@ -16,7 +16,7 @@ import {
 import {
   Send, Search, MessageCircle, UserPlus, CheckCircle2, Clock, MoreVertical, StickyNote,
   ArrowLeft, Paperclip, Image as ImgIcon, FileText, Smile, User2, Zap, X,
-  Pin, PinOff, Archive, BellOff, Bell, Filter,
+  Pin, PinOff, Archive, BellOff, Bell, Filter, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,7 @@ import {
   sendChatMediaFn, signMediaUrlsFn, signAvatarsFn, sendPresenceFn,
   listQuickRepliesFn, saveQuickReplyFn, deleteQuickReplyFn,
 } from "@/lib/crm-media.functions";
+import { syncInstanceContactsFn } from "@/lib/crm-profile.functions";
 import { MessageBubble, type Msg } from "@/components/crm/MessageBubble";
 import { AudioRecorder } from "@/components/crm/AudioRecorder";
 import { ContactPanel, type ContactConv } from "@/components/crm/ContactPanel";
@@ -353,6 +354,49 @@ function Inbox() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const syncContactsSf = useServerFn(syncInstanceContactsFn);
+  const syncContactsMut = useMutation({
+    mutationFn: async () => {
+      const connected = (instances ?? []).filter((i) => i.status === "connected");
+      if (!connected.length) throw new Error("Nenhuma instância conectada para sincronizar");
+      let totalResolved = 0;
+      let totalMerged = 0;
+      let totalLid = 0;
+      for (const inst of connected) {
+        try {
+          const r = await syncContactsSf({ data: { instance_id: inst.id } }) as any;
+          totalResolved += r?.conversations_resolved ?? 0;
+          totalMerged += r?.conversations_merged ?? 0;
+          totalLid += r?.lid_mapped ?? 0;
+        } catch (e) {
+          console.warn("[sync]", inst.instance_name, (e as Error).message);
+        }
+      }
+      return { totalResolved, totalMerged, totalLid };
+    },
+    onSuccess: (r) => {
+      invalidateConvLists();
+      toast.success(
+        `Sincronização concluída — ${r.totalResolved} resolvidas, ${r.totalMerged} mescladas, ${r.totalLid} contatos mapeados`,
+      );
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Auto-sync ao abrir a primeira vez se houver conversas em "Aguardando sincronização…"
+  const autoSyncRef = useRef(false);
+  useEffect(() => {
+    if (autoSyncRef.current) return;
+    if (!instances?.length || !workspace) return;
+    const pending = (convs ?? []).some((c: any) =>
+      !c.contact_phone || /^[0-9]{15,}$/.test(c.contact_phone) || (c.contact_jid ?? "").endsWith("@lid"),
+    );
+    if (!pending) return;
+    autoSyncRef.current = true;
+    syncContactsMut.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instances, workspace, convs]);
+
   const assignMut = useMutation({
     mutationFn: (agent_user_id: string | null) =>
       assignFn({ data: { conversation_id: selectedId!, agent_user_id } }),
@@ -545,7 +589,7 @@ function Inbox() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <span className="truncate text-sm font-semibold">
-                {resolved ? displayName(c.contact_name, c.contact_phone) : (c.contact_name ?? "Identificando…")}
+                {resolved ? displayName(c.contact_name, c.contact_phone) : (c.contact_name ?? "Aguardando sincronização…")}
               </span>
               <span className={`shrink-0 text-[10px] ${c.unread_count > 0 ? "font-semibold text-primary" : "text-muted-foreground"}`}>
                 {fmtTime(c.last_message_at)}
@@ -654,10 +698,24 @@ function Inbox() {
             )}
           </div>
 
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar conversa ou mensagem…" className="h-9 pl-8 text-sm rounded-full" />
+          <div className="relative flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar conversa ou mensagem…" className="h-9 pl-8 text-sm rounded-full" />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0"
+              onClick={() => syncContactsMut.mutate()}
+              disabled={syncContactsMut.isPending}
+              title="Sincronizar contatos e fotos diretamente do WhatsApp"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncContactsMut.isPending ? "animate-spin" : ""}`} />
+            </Button>
           </div>
+
 
           <div className="flex gap-1 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-thin">
             {filterChips.map((fc) => (
@@ -751,7 +809,7 @@ function Inbox() {
                 <div className="truncate text-sm font-semibold flex items-center gap-2">
                   {current.is_resolved && isPhoneResolved(current.contact_phone)
                     ? displayName(current.contact_name, current.contact_phone)
-                    : (current.contact_name ?? "Identificando contato…")}
+                    : (current.contact_name ?? "Aguardando sincronização…")}
                   {!current.is_resolved && (
                     <span className="text-[9px] rounded-full px-1.5 py-0.5 bg-warning/15 text-warning border border-warning/30 font-normal animate-pulse">
                       sincronizando

@@ -33,8 +33,8 @@ export function formatPhone(p?: string | null): string {
   if (m) return `(${m[1]}) ${m[2]}-${m[3]}`;
   // Internacional genérico
   if (c.length >= 10 && c.length <= 14) return `+${c}`;
-  // @lid ou similar
-  return "Identificando…";
+  // @lid ou similar — pedir sync ao usuário
+  return "Aguardando sincronização…";
 }
 
 export function displayName(name?: string | null, phone?: string | null): string {
