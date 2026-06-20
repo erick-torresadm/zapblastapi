@@ -1373,6 +1373,41 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_lid_map: {
+        Row: {
+          id: string
+          instance_id: string | null
+          lid_jid: string
+          owner_user_id: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          instance_id?: string | null
+          lid_jid: string
+          owner_user_id: string
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          instance_id?: string | null
+          lid_jid?: string
+          owner_user_id?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_lid_map_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_notes: {
         Row: {
           author_user_id: string
@@ -3356,11 +3391,21 @@ export type Database = {
         }
         Returns: number
       }
+      crm_apply_lid_resolution: { Args: { p_owner: string }; Returns: Json }
       crm_is_workspace_admin: { Args: { _owner: string }; Returns: boolean }
       crm_is_workspace_member: { Args: { _owner: string }; Returns: boolean }
       crm_merge_conversations: {
         Args: { _dst_id: string; _src_id: string }
         Returns: Json
+      }
+      crm_upsert_lid_map: {
+        Args: {
+          p_instance: string
+          p_lid: string
+          p_owner: string
+          p_phone: string
+        }
+        Returns: undefined
       }
       debit_wallet: {
         Args: {
