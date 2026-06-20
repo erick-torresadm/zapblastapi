@@ -208,6 +208,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     // Step 1: resolve to group info (invite link OR group JID)
     let info: Awaited<ReturnType<typeof evo.findGroupInfos>> | null = null;
     let groupJid: string | null = null;
+    let joinedNow = false;
 
     const inviteCode = evo.parseGroupInviteCode(raw);
     if (inviteCode) {
@@ -226,22 +227,46 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       throw new Error("Cole um link de convite (https://chat.whatsapp.com/...) ou o JID do grupo");
     }
 
-    // Step 2: ensure we have participants — try findGroupInfos if instance is member
+    // Step 2: try findGroupInfos (requires the chip to be a member of the group).
     let participants: Array<{ id: string; admin?: string | null }> =
       (info?.participants as Array<{ id: string; admin?: string | null }>) || [];
-    if (participants.length === 0 && groupJid) {
+
+    const tryFindFull = async () => {
+      if (!groupJid) return;
       try {
         const full = await evo.findGroupInfos(server, instance.instance_name, groupJid);
         info = full;
         participants = (full?.participants as Array<{ id: string; admin?: string | null }>) || [];
       } catch {
-        // ignored
+        // ignored — instance not member yet
+      }
+    };
+
+    await tryFindFull();
+
+    // Step 2b: if we still don't have the full member list, auto-join via the invite code
+    // (invite endpoints often return only a handful of admins, not the 1000+ real members).
+    const declaredSize = Number((info?.size as number) ?? 0);
+    const needsJoin =
+      !!inviteCode &&
+      (participants.length === 0 || (declaredSize > 0 && participants.length < declaredSize));
+
+    if (needsJoin) {
+      try {
+        await evo.acceptInviteCode(server, instance.instance_name, inviteCode!);
+        joinedNow = true;
+        // Give Evolution a moment to sync the group roster, then refetch.
+        await new Promise((r) => setTimeout(r, 1500));
+        await tryFindFull();
+      } catch (e) {
+        console.warn("[extractGroupFn] auto-join failed:", (e as Error).message);
       }
     }
 
     if (participants.length === 0) {
-      throw new Error("Não foi possível listar os membros. O chip precisa estar dentro do grupo para extrair os contatos.");
+      throw new Error("Não foi possível listar os membros do grupo. Verifique se o link de convite é válido e tente novamente.");
     }
+
 
     // Step 3: separate participants by JID type and try to resolve @lid → real phone
     type Pending = { jid: string; admin: boolean; phone: string | null; isLid: boolean };
@@ -373,6 +398,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       total: contacts.length,
       resolved_count: resolved.length,
       unresolved_count: unresolved.length,
+      joined_now: joinedNow,
       contacts,
     };
   });

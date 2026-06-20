@@ -67,6 +67,7 @@ export const EVOLUTION_ENDPOINTS = {
 
   // Groups
   inviteInfoGroup:    { method: "GET",  path: "/group/inviteInfo/{instance}" },
+  acceptInviteCode:   { method: "GET",  path: "/group/acceptInviteCode/{instance}" },
   findGroupInfos:     { method: "GET",  path: "/group/findGroupInfos/{instance}" },
   fetchAllGroups:     { method: "GET",  path: "/group/fetchAllGroups/{instance}" },
   createGroup:        { method: "POST", path: "/group/create/{instance}" },
@@ -654,6 +655,22 @@ export async function inviteInfoGroup(
   );
   return r as GroupInfo;
 }
+
+/** Join a group using an invite code. The instance will become a member of the group. */
+export async function acceptInviteCode(
+  server: EvolutionServer,
+  instanceName: string,
+  inviteCode: string,
+): Promise<{ groupJid?: string; status?: string; [k: string]: unknown }> {
+  const r = await evoFetch(
+    server,
+    ep("acceptInviteCode", { instance: instanceName, query: { inviteCode } }),
+    { method: epMethod("acceptInviteCode") },
+  );
+  return r as { groupJid?: string; status?: string; [k: string]: unknown };
+}
+
+
 
 /** Get full group info (incl. participants) by group JID. The instance must be a member. */
 export async function findGroupInfos(
