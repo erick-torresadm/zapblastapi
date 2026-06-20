@@ -10,6 +10,7 @@ import { Check, X, Crown, Sparkles, Building2, CreditCard, QrCode, AlertTriangle
 import { getBillingStateFn } from "@/lib/billing.functions";
 import { CardCheckoutDialog } from "@/components/billing/CardCheckoutDialog";
 import { PixAnnualDialog } from "@/components/billing/PixAnnualDialog";
+import { PlanChangeConfirmDialog } from "@/components/billing/PlanChangeConfirmDialog";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
