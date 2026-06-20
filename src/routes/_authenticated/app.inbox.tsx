@@ -564,16 +564,22 @@ function Inbox() {
                 )}
               </div>
             </div>
-            <div className="mt-1 flex items-center gap-1">
+            <div className="mt-1 flex items-center gap-1 flex-wrap">
               <span className={`rounded-full border px-1.5 py-0 text-[9px] font-medium ${statusColor[c.status]}`}>
                 {statusLabel[c.status]}
               </span>
+              {!resolved && (
+                <span className="rounded-full border border-warning/40 bg-warning/15 text-warning px-1.5 py-0 text-[9px] font-medium animate-pulse">
+                  identificando…
+                </span>
+              )}
               {assignedName ? (
                 <span className="truncate text-[10px] text-muted-foreground">👤 {assignedName}</span>
               ) : (
                 <span className="text-[10px] font-medium text-warning">📥 fila</span>
               )}
             </div>
+
           </div>
         </button>
         <DropdownMenu>
