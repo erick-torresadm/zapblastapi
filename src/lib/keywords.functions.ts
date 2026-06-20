@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const matchModeSchema = z.enum(["exact", "contains", "starts_with"]);
+const matchModeSchema = z.enum(["exact", "contains", "starts_with", "regex"]);
 
 const upsertSchema = z.object({
   id: z.string().uuid().optional(),
@@ -14,7 +14,8 @@ const upsertSchema = z.object({
   allow_from_me: z.boolean().default(false),
   delay_seconds: z.number().int().min(0).max(86400).default(0),
   cooldown_seconds: z.number().int().min(0).max(86400).default(0),
-  user_id: z.string().uuid().optional(), // admin pode definir para outro usuário
+  per_contact_cooldown_seconds: z.number().int().min(0).max(86400).default(0),
+  user_id: z.string().uuid().optional(),
 });
 
 async function isAdmin(supabase: any, userId: string): Promise<boolean> {
@@ -30,7 +31,7 @@ export const listKeywordTriggersFn = createServerFn({ method: "GET" })
 
     const query = supabase
       .from("flow_keyword_triggers" as any)
-      .select("id,user_id,flow_id,instance_id,keywords,match_mode,active,created_by_admin,allow_from_me,delay_seconds,cooldown_seconds,created_at,updated_at")
+      .select("id,user_id,flow_id,instance_id,keywords,match_mode,active,created_by_admin,allow_from_me,delay_seconds,cooldown_seconds,per_contact_cooldown_seconds,last_triggered_at,created_at,updated_at")
       .order("created_at", { ascending: false });
 
     const { data, error } = admin ? await query : await query.eq("user_id", userId);
@@ -81,7 +82,10 @@ export const upsertKeywordTriggerFn = createServerFn({ method: "POST" })
       if (!inst) throw new Error("Chip inválido");
     }
 
-    const keywords = data.keywords.map((k) => k.trim().toLowerCase()).filter(Boolean);
+    // No modo regex preservamos case/forma; nos outros normalizamos.
+    const keywords = data.match_mode === "regex"
+      ? data.keywords.map((k) => k.trim()).filter(Boolean)
+      : data.keywords.map((k) => k.trim().toLowerCase()).filter(Boolean);
 
     if (data.id) {
       const { error } = await supabase.from("flow_keyword_triggers" as any).update({
@@ -93,6 +97,7 @@ export const upsertKeywordTriggerFn = createServerFn({ method: "POST" })
         allow_from_me: data.allow_from_me,
         delay_seconds: data.delay_seconds,
         cooldown_seconds: data.cooldown_seconds,
+        per_contact_cooldown_seconds: data.per_contact_cooldown_seconds,
       }).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
@@ -108,6 +113,7 @@ export const upsertKeywordTriggerFn = createServerFn({ method: "POST" })
       allow_from_me: data.allow_from_me,
       delay_seconds: data.delay_seconds,
       cooldown_seconds: data.cooldown_seconds,
+      per_contact_cooldown_seconds: data.per_contact_cooldown_seconds,
       created_by_admin: admin && targetUserId !== userId,
     }).select("id").single() as any);
     if (error) throw new Error(error.message);
@@ -275,4 +281,62 @@ export const cancelAllFlowRunsFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, canceled: (data ?? []).length };
   });
+
+// Diagnóstico: lista últimas avaliações de palavra-chave para o usuário.
+export const listKeywordAuditFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const admin = await isAdmin(supabase, userId);
+    const q = supabase.from("flow_keyword_audit" as any)
+      .select("id, created_at, contact_phone, remote_jid, resolution_status, from_me, text_excerpt, triggers_evaluated, triggers_matched, matched_trigger_ids, run_ids, note, instance_id")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    const { data, error } = admin ? await q : await q.eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { items: data ?? [] };
+  });
+
+// Reaplica a configuração de webhook em TODOS os chips do usuário.
+// Útil quando chips antigos foram criados antes de mudanças no listener
+// (por exemplo, ativar eventos novos ou trocar URL pública).
+export const repairWebhooksFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: insts } = await supabase.from("whatsapp_instances" as any)
+      .select("id, instance_name, server_id")
+      .eq("user_id", userId);
+    if (!insts?.length) return { ok: true, repaired: 0, failed: 0, items: [] as Array<{ instance: string; ok: boolean; error?: string }> };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const serverIds = Array.from(new Set((insts as any[]).map((i) => i.server_id)));
+    const { data: servers } = await supabaseAdmin.from("evolution_servers")
+      .select("id, base_url, api_key, webhook_token").in("id", serverIds);
+    const srvMap = new Map((servers ?? []).map((s: any) => [s.id, s]));
+
+    const { setWebhook } = await import("@/lib/evolution.server");
+    const stableBase = process.env.PUBLIC_APP_URL
+      ?? process.env.APP_URL
+      ?? process.env.LOVABLE_PUBLISHED_URL
+      ?? "https://project--54478801-c0b5-4fb0-9ac8-01416bfad841.lovable.app";
+
+    let repaired = 0, failed = 0;
+    const items: Array<{ instance: string; ok: boolean; error?: string }> = [];
+    for (const inst of insts as any[]) {
+      const srv = srvMap.get(inst.server_id);
+      if (!srv) { failed++; items.push({ instance: inst.instance_name, ok: false, error: "Servidor não encontrado" }); continue; }
+      const url = `${stableBase.replace(/\/$/, "")}/api/public/evolution-webhook/${srv.webhook_token}`;
+      try {
+        await setWebhook({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, url);
+        repaired++;
+        items.push({ instance: inst.instance_name, ok: true });
+      } catch (e) {
+        failed++;
+        items.push({ instance: inst.instance_name, ok: false, error: (e as Error).message });
+      }
+    }
+    return { ok: true, repaired, failed, items };
+  });
+
 
