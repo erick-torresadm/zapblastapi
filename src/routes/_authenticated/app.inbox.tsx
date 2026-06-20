@@ -16,7 +16,7 @@ import {
 import {
   Send, Search, MessageCircle, UserPlus, CheckCircle2, Clock, MoreVertical, StickyNote,
   ArrowLeft, Paperclip, Image as ImgIcon, FileText, Smile, User2, Zap, X,
-  Pin, PinOff, Archive, BellOff, Bell, Filter,
+  Pin, PinOff, Archive, BellOff, Bell, Filter, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
