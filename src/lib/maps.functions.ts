@@ -252,6 +252,8 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
         cost_cents: 0,
         refunded: true,
         whatsapp_valid_count: 0,
+        used_free: usedFree,
+        can_download: false,
       };
     }
 
@@ -331,7 +333,7 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
       whatsapp_check: !!data.whatsapp_check,
       leads_returned: leads.length,
       whatsapp_valid_count: whatsappValid,
-      cost_cents: cost + extraCost,
+      cost_cents: usedFree ? extraCost : cost + extraCost,
       refunded: false,
       results: leads as never,
     });
@@ -339,9 +341,11 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
     return {
       leads,
       total: leads.length,
-      cost_cents: cost + extraCost,
+      cost_cents: usedFree ? extraCost : cost + extraCost,
       refunded: false,
       whatsapp_valid_count: whatsappValid,
+      used_free: usedFree,
+      can_download: !usedFree,
     };
   });
 
