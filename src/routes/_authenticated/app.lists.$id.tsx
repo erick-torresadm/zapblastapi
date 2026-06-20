@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { verifyContactsWhatsappFn } from "@/lib/contacts.functions";
+import { formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/lists/$id")({ component: ListDetail });
 
