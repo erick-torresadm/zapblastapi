@@ -176,8 +176,16 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
     const stateVal = extractEvolutionState(state) ?? extractEvolutionState(qr) ?? null;
     if (stateVal === "open") {
       await supabase.from("whatsapp_instances").update({ status: "connected", last_qr_base64: null, last_qr_error: null }).eq("id", inst.id);
+      // Tenta descobrir e salvar o número conectado (best-effort, pra exibir no painel)
+      try {
+        const { resolveInstancePhone } = await import("@/lib/group-launcher.functions");
+        await resolveInstancePhone(supabase, inst.id);
+      } catch (e) {
+        console.warn(`[evolution] resolveInstancePhone falhou para ${inst.instance_name}: ${(e as Error).message}`);
+      }
       return { qrcode: null, state: stateVal, error: null, source: "connected" as const };
     }
+
 
     let source: "direct" | "stored" | "none" | "connected" = "none";
 
@@ -228,6 +236,20 @@ export const deleteInstanceFn = createServerFn({ method: "POST" })
     await supabase.from("whatsapp_instances").delete().eq("id", inst.id);
     return { ok: true };
   });
+
+export const refreshInstancePhoneFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: { instance_id: string }) => z.object({ instance_id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: inst } = await supabase.from("whatsapp_instances").select("id,user_id").eq("id", data.instance_id).maybeSingle();
+    if (!inst || inst.user_id !== userId) throw new Error("Chip não encontrado");
+    const { resolveInstancePhone } = await import("@/lib/group-launcher.functions");
+    const phone = await resolveInstancePhone(supabase, data.instance_id);
+    return { phone };
+  });
+
+
 
 // Lista chips do usuário com nome do servidor (resolvido server-side, sem expor URL/key).
 export const listInstancesFn = createServerFn({ method: "GET" })

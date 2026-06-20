@@ -10,9 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, RefreshCw, QrCode, Shield } from "lucide-react";
+import { Plus, Trash2, RefreshCw, QrCode, Shield, Phone } from "lucide-react";
 import { toast } from "sonner";
-import { createInstanceFn, getInstanceQrFn, deleteInstanceFn, listAvailableServersFn, listInstancesFn } from "@/lib/instances.functions";
+import { createInstanceFn, getInstanceQrFn, deleteInstanceFn, listAvailableServersFn, listInstancesFn, refreshInstancePhoneFn } from "@/lib/instances.functions";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { Link } from "@tanstack/react-router";
 import { formatPhone } from "@/lib/format-instance";
@@ -38,6 +38,18 @@ function InstancesPage() {
   const delFn = useServerFn(deleteInstanceFn);
   const listServersFn = useServerFn(listAvailableServersFn);
   const listInsts = useServerFn(listInstancesFn);
+  const refreshPhoneFn = useServerFn(refreshInstancePhoneFn);
+
+  const refreshPhone = useMutation({
+    mutationFn: async (instance_id: string) => refreshPhoneFn({ data: { instance_id } }),
+    onSuccess: (res) => {
+      if (res.phone) toast.success(`Número identificado: ${res.phone}`);
+      else toast.error("Não consegui identificar o número. Reconecte o chip (escaneie o QR de novo).");
+      qc.invalidateQueries({ queryKey: ["instances"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const { data: servers } = useQuery({
     queryKey: ["available-servers"],
@@ -162,6 +174,11 @@ function InstancesPage() {
                       <TableCell>{i.sent_today}</TableCell>
                       <TableCell>{i.daily_limit}</TableCell>
                       <TableCell className="space-x-1">
+                        {i.status === "connected" && !i.phone_number && (
+                          <Button variant="ghost" size="icon" title="Identificar número conectado" onClick={() => refreshPhone.mutate(i.id)} disabled={refreshPhone.isPending}>
+                            <Phone className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" title="Ver QR" onClick={() => { setQrData({ qrcode: null, state: i.status, instanceId: i.id, error: null, tries: 0 }); setQrOpen(true); refreshQr.mutate({ instance_id: i.id }); }}>
                           <QrCode className="h-4 w-4" />
                         </Button>
@@ -169,6 +186,7 @@ function InstancesPage() {
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
+
                     </TableRow>
                   );
                 })}
