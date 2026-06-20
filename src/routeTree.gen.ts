@@ -23,7 +23,6 @@ import { Route as ApiPublicWarmupWorkerRouteImport } from './routes/api/public/w
 import { Route as ApiPublicTrafficLeadRouteImport } from './routes/api/public/traffic-lead'
 import { Route as ApiPublicTrafficEventRouteImport } from './routes/api/public/traffic-event'
 import { Route as ApiPublicFlowWorkerRouteImport } from './routes/api/public/flow-worker'
-import { Route as ApiPublicFlowTriggerTestRouteImport } from './routes/api/public/flow-trigger-test'
 import { Route as ApiPublicDispatchWorkerRouteImport } from './routes/api/public/dispatch-worker'
 import { Route as ApiPublicAgendaDispatchRouteImport } from './routes/api/public/agenda-dispatch'
 import { Route as AgendaConfirmarTokenRouteImport } from './routes/agenda.confirmar.$token'
@@ -125,12 +124,6 @@ const ApiPublicFlowWorkerRoute = ApiPublicFlowWorkerRouteImport.update({
   path: '/api/public/flow-worker',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicFlowTriggerTestRoute =
-  ApiPublicFlowTriggerTestRouteImport.update({
-    id: '/api/public/flow-trigger-test',
-    path: '/api/public/flow-trigger-test',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicDispatchWorkerRoute = ApiPublicDispatchWorkerRouteImport.update({
   id: '/api/public/dispatch-worker',
   path: '/api/public/dispatch-worker',
@@ -334,7 +327,6 @@ export interface FileRoutesByFullPath {
   '/agenda/confirmar/$token': typeof AgendaConfirmarTokenRoute
   '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
-  '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
   '/api/public/traffic-lead': typeof ApiPublicTrafficLeadRoute
@@ -380,7 +372,6 @@ export interface FileRoutesByTo {
   '/agenda/confirmar/$token': typeof AgendaConfirmarTokenRoute
   '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
-  '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
   '/api/public/traffic-lead': typeof ApiPublicTrafficLeadRoute
@@ -430,7 +421,6 @@ export interface FileRoutesById {
   '/agenda/confirmar/$token': typeof AgendaConfirmarTokenRoute
   '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
-  '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
   '/api/public/traffic-lead': typeof ApiPublicTrafficLeadRoute
@@ -479,7 +469,6 @@ export interface FileRouteTypes {
     | '/agenda/confirmar/$token'
     | '/api/public/agenda-dispatch'
     | '/api/public/dispatch-worker'
-    | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
     | '/api/public/traffic-event'
     | '/api/public/traffic-lead'
@@ -525,7 +514,6 @@ export interface FileRouteTypes {
     | '/agenda/confirmar/$token'
     | '/api/public/agenda-dispatch'
     | '/api/public/dispatch-worker'
-    | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
     | '/api/public/traffic-event'
     | '/api/public/traffic-lead'
@@ -574,7 +562,6 @@ export interface FileRouteTypes {
     | '/agenda/confirmar/$token'
     | '/api/public/agenda-dispatch'
     | '/api/public/dispatch-worker'
-    | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
     | '/api/public/traffic-event'
     | '/api/public/traffic-lead'
@@ -608,7 +595,6 @@ export interface RootRouteChildren {
   AgendaConfirmarTokenRoute: typeof AgendaConfirmarTokenRoute
   ApiPublicAgendaDispatchRoute: typeof ApiPublicAgendaDispatchRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
-  ApiPublicFlowTriggerTestRoute: typeof ApiPublicFlowTriggerTestRoute
   ApiPublicFlowWorkerRoute: typeof ApiPublicFlowWorkerRoute
   ApiPublicTrafficEventRoute: typeof ApiPublicTrafficEventRoute
   ApiPublicTrafficLeadRoute: typeof ApiPublicTrafficLeadRoute
@@ -714,13 +700,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/flow-worker'
       fullPath: '/api/public/flow-worker'
       preLoaderRoute: typeof ApiPublicFlowWorkerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/flow-trigger-test': {
-      id: '/api/public/flow-trigger-test'
-      path: '/api/public/flow-trigger-test'
-      fullPath: '/api/public/flow-trigger-test'
-      preLoaderRoute: typeof ApiPublicFlowTriggerTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/dispatch-worker': {
@@ -1069,7 +1048,6 @@ const rootRouteChildren: RootRouteChildren = {
   AgendaConfirmarTokenRoute: AgendaConfirmarTokenRoute,
   ApiPublicAgendaDispatchRoute: ApiPublicAgendaDispatchRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
-  ApiPublicFlowTriggerTestRoute: ApiPublicFlowTriggerTestRoute,
   ApiPublicFlowWorkerRoute: ApiPublicFlowWorkerRoute,
   ApiPublicTrafficEventRoute: ApiPublicTrafficEventRoute,
   ApiPublicTrafficLeadRoute: ApiPublicTrafficLeadRoute,
