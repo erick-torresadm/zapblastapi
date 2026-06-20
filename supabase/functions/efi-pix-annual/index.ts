@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     if (!userData.user) return new Response("Unauthorized", { status: 401, headers: cors });
     const userId = userData.user.id;
 
-    const { plan_id } = await req.json();
+    const { plan_id, mode } = await req.json();
     if (!plan_id) return new Response(JSON.stringify({ error: "plan_id obrigatório" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
 
     const { data: plan, error } = await supabase.from("subscription_plans").select("*").eq("id", plan_id).single();
@@ -38,7 +38,33 @@ Deno.serve(async (req) => {
     if (!pixKey) throw new Error("EFI_PIX_KEY não configurada");
 
     const annualCents: number = plan.price_annual_cents ?? Math.round(plan.price_cents * 12 * 0.7);
-    const valor = (annualCents / 100).toFixed(2);
+
+    // Modo upgrade: cobra apenas a diferença sobre o plano atual (sem reembolso).
+    let chargeCents = annualCents;
+    let upgradeFrom: { plan_id: string; plan_name: string; annual_cents: number } | null = null;
+    if (mode === "upgrade") {
+      const { data: curSub } = await supabase
+        .from("subscriptions")
+        .select("plan_id, subscription_plans(name, price_cents, price_annual_cents)")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const curPlan = curSub?.subscription_plans as { name: string; price_cents: number; price_annual_cents: number | null } | null;
+      if (curPlan && curSub?.plan_id && curSub.plan_id !== plan_id) {
+        const curAnnual = curPlan.price_annual_cents ?? Math.round(curPlan.price_cents * 12 * 0.7);
+        if (annualCents > curAnnual) {
+          chargeCents = annualCents - curAnnual;
+          upgradeFrom = { plan_id: curSub.plan_id, plan_name: curPlan.name, annual_cents: curAnnual };
+        } else {
+          // Downgrade: política — sem reembolso, apenas troca na próxima renovação.
+          return new Response(JSON.stringify({
+            error: "downgrade_no_charge",
+            message: "Downgrade não gera cobrança — a troca vale na próxima renovação anual, sem reembolso.",
+          }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+        }
+      }
+    }
+
+    const valor = (chargeCents / 100).toFixed(2);
 
     const txid = randomTxid();
     const cobRes = await efiPixFetch(`/v2/cob/${txid}`, {
@@ -47,11 +73,14 @@ Deno.serve(async (req) => {
         calendario: { expiracao: 3600 },
         valor: { original: valor },
         chave: pixKey,
-        solicitacaoPagador: `Plano ${plan.name} Anual`,
+        solicitacaoPagador: upgradeFrom
+          ? `Upgrade ${upgradeFrom.plan_name} → ${plan.name} (diferença anual)`
+          : `Plano ${plan.name} Anual`,
         infoAdicionais: [
           { nome: "user_id", valor: userId },
           { nome: "plan_id", valor: plan_id },
           { nome: "cycle", valor: "annual" },
+          { nome: "mode", valor: mode === "upgrade" ? "upgrade" : "new" },
         ],
       }),
     });
@@ -87,6 +116,9 @@ Deno.serve(async (req) => {
         qrcode,
         imagem_qrcode: imagemQrcode,
         valor,
+        charge_cents: chargeCents,
+        annual_cents: annualCents,
+        upgrade_from: upgradeFrom,
         expires_in: 3600,
       }),
       { headers: { ...cors, "Content-Type": "application/json" } },
