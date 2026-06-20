@@ -66,7 +66,8 @@ export const createFunnelFn = createServerFn({ method: "POST" })
           { type: "text", position: 1, props: { text: "Descreva sua oferta aqui", align: "center" } },
           { type: "form", position: 2, props: { title: "Quero saber mais", submitLabel: "Enviar", fields: ["name", "phone"] } },
         ];
-    await context.supabase.from("traffic_blocks").insert(seed.map((b) => ({ ...b, funnel_id: f.id })));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await context.supabase.from("traffic_blocks").insert(seed.map((b) => ({ ...b, funnel_id: f.id })) as any);
     return f;
   });
 
