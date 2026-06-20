@@ -50,7 +50,7 @@ export const backfillCrmProfilesFn = createServerFn({ method: "POST" })
             await supabase.from("crm_conversations")
               .update({ contact_phone: realPhone })
               .eq("id", conv.id);
-            conv.contact_phone = realPhone as string;
+            conv.contact_phone = realPhone as unknown as string;
             resolved++;
           }
         }
@@ -83,7 +83,7 @@ export const backfillCrmProfilesFn = createServerFn({ method: "POST" })
 
             if (Object.keys(patch).length) {
               patch.profile_synced_at = new Date().toISOString();
-              await supabase.from("crm_conversations").update(patch).eq("id", conv.id);
+              await (supabase.from("crm_conversations") as any).update(patch).eq("id", conv.id);
 
               // Salva também no cache crm_contacts_profile
               await supabase.from("crm_contacts_profile").upsert({
