@@ -307,7 +307,11 @@ function GroupExtractCard({
     mutationFn: () => extract({ data: { instance_id: instanceId, group: group.trim() } }),
     onSuccess: (r) => {
       setResult(r);
-      toast.success(`${r.total} contato(s) extraídos — debitado ${brl(r.cost_cents)}`);
+      const resolved = r.resolved_count ?? r.total;
+      const hidden = r.unresolved_count ?? 0;
+      toast.success(
+        `${resolved} telefone(s) extraído(s)${hidden ? ` · ${hidden} oculto(s) não cobrado(s)` : ""} — debitado ${brl(r.cost_cents)}`,
+      );
       onSuccess();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -316,8 +320,10 @@ function GroupExtractCard({
   function exportCsv() {
     if (!result) return;
     const rows: string[][] = [["telefone", "jid", "admin", "privacidade_oculta"]];
+    // Só exporta linhas com telefone real (oculto não tem valor pro cliente)
     for (const c of result.contacts) {
-      rows.push([c.phone ?? "", c.jid, c.is_admin ? "sim" : "nao", c.is_privacy_hidden ? "sim" : "nao"]);
+      if (!c.phone) continue;
+      rows.push([c.phone, c.jid, c.is_admin ? "sim" : "nao", c.is_privacy_hidden ? "sim" : "nao"]);
     }
     downloadCsv(`grupo-${result.group.subject ?? "export"}-${Date.now()}.csv`, rows);
   }
@@ -385,7 +391,10 @@ function GroupExtractCard({
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <div className="text-sm font-semibold">{result.group.subject ?? "Grupo"}</div>
-                <div className="text-xs text-muted-foreground">{result.total} contato(s) extraído(s)</div>
+                <div className="text-xs text-muted-foreground">
+                  <span className="text-foreground font-medium">{result.resolved_count ?? result.total}</span> telefone(s) extraído(s)
+                  {result.unresolved_count ? <> · <span className="text-amber-600 dark:text-amber-400">{result.unresolved_count} oculto(s)</span> (não cobrados)</> : null}
+                </div>
               </div>
               <div className="text-right">
                 <div className="text-lg font-bold">{brl(result.cost_cents)}</div>
