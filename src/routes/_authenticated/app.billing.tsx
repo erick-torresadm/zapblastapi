@@ -12,6 +12,10 @@ import { CardCheckoutDialog } from "@/components/billing/CardCheckoutDialog";
 import { PixAnnualDialog } from "@/components/billing/PixAnnualDialog";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Ticket } from "lucide-react";
+import { validateCouponFn, applyFreeCouponFn } from "@/lib/coupons.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/billing")({ component: BillingPage });
 
