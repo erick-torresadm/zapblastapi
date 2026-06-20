@@ -81,7 +81,7 @@ export async function createInstance(
           url: webhookUrl,
           byEvents: false,
           base64: true,
-          events: ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT", "MESSAGES_UPDATE"],
+          events: ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT", "MESSAGES_UPDATE", "SEND_MESSAGE", "PRESENCE_UPDATE"],
         },
       } : {}),
     }),
