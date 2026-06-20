@@ -304,8 +304,8 @@ export async function sendMedia(
   const o: SendCommonOpts | undefined = typeof delayMsOrOpts === "number"
     ? { delayMs: delayMsOrOpts }
     : delayMsOrOpts;
-  return evoFetch(server, `/message/sendMedia/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendMedia", { instance: instanceName }), {
+    method: epMethod("sendMedia"),
     body: JSON.stringify({
       number: phone,
       mediatype: opts.mediatype,
