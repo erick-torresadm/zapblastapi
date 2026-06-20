@@ -147,8 +147,8 @@ export async function createInstance(
   instanceName: string,
   webhookUrl?: string,
 ) {
-  return evoFetch(server, "/instance/create", {
-    method: "POST",
+  return evoFetch(server, ep("createInstance"), {
+    method: epMethod("createInstance"),
     body: JSON.stringify({
       instanceName,
       qrcode: true,
@@ -166,33 +166,54 @@ export async function createInstance(
 }
 
 export async function connectInstance(server: EvolutionServer, instanceName: string) {
-  return evoFetch(server, `/instance/connect/${encodeURIComponent(instanceName)}`, { method: "GET" });
+  return evoFetch(server, ep("connectInstance", { instance: instanceName }), { method: epMethod("connectInstance") });
 }
 
 export async function instanceState(server: EvolutionServer, instanceName: string) {
-  return evoFetch(server, `/instance/connectionState/${encodeURIComponent(instanceName)}`, { method: "GET" });
+  return evoFetch(server, ep("instanceState", { instance: instanceName }), { method: epMethod("instanceState") });
 }
 
 export async function fetchInstances(server: EvolutionServer, instanceName?: string) {
-  const q = instanceName ? `?instanceName=${encodeURIComponent(instanceName)}` : "";
-  return evoFetch(server, `/instance/fetchInstances${q}`, { method: "GET" });
+  return evoFetch(server, ep("fetchInstances", { query: { instanceName } }), { method: epMethod("fetchInstances") });
 }
 
 export async function logoutInstance(server: EvolutionServer, instanceName: string) {
-  return evoFetch(server, `/instance/logout/${encodeURIComponent(instanceName)}`, { method: "DELETE" });
+  return evoFetch(server, ep("logoutInstance", { instance: instanceName }), { method: epMethod("logoutInstance") });
 }
 
 export async function deleteInstance(server: EvolutionServer, instanceName: string) {
-  return evoFetch(server, `/instance/delete/${encodeURIComponent(instanceName)}`, { method: "DELETE" });
+  return evoFetch(server, ep("deleteInstance", { instance: instanceName }), { method: epMethod("deleteInstance") });
 }
 
 export async function restartInstance(server: EvolutionServer, instanceName: string) {
-  // Docs note v2 uses PUT; older deployments accept POST. Try PUT first, then POST.
+  // v2 usa PUT; deployments antigos aceitam POST. Tenta o canônico primeiro.
   try {
-    return await evoFetch(server, `/instance/restart/${encodeURIComponent(instanceName)}`, { method: "PUT" });
+    return await evoFetch(server, ep("restartInstance", { instance: instanceName }), { method: epMethod("restartInstance") });
   } catch {
-    return evoFetch(server, `/instance/restart/${encodeURIComponent(instanceName)}`, { method: "POST" });
+    return evoFetch(server, ep("restartInstanceLegacy", { instance: instanceName }), { method: epMethod("restartInstanceLegacy") });
   }
+}
+
+// ============================================================================
+// 1b) Server-level helpers (versão / healthcheck)
+// ============================================================================
+
+/** Ping no root da Evolution. Retorna `{ ok, version?, raw? }` sem lançar. */
+export async function pingServer(server: EvolutionServer): Promise<{ ok: boolean; version?: string; raw?: unknown; error?: string }> {
+  try {
+    const r = await evoFetch(server, ep("root"), { method: epMethod("root") });
+    const version = (r as { version?: string; manager?: { version?: string } }).version
+      ?? (r as { manager?: { version?: string } }).manager?.version;
+    return { ok: true, version, raw: r };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+/** Tenta detectar a versão da Evolution. Útil para alertar quando muda. */
+export async function detectEvolutionVersion(server: EvolutionServer): Promise<string | null> {
+  const p = await pingServer(server);
+  return p.version ?? null;
 }
 
 // ============================================================================
