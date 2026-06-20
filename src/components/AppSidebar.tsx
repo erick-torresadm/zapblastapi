@@ -25,6 +25,7 @@ const operationNav = [
   { to: "/app/tools", label: "Ferramentas", icon: Sparkles },
   { to: "/app/agenda", label: "Agenda", icon: Calendar },
   { to: "/app/traffic", label: "Tráfego & Funis", icon: Megaphone },
+  { to: "/app/group-launcher", label: "Group Launcher", icon: Rocket },
   { to: "/app/team", label: "Equipe", icon: UserCog },
 
   { to: "/app/anti-ban", label: "Anti-ban", icon: ShieldCheck },
