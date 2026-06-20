@@ -668,6 +668,9 @@ export async function acceptInviteCode(
     { method: epMethod("acceptInviteCode") },
   );
   return r as { groupJid?: string; status?: string; [k: string]: unknown };
+}
+
+
 
 /** Get full group info (incl. participants) by group JID. The instance must be a member. */
 export async function findGroupInfos(
