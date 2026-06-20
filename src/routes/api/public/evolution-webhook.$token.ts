@@ -264,7 +264,9 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           });
 
           if (!fromMe) {
-            await supabaseAdmin.from("incoming_messages").insert({
+            // Idempotência: tenta inserir; unique index (user_id, instance_id, evolution_message_id)
+            // bloqueia duplicatas e nesse caso pulamos o disparo de trigger.
+            const { error: incErr } = await supabaseAdmin.from("incoming_messages").insert({
               user_id: server.user_id,
               instance_id: instanceId,
               from_phone: fromPhone,
@@ -272,6 +274,14 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
               evolution_message_id: key?.id ?? null,
               raw_payload: payload as never,
             });
+            const isDuplicate = !!incErr && /duplicate key|uq_incoming_messages_evo_id|23505/i.test(String(incErr.message));
+            if (incErr && !isDuplicate) {
+              console.warn("[webhook] insert incoming_messages erro", incErr);
+            }
+            if (isDuplicate) {
+              console.log("[webhook] mensagem duplicada — ignorando trigger", key?.id);
+              return Response.json({ ok: true, duplicate: true });
+            }
 
             await supabaseAdmin.from("campaign_messages")
               .update({ status: "replied" })
@@ -303,6 +313,8 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
               phone: fromPhone,
               text: messageText,
               from_me: fromMe,
+              remote_jid: remoteJid,
+              unresolved_lid: isUnresolvedLid,
             });
             console.log("[webhook] triggerKeywordFlows result", r);
 
@@ -329,11 +341,10 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
                     await advanceFlowRun(supabaseAdmin, runId);
                     continue;
                   }
-                  break; // waiting_for resposta, completed, failed, etc.
+                  break;
                 }
               }
             }
-
           } catch (e) {
             console.error("[webhook] triggerKeywordFlows failed", e);
           }
