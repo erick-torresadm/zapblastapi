@@ -282,3 +282,61 @@ export const cancelAllFlowRunsFn = createServerFn({ method: "POST" })
     return { ok: true, canceled: (data ?? []).length };
   });
 
+// Diagnóstico: lista últimas avaliações de palavra-chave para o usuário.
+export const listKeywordAuditFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const admin = await isAdmin(supabase, userId);
+    const q = supabase.from("flow_keyword_audit" as any)
+      .select("id, created_at, contact_phone, remote_jid, resolution_status, from_me, text_excerpt, triggers_evaluated, triggers_matched, matched_trigger_ids, run_ids, note, instance_id")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    const { data, error } = admin ? await q : await q.eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { items: data ?? [] };
+  });
+
+// Reaplica a configuração de webhook em TODOS os chips do usuário.
+// Útil quando chips antigos foram criados antes de mudanças no listener
+// (por exemplo, ativar eventos novos ou trocar URL pública).
+export const repairWebhooksFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: insts } = await supabase.from("whatsapp_instances" as any)
+      .select("id, instance_name, server_id")
+      .eq("user_id", userId);
+    if (!insts?.length) return { ok: true, repaired: 0, failed: 0, items: [] as Array<{ instance: string; ok: boolean; error?: string }> };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const serverIds = Array.from(new Set((insts as any[]).map((i) => i.server_id)));
+    const { data: servers } = await supabaseAdmin.from("evolution_servers")
+      .select("id, base_url, api_key, webhook_token").in("id", serverIds);
+    const srvMap = new Map((servers ?? []).map((s: any) => [s.id, s]));
+
+    const { setWebhook } = await import("@/lib/evolution.server");
+    const stableBase = process.env.PUBLIC_APP_URL
+      ?? process.env.APP_URL
+      ?? process.env.LOVABLE_PUBLISHED_URL
+      ?? "https://project--54478801-c0b5-4fb0-9ac8-01416bfad841.lovable.app";
+
+    let repaired = 0, failed = 0;
+    const items: Array<{ instance: string; ok: boolean; error?: string }> = [];
+    for (const inst of insts as any[]) {
+      const srv = srvMap.get(inst.server_id);
+      if (!srv) { failed++; items.push({ instance: inst.instance_name, ok: false, error: "Servidor não encontrado" }); continue; }
+      const url = `${stableBase.replace(/\/$/, "")}/api/public/evolution-webhook/${srv.webhook_token}`;
+      try {
+        await setWebhook({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, url);
+        repaired++;
+        items.push({ instance: inst.instance_name, ok: true });
+      } catch (e) {
+        failed++;
+        items.push({ instance: inst.instance_name, ok: false, error: (e as Error).message });
+      }
+    }
+    return { ok: true, repaired, failed, items };
+  });
+
+
