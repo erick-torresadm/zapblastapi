@@ -313,7 +313,7 @@ function PasteLinksCard({ campaignId }: { campaignId: string }) {
   );
 }
 
-function SettingsCard({ campaign }: { campaign: { id: string; name: string; slug: string; member_limit: number; instance_id: string | null; is_active: boolean; default_description: string | null; default_image_url: string | null; extra_participants?: string[] | null; admin_participants?: string[] | null } }) {
+function SettingsCard({ campaign }: { campaign: { id: string; name: string; slug: string; member_limit: number; instance_id: string | null; is_active: boolean; default_description: string | null; default_image_url: string | null; extra_participants?: string[] | null; admin_participants?: string[] | null; auto_refill?: boolean | null; auto_refill_template?: string | null } }) {
   const qc = useQueryClient();
   const updateFn = useServerFn(updateGroupCampaignFn);
   const instancesFn = useServerFn(listInstancesFn);
@@ -324,6 +324,8 @@ function SettingsCard({ campaign }: { campaign: { id: string; name: string; slug
   const [active, setActive] = useState(campaign.is_active);
   const [extras, setExtras] = useState((campaign.extra_participants ?? []).join("\n"));
   const [admins, setAdmins] = useState((campaign.admin_participants ?? []).join("\n"));
+  const [autoRefill, setAutoRefill] = useState(!!campaign.auto_refill);
+  const [autoTpl, setAutoTpl] = useState(campaign.auto_refill_template ?? "Grupo {n}");
 
   const { data: instances } = useQuery({
     queryKey: ["instances"],
@@ -339,6 +341,8 @@ function SettingsCard({ campaign }: { campaign: { id: string; name: string; slug
       instance_id: instanceId || null, is_active: active,
       extra_participants: parseList(extras),
       admin_participants: parseList(admins),
+      auto_refill: autoRefill,
+      auto_refill_template: autoTpl.trim() || null,
     } }),
     onSuccess: () => { toast.success("Salvo"); qc.invalidateQueries({ queryKey: ["group-campaign", campaign.id] }); },
     onError: (e: Error) => toast.error(e.message),
@@ -403,6 +407,26 @@ function SettingsCard({ campaign }: { campaign: { id: string; name: string; slug
           </div>
         </div>
 
+        <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" checked={autoRefill} onChange={(e) => setAutoRefill(e.target.checked)} />
+            Auto-reposição: criar novo grupo automaticamente quando o atual encher
+          </label>
+          {autoRefill && (
+            <div>
+              <Label className="text-xs">Modelo do nome (use <code>{"{n}"}</code> para numerar)</Label>
+              <Input
+                value={autoTpl}
+                onChange={(e) => setAutoTpl(e.target.value)}
+                placeholder="Grupo {n}"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Quando um grupo atinge o limite e não há outros disponíveis, o sistema cria um novo automaticamente com este nome.
+              </p>
+            </div>
+          )}
+        </div>
+
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
           Campanha ativa (link público redireciona quando ativada)
@@ -414,3 +438,4 @@ function SettingsCard({ campaign }: { campaign: { id: string; name: string; slug
     </Card>
   );
 }
+
