@@ -14,6 +14,7 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GSlugRouteImport } from './routes/g.$slug'
 import { Route as FSlugRouteImport } from './routes/f.$slug'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as AgendaSlugRouteImport } from './routes/agenda.$slug'
@@ -79,6 +80,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GSlugRoute = GSlugRouteImport.update({
+  id: '/g/$slug',
+  path: '/g/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FSlugRoute = FSlugRouteImport.update({
@@ -316,6 +322,7 @@ export interface FileRoutesByFullPath {
   '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/f/$slug': typeof FSlugRoute
+  '/g/$slug': typeof GSlugRoute
   '/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -363,6 +370,7 @@ export interface FileRoutesByTo {
   '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/f/$slug': typeof FSlugRoute
+  '/g/$slug': typeof GSlugRoute
   '/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -412,6 +420,7 @@ export interface FileRoutesById {
   '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/f/$slug': typeof FSlugRoute
+  '/g/$slug': typeof GSlugRoute
   '/_authenticated/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/_authenticated/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
@@ -461,6 +470,7 @@ export interface FileRouteTypes {
     | '/agenda/$slug'
     | '/convite/$token'
     | '/f/$slug'
+    | '/g/$slug'
     | '/app/agenda'
     | '/app/anti-ban'
     | '/app/billing'
@@ -508,6 +518,7 @@ export interface FileRouteTypes {
     | '/agenda/$slug'
     | '/convite/$token'
     | '/f/$slug'
+    | '/g/$slug'
     | '/app/agenda'
     | '/app/anti-ban'
     | '/app/billing'
@@ -556,6 +567,7 @@ export interface FileRouteTypes {
     | '/agenda/$slug'
     | '/convite/$token'
     | '/f/$slug'
+    | '/g/$slug'
     | '/_authenticated/app/agenda'
     | '/_authenticated/app/anti-ban'
     | '/_authenticated/app/billing'
@@ -605,6 +617,7 @@ export interface RootRouteChildren {
   AgendaSlugRoute: typeof AgendaSlugRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   FSlugRoute: typeof FSlugRoute
+  GSlugRoute: typeof GSlugRoute
   AgendaConfirmarTokenRoute: typeof AgendaConfirmarTokenRoute
   ApiPublicAgendaDispatchRoute: typeof ApiPublicAgendaDispatchRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
@@ -651,6 +664,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/g/$slug': {
+      id: '/g/$slug'
+      path: '/g/$slug'
+      fullPath: '/g/$slug'
+      preLoaderRoute: typeof GSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/f/$slug': {
@@ -1066,6 +1086,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgendaSlugRoute: AgendaSlugRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   FSlugRoute: FSlugRoute,
+  GSlugRoute: GSlugRoute,
   AgendaConfirmarTokenRoute: AgendaConfirmarTokenRoute,
   ApiPublicAgendaDispatchRoute: ApiPublicAgendaDispatchRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
