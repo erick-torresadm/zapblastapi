@@ -352,7 +352,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
         }
 
         // Indicador de "digitando" / "gravando" / online
-        if (ev.includes("presence.update") || ev === "presence_update") {
+        if (kind === "presence.update") {
           const id = String((data as { id?: string }).id ?? "");
           const phone = id.includes("@") ? id.split("@")[0].replace(/\D/g, "") : id.replace(/\D/g, "");
           const presences = (data as { presences?: Record<string, { lastKnownPresence?: string }> }).presences;
