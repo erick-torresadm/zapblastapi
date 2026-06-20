@@ -71,6 +71,7 @@ export const EVOLUTION_ENDPOINTS = {
   createGroup:        { method: "POST", path: "/group/create/{instance}" },
   fetchInviteCode:    { method: "GET",  path: "/group/inviteCode/{instance}" },
   updateGroupPicture: { method: "POST", path: "/group/updateGroupPicture/{instance}" },
+  updateParticipant:  { method: "POST", path: "/group/updateParticipant/{instance}" },
 
   // Server-level
   root: { method: "GET", path: "/" },
