@@ -121,14 +121,15 @@ export const syncInstanceContactsFn = createServerFn({ method: "POST" })
 
     const { data: inst, error: instErr } = await supabase
       .from("whatsapp_instances")
-      .select("id, instance_name, status, owner_user_id, evolution_servers(base_url, api_key)")
+      .select("id, instance_name, status, user_id, evolution_servers(base_url, api_key)")
       .eq("id", data.instance_id)
       .single();
 
     if (instErr || !inst) throw new Error("Instância não encontrada");
 
+    const ownerId = (inst as any).user_id as string;
     const { data: isMember } = await (supabase as any).rpc("crm_is_workspace_member", {
-      _owner: (inst as any).owner_user_id,
+      _owner: ownerId,
     });
     if (!isMember) throw new Error("Sem acesso a esta instância");
 
@@ -141,7 +142,7 @@ export const syncInstanceContactsFn = createServerFn({ method: "POST" })
     const { findChats, findContacts } = await import("@/lib/evolution.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const ownerId = (inst as any).owner_user_id as string;
+    void userId;
     let lidMapped = 0;
     let profilesCached = 0;
     let chatsScanned = 0;
