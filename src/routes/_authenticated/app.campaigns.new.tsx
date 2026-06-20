@@ -193,7 +193,8 @@ function NewCampaign() {
                       instance_ids: c ? [...f.instance_ids, i.id] : f.instance_ids.filter((x) => x !== i.id),
                     }))}
                   />
-                  <span>{i.instance_name}</span>
+                  <span className="font-medium">{i.instance_name}</span>
+                  <span className="text-xs text-muted-foreground">{formatPhone((i as any).phone_number)}</span>
                   <span className="ml-auto text-xs text-muted-foreground">{i.status}</span>
                 </label>
               )) : <p className="text-sm text-muted-foreground">Nenhum chip cadastrado.</p>}
