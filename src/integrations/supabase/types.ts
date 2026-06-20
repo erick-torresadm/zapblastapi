@@ -653,6 +653,56 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_contacts_profile: {
+        Row: {
+          contact_phone: string
+          created_at: string
+          id: string
+          instance_id: string | null
+          owner_user_id: string
+          profile_pic_fetched_at: string | null
+          profile_pic_url: string | null
+          push_name: string | null
+          saved_name: string | null
+          updated_at: string
+          verified_name: string | null
+        }
+        Insert: {
+          contact_phone: string
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          owner_user_id: string
+          profile_pic_fetched_at?: string | null
+          profile_pic_url?: string | null
+          push_name?: string | null
+          saved_name?: string | null
+          updated_at?: string
+          verified_name?: string | null
+        }
+        Update: {
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          owner_user_id?: string
+          profile_pic_fetched_at?: string | null
+          profile_pic_url?: string | null
+          push_name?: string | null
+          saved_name?: string | null
+          updated_at?: string
+          verified_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_profile_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_conversations: {
         Row: {
           archived_at: string | null
