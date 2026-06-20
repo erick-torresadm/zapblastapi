@@ -399,6 +399,15 @@ function BillingPage() {
           planId={pixPlan.id}
           planName={pixPlan.name}
           annualCents={pixPlan.annual}
+          upgrade={pixPlan.upgrade}
+        />
+      )}
+
+      {confirmChange && (
+        <PlanChangeConfirmDialog
+          open={!!confirmChange}
+          onOpenChange={(o) => !o && setConfirmChange(null)}
+          {...confirmChange}
         />
       )}
     </div>
