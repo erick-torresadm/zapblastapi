@@ -243,7 +243,12 @@ export const pasteGroupLinksFn = createServerFn({ method: "POST" })
       } catch { /* ignore */ }
     }
 
-    const rows: Array<Record<string, unknown>> = [];
+    type LinkInsert = {
+      campaign_id: string; source: "pasted" | "created"; invite_code: string; invite_url: string;
+      group_jid: string | null; title: string | null; member_count: number; position: number;
+      status: "pending" | "active" | "full" | "broken" | "archived"; last_checked_at: string | null;
+    };
+    const rows: LinkInsert[] = [];
     for (const code of codes) {
       let title: string | null = null;
       let members = 0;
