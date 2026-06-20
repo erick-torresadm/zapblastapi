@@ -223,15 +223,11 @@ export const enqueueBulkCreateFn = createServerFn({ method: "POST" })
     if (!campaign) throw new Error("Campanha não encontrada");
     if (!campaign.instance_id) throw new Error("Selecione uma instância (chip) na campanha antes de criar grupos.");
 
-    // The initial participant is always the instance's own connected number.
-    const { data: inst } = await supabase
-      .from("whatsapp_instances")
-      .select("phone_number")
-      .eq("id", campaign.instance_id)
-      .maybeSingle();
-    const participantPhone = String(inst?.phone_number ?? "").replace(/\D/g, "");
-    if (!participantPhone || participantPhone.length < 10) {
-      throw new Error("O chip selecionado não está conectado ao WhatsApp (sem número). Conecte o chip e tente novamente.");
+    // Initial participant = instance's own connected number (resolves via Evolution API if needed).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const participantPhone = await resolveInstancePhone(supabaseAdmin, campaign.instance_id);
+    if (!participantPhone) {
+      throw new Error("Não consegui descobrir o número conectado neste chip. Reconecte o WhatsApp (escaneie o QR novamente) e tente de novo.");
     }
 
     const { data: maxRow } = await supabase
