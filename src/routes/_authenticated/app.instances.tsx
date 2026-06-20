@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, RefreshCw, QrCode, Shield } from "lucide-react";
+import { Plus, Trash2, RefreshCw, QrCode, Shield, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { createInstanceFn, getInstanceQrFn, deleteInstanceFn, listAvailableServersFn, listInstancesFn, refreshInstancePhoneFn } from "@/lib/instances.functions";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
