@@ -88,7 +88,8 @@ export const updateFunnelFn = createServerFn({ method: "POST" })
     const { id, ...patch } = data;
     const { data: f, error } = await context.supabase
       .from("traffic_funnels")
-      .update(patch)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(patch as any)
       .eq("id", id)
       .eq("owner_user_id", context.userId)
       .select()
