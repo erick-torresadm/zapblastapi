@@ -216,16 +216,27 @@ export function AppSidebar() {
           </div>
         </div>
         <div className="flex items-center gap-2 px-1">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary-glow/80 text-[11px] font-bold text-primary-foreground">
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1 text-xs">
-            <div className="truncate font-medium">{user?.email ?? "—"}</div>
-          </div>
-          <Button variant="ghost" size="icon" onClick={signOut} className="h-7 w-7 text-muted-foreground hover:text-destructive">
+          <Link
+            to="/app/profile"
+            className="flex flex-1 items-center gap-2 rounded-md p-1 transition-colors hover:bg-sidebar-accent/60"
+            title="Meu perfil"
+          >
+            <Avatar className="h-8 w-8">
+              {profileMini?.signedUrl && <AvatarImage src={profileMini.signedUrl} alt={profileMini.full_name ?? "Avatar"} />}
+              <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary-glow/80 text-[11px] font-bold text-primary-foreground">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1 text-xs">
+              <div className="truncate font-medium">{profileMini?.full_name || user?.email || "—"}</div>
+              <div className="truncate text-[10px] text-muted-foreground">Ver meu perfil</div>
+            </div>
+          </Link>
+          <Button variant="ghost" size="icon" onClick={signOut} className="h-7 w-7 text-muted-foreground hover:text-destructive" title="Sair">
             <LogOut className="h-3.5 w-3.5" />
           </Button>
         </div>
+
       </SidebarFooter>
     </Sidebar>
   );
