@@ -71,7 +71,7 @@ export const Route = createFileRoute("/f/$slug")({
 });
 
 function PublicFunnelPage() {
-  const f = Route.useLoaderData();
+  const f = Route.useLoaderData() as PublicFunnel;
   const settings = (f.settings ?? {}) as { pixel_id?: string; ga4_id?: string; gtm_id?: string };
 
   // Inject Pixel / GA4 / GTM client-side + dispara PageView
