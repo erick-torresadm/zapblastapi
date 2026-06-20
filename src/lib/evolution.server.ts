@@ -360,8 +360,8 @@ export async function sendLocation(
   loc: { name?: string; address?: string; latitude: number; longitude: number },
   opts?: { delayMs?: number },
 ) {
-  return evoFetch(server, `/message/sendLocation/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendLocation", { instance: instanceName }), {
+    method: epMethod("sendLocation"),
     body: JSON.stringify({ number: phone, ...loc, ...(opts?.delayMs ? { delay: opts.delayMs } : {}) }),
   });
 }
