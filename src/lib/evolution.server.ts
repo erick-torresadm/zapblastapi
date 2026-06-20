@@ -634,8 +634,8 @@ export async function inviteInfoGroup(
 ): Promise<GroupInfo> {
   const r = await evoFetch(
     server,
-    `/group/inviteInfo/${encodeURIComponent(instanceName)}?inviteCode=${encodeURIComponent(inviteCode)}`,
-    { method: "GET" },
+    ep("inviteInfoGroup", { instance: instanceName, query: { inviteCode } }),
+    { method: epMethod("inviteInfoGroup") },
   );
   return r as GroupInfo;
 }
@@ -648,8 +648,8 @@ export async function findGroupInfos(
 ): Promise<GroupInfo> {
   const r = await evoFetch(
     server,
-    `/group/findGroupInfos/${encodeURIComponent(instanceName)}?groupJid=${encodeURIComponent(groupJid)}`,
-    { method: "GET" },
+    ep("findGroupInfos", { instance: instanceName, query: { groupJid } }),
+    { method: epMethod("findGroupInfos") },
   );
   return r as GroupInfo;
 }
@@ -662,8 +662,8 @@ export async function fetchAllGroups(
 ): Promise<GroupInfo[]> {
   const r = await evoFetchRaw(
     server,
-    `/group/fetchAllGroups/${encodeURIComponent(instanceName)}?getParticipants=${getParticipants ? "true" : "false"}`,
-    { method: "GET" },
+    ep("fetchAllGroups", { instance: instanceName, query: { getParticipants } }),
+    { method: epMethod("fetchAllGroups") },
   );
   return (Array.isArray(r) ? r : []) as GroupInfo[];
 }
