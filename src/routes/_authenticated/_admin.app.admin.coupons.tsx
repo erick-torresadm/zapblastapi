@@ -195,6 +195,8 @@ function NewCouponDialog({ plans }: { plans: any[] }) {
   const [value, setValue] = useState("10");
   const [planId, setPlanId] = useState<string>("any");
   const [freeDays, setFreeDays] = useState("30");
+  const [toolScope, setToolScope] = useState<string>("maps_search");
+  const [toolFreeUses, setToolFreeUses] = useState("5");
   const [expiresAt, setExpiresAt] = useState("");
   const [maxRedemptions, setMaxRedemptions] = useState("");
   const [maxPerUser, setMaxPerUser] = useState("1");
@@ -202,21 +204,24 @@ function NewCouponDialog({ plans }: { plans: any[] }) {
 
   const submit = async () => {
     try {
+      const isTool = type === "tool_credits";
       const valNum = Number(value);
-      const finalValue = type === "fixed" ? Math.round(valNum * 100) : valNum;
+      const finalValue = type === "fixed" ? Math.round(valNum * 100) : isTool ? 0 : valNum;
       await create({
         data: {
           code: code.trim().toUpperCase(),
           description: description || null,
-          type,
+          type: isTool ? "free" : type,
           value: finalValue,
           plan_id: planId === "any" ? null : planId,
           free_duration_days: type === "free" ? Number(freeDays) : null,
+          tool_scope: isTool ? toolScope : null,
+          tool_free_uses: isTool ? Number(toolFreeUses) : 0,
           expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
           max_redemptions: maxRedemptions ? Number(maxRedemptions) : null,
           max_per_user: Number(maxPerUser),
           active: true,
-        },
+        } as any,
       });
       toast.success("Cupom criado!");
       qc.invalidateQueries({ queryKey: ["admin-coupons"] });
@@ -253,11 +258,17 @@ function NewCouponDialog({ plans }: { plans: any[] }) {
                 <SelectContent>
                   <SelectItem value="percent">Porcentagem (%)</SelectItem>
                   <SelectItem value="fixed">Valor fixo (R$)</SelectItem>
-                  <SelectItem value="free">Grátis (100%)</SelectItem>
+                  <SelectItem value="free">Plano grátis (100%)</SelectItem>
+                  <SelectItem value="tool_credits">Buscas grátis (ferramenta)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {type !== "free" ? (
+            {type === "tool_credits" ? (
+              <div>
+                <Label>Quantos usos grátis</Label>
+                <Input type="number" min="1" value={toolFreeUses} onChange={(e) => setToolFreeUses(e.target.value)} />
+              </div>
+            ) : type !== "free" ? (
               <div>
                 <Label>{type === "percent" ? "% desconto" : "R$ desconto"}</Label>
                 <Input type="number" value={value} onChange={(e) => setValue(e.target.value)} />
@@ -269,6 +280,18 @@ function NewCouponDialog({ plans }: { plans: any[] }) {
               </div>
             )}
           </div>
+
+          {type === "tool_credits" && (
+            <div>
+              <Label>Ferramenta</Label>
+              <Select value={toolScope} onValueChange={setToolScope}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="maps_search">Busca Google Maps</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div>
             <Label>Plano restrito (opcional)</Label>
