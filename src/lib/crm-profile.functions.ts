@@ -47,7 +47,7 @@ export const backfillCrmProfilesFn = createServerFn({ method: "POST" })
             p_lid_jid: conv.contact_jid,
           });
           if (realPhone && realPhone !== conv.contact_phone) {
-            await supabase.from("crm_conversations")
+            await (supabase.from("crm_conversations") as any)
               .update({ contact_phone: realPhone })
               .eq("id", conv.id);
             conv.contact_phone = realPhone as unknown as string;
