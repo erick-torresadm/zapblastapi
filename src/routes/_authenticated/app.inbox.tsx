@@ -856,7 +856,7 @@ function Inbox() {
                   )}
                   <form onSubmit={(e) => { e.preventDefault(); if (draft.trim() && selectedId) sendMut.mutate(); }} className="flex items-end gap-2">
                     <Select value={instanceId} onValueChange={setInstanceId}>
-                      <SelectTrigger className="h-9 w-[120px] text-xs"><SelectValue placeholder="Chip" /></SelectTrigger>
+                      <SelectTrigger className="h-9 w-[220px] text-xs"><SelectValue placeholder="Chip" /></SelectTrigger>
                       <SelectContent>
                         {instances.map((i) => (
                           <SelectItem key={i.id} value={i.id}>
