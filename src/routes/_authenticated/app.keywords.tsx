@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,12 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Bot, Pencil, Clock, User, PlayCircle, RefreshCw, Square, StopCircle } from "lucide-react";
+import { Plus, Trash2, Bot, Pencil, Clock, User, PlayCircle, RefreshCw, Square, StopCircle, X, Wrench, Activity } from "lucide-react";
 import { toast } from "sonner";
 import {
   listKeywordTriggersFn, upsertKeywordTriggerFn, toggleKeywordTriggerFn,
   deleteKeywordTriggerFn, listFlowsForKeywordsFn, listRecentFlowRunsFn, testKeywordTriggerFn,
-  cancelFlowRunFn, cancelAllFlowRunsFn,
+  cancelFlowRunFn, cancelAllFlowRunsFn, listKeywordAuditFn, repairWebhooksFn,
 } from "@/lib/keywords.functions";
 import { formatInstanceLabel, formatPhone } from "@/lib/format-instance";
 
@@ -25,17 +25,70 @@ export const Route = createFileRoute("/_authenticated/app/keywords")({
   component: KeywordsPage,
 });
 
+type MatchMode = "exact" | "contains" | "starts_with" | "regex";
+
 type Trigger = {
   id: string; user_id: string; flow_id: string; instance_id: string | null;
-  keywords: string[]; match_mode: "exact" | "contains" | "starts_with"; active: boolean;
+  keywords: string[]; match_mode: MatchMode; active: boolean;
   created_by_admin: boolean; flow_name: string;
   allow_from_me: boolean; delay_seconds: number; cooldown_seconds: number;
+  per_contact_cooldown_seconds: number;
+  last_triggered_at: string | null;
   instance: { id: string; instance_name: string; phone_number: string | null; status: string } | null;
 };
 
-const matchLabel: Record<string, string> = {
-  exact: "Exato", contains: "Contém", starts_with: "Começa com",
+const matchLabel: Record<MatchMode, string> = {
+  exact: "Exato", contains: "Contém", starts_with: "Começa com", regex: "Regex",
 };
+
+const statusLabel: Record<string, { label: string; tone: "ok" | "warn" | "err" | "info" }> = {
+  ok: { label: "Disparou", tone: "ok" },
+  no_match: { label: "Sem match", tone: "info" },
+  no_text: { label: "Sem texto", tone: "info" },
+  from_me: { label: "Bloqueado (eu)", tone: "info" },
+  unresolved_lid: { label: "LID sem telefone", tone: "warn" },
+  no_active_triggers: { label: "Sem gatilho ativo", tone: "info" },
+  no_instance: { label: "Sem chip", tone: "warn" },
+  error: { label: "Erro", tone: "err" },
+};
+
+function VariantsInput({ value, onChange, placeholder }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+  const [input, setInput] = useState("");
+  function add(raw: string) {
+    const parts = raw.split(/[,\n]/).map((s) => s.trim()).filter(Boolean);
+    if (!parts.length) return;
+    const next = Array.from(new Set([...value, ...parts]));
+    onChange(next);
+    setInput("");
+  }
+  function remove(i: number) {
+    const next = value.slice(); next.splice(i, 1); onChange(next);
+  }
+  function onKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(input); }
+    else if (e.key === "Backspace" && !input && value.length) remove(value.length - 1);
+  }
+  return (
+    <div className="rounded-md border bg-background p-2">
+      <div className="flex flex-wrap gap-1.5 mb-1.5">
+        {value.map((k, i) => (
+          <Badge key={`${k}-${i}`} variant="secondary" className="font-mono gap-1 pr-1">
+            {k}
+            <button type="button" onClick={() => remove(i)} className="hover:bg-muted rounded p-0.5"><X className="h-3 w-3" /></button>
+          </Badge>
+        ))}
+      </div>
+      <Input
+        className="border-0 shadow-none focus-visible:ring-0 px-1 h-7"
+        placeholder={placeholder ?? "Digite e pressione Enter ou vírgula"}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={onKey}
+        onBlur={() => input.trim() && add(input)}
+      />
+    </div>
+  );
+}
 
 function KeywordsPage() {
   const qc = useQueryClient();
@@ -48,11 +101,16 @@ function KeywordsPage() {
   const testFn = useServerFn(testKeywordTriggerFn);
   const cancelRunFn = useServerFn(cancelFlowRunFn);
   const cancelAllFn = useServerFn(cancelAllFlowRunsFn);
+  const auditFn = useServerFn(listKeywordAuditFn);
+  const repairFn = useServerFn(repairWebhooksFn);
 
   const { data: list, isLoading } = useQuery({ queryKey: ["kw-triggers"], queryFn: () => listFn() });
   const { data: opts } = useQuery({ queryKey: ["kw-opts"], queryFn: () => optsFn() });
   const { data: recent, refetch: refetchRecent } = useQuery({
     queryKey: ["kw-recent"], queryFn: () => recentFn(), refetchInterval: 5000,
+  });
+  const { data: audit, refetch: refetchAudit } = useQuery({
+    queryKey: ["kw-audit"], queryFn: () => auditFn(), refetchInterval: 5000,
   });
 
   const [testOpenFor, setTestOpenFor] = useState<string | null>(null);
@@ -64,25 +122,33 @@ function KeywordsPage() {
       toast.success(`Gatilho disparado: ${r.matched} match, ${r.runs.length} run(s)`);
       setTestOpenFor(null);
       qc.invalidateQueries({ queryKey: ["kw-recent"] });
+      qc.invalidateQueries({ queryKey: ["kw-audit"] });
     },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const repairMut = useMutation({
+    mutationFn: () => repairFn(),
+    onSuccess: (r) => toast.success(`Webhooks reaplicados: ${r.repaired} ok, ${r.failed} falha`),
     onError: (e: Error) => toast.error(e.message),
   });
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Trigger | null>(null);
   const [form, setForm] = useState({
-    flow_id: "", instance_id: "", keywords: "",
-    match_mode: "contains" as "exact" | "contains" | "starts_with",
+    flow_id: "", instance_id: "",
+    keywords: [] as string[],
+    match_mode: "contains" as MatchMode,
     active: true, user_id: "",
-    allow_from_me: false, delay_seconds: 0, cooldown_seconds: 0,
+    allow_from_me: false, delay_seconds: 0, cooldown_seconds: 0, per_contact_cooldown_seconds: 0,
   });
 
   function openNew() {
     setEditing(null);
     setForm({
-      flow_id: "", instance_id: "", keywords: "", match_mode: "contains",
+      flow_id: "", instance_id: "", keywords: [], match_mode: "contains",
       active: true, user_id: "",
-      allow_from_me: false, delay_seconds: 0, cooldown_seconds: 0,
+      allow_from_me: false, delay_seconds: 0, cooldown_seconds: 0, per_contact_cooldown_seconds: 0,
     });
     setOpen(true);
   }
@@ -91,33 +157,34 @@ function KeywordsPage() {
     setForm({
       flow_id: t.flow_id,
       instance_id: t.instance_id ?? "",
-      keywords: t.keywords.join(", "),
+      keywords: t.keywords ?? [],
       match_mode: t.match_mode,
       active: t.active,
       user_id: t.user_id,
       allow_from_me: !!t.allow_from_me,
       delay_seconds: t.delay_seconds ?? 0,
       cooldown_seconds: t.cooldown_seconds ?? 0,
+      per_contact_cooldown_seconds: t.per_contact_cooldown_seconds ?? 0,
     });
     setOpen(true);
   }
 
   const saveMut = useMutation({
     mutationFn: async () => {
-      const kws = form.keywords.split(/[,\n]/).map((k) => k.trim()).filter(Boolean);
       if (!form.flow_id) throw new Error("Selecione um fluxo");
-      if (!kws.length) throw new Error("Adicione pelo menos uma palavra-chave");
+      if (!form.keywords.length) throw new Error("Adicione pelo menos uma palavra-chave");
       return saveFn({
         data: {
           id: editing?.id,
           flow_id: form.flow_id,
           instance_id: form.instance_id || null,
-          keywords: kws,
+          keywords: form.keywords,
           match_mode: form.match_mode,
           active: form.active,
           allow_from_me: form.allow_from_me,
           delay_seconds: form.delay_seconds,
           cooldown_seconds: form.cooldown_seconds,
+          per_contact_cooldown_seconds: form.per_contact_cooldown_seconds,
           user_id: opts?.isAdmin && form.user_id ? form.user_id : undefined,
         },
       });
@@ -170,9 +237,15 @@ function KeywordsPage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             O servidor escuta cada mensagem (recebida ou enviada pelo seu chip). Quando bater com uma palavra-chave, o fluxo dispara automaticamente.
+            Você pode criar várias regras, cada uma apontando para um fluxo diferente, com várias variantes/sinônimos.
           </p>
         </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo gatilho</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => repairMut.mutate()} disabled={repairMut.isPending} title="Reaplica a configuração de webhook em todos os seus chips">
+            <Wrench className="h-4 w-4 mr-2" /> {repairMut.isPending ? "Reparando…" : "Reparar webhooks"}
+          </Button>
+          <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Nova regra</Button>
+        </div>
       </div>
 
       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
@@ -199,6 +272,9 @@ function KeywordsPage() {
                   {t.cooldown_seconds > 0 && (
                     <Badge variant="outline" className="gap-1">Cooldown {t.cooldown_seconds}s</Badge>
                   )}
+                  {t.per_contact_cooldown_seconds > 0 && (
+                    <Badge variant="outline" className="gap-1">Por contato {t.per_contact_cooldown_seconds}s</Badge>
+                  )}
                   {t.created_by_admin && <Badge>admin</Badge>}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1">
@@ -206,6 +282,11 @@ function KeywordsPage() {
                     <Badge key={k} variant="outline" className="font-mono text-xs">{k}</Badge>
                   ))}
                 </div>
+                {t.last_triggered_at && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Último disparo: {new Date(t.last_triggered_at).toLocaleString("pt-BR")}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Switch
@@ -231,7 +312,7 @@ function KeywordsPage() {
         {!isLoading && !(list?.items ?? []).length && (
           <Card>
             <CardHeader>
-              <CardTitle>Nenhuma palavra-chave</CardTitle>
+              <CardTitle>Nenhuma regra</CardTitle>
               <CardDescription>
                 Crie uma para que mensagens recebidas iniciem um fluxo automaticamente.
               </CardDescription>
@@ -239,6 +320,51 @@ function KeywordsPage() {
           </Card>
         )}
       </div>
+
+      {/* Diagnóstico em tempo real */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Activity className="h-4 w-4" /> Diagnóstico em tempo real
+            </CardTitle>
+            <CardDescription>
+              Toda mensagem que chega no webhook é avaliada aqui. Use para entender porque um gatilho não disparou.
+            </CardDescription>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => refetchAudit()}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y max-h-80 overflow-auto">
+            {(audit?.items ?? []).length === 0 && (
+              <div className="p-4 text-sm text-muted-foreground">Nenhuma mensagem avaliada ainda.</div>
+            )}
+            {(audit?.items ?? []).map((a: any) => {
+              const s = statusLabel[a.resolution_status] ?? { label: a.resolution_status, tone: "info" as const };
+              const variant = s.tone === "ok" ? "default" : s.tone === "warn" ? "outline" : s.tone === "err" ? "destructive" : "secondary";
+              return (
+                <div key={a.id} className="p-3 text-sm flex items-start gap-3">
+                  <Badge variant={variant as any} className="text-xs shrink-0">{s.label}</Badge>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+                      <span>{new Date(a.created_at).toLocaleString("pt-BR")}</span>
+                      <span>•</span>
+                      <span className="font-mono">{a.contact_phone ?? "—"}</span>
+                      {a.from_me && <Badge variant="outline" className="text-xs">eu</Badge>}
+                      <span>•</span>
+                      <span>{a.triggers_matched}/{a.triggers_evaluated} gatilhos</span>
+                    </div>
+                    {a.text_excerpt && <div className="mt-1 truncate">{a.text_excerpt}</div>}
+                    {a.note && <div className="text-xs text-muted-foreground mt-1">{a.note}</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Fila de disparos recentes */}
       <Card>
@@ -349,11 +475,11 @@ function KeywordsPage() {
       </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar gatilho do Bot" : "Novo gatilho do Bot"}</DialogTitle>
+            <DialogTitle>{editing ? "Editar regra do Bot" : "Nova regra do Bot"}</DialogTitle>
             <DialogDescription>
-              Quando a mensagem combinar com uma das palavras, o fluxo escolhido será disparado.
+              Quando a mensagem combinar com qualquer das variantes, o fluxo escolhido será disparado.
             </DialogDescription>
           </DialogHeader>
 
@@ -373,7 +499,7 @@ function KeywordsPage() {
             )}
 
             <div>
-              <Label>Fluxo</Label>
+              <Label>Fluxo a disparar</Label>
               <Select value={form.flow_id} onValueChange={(v) => setForm({ ...form, flow_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecione o fluxo" /></SelectTrigger>
                 <SelectContent>
@@ -408,22 +534,26 @@ function KeywordsPage() {
             </div>
 
             <div>
-              <Label>Palavras-chave (separe por vírgula)</Label>
-              <Input
-                placeholder="quero saber mais, info, comprar"
+              <Label>Variantes/sinônimos</Label>
+              <VariantsInput
                 value={form.keywords}
-                onChange={(e) => setForm({ ...form, keywords: e.target.value })}
+                onChange={(v) => setForm({ ...form, keywords: v })}
+                placeholder={form.match_mode === "regex" ? "ex: ^(quero|preciso).*pre[çc]o" : "ex: preço, tabela, quanto custa"}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Pressione Enter ou vírgula para adicionar. Acentos e caixa são ignorados (exceto no modo Regex).
+              </p>
             </div>
 
             <div>
               <Label>Modo de comparação</Label>
-              <Select value={form.match_mode} onValueChange={(v) => setForm({ ...form, match_mode: v as any })}>
+              <Select value={form.match_mode} onValueChange={(v) => setForm({ ...form, match_mode: v as MatchMode })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="contains">Contém</SelectItem>
-                  <SelectItem value="exact">Exato</SelectItem>
-                  <SelectItem value="starts_with">Começa com</SelectItem>
+                  <SelectItem value="contains">Contém — bate se a mensagem contiver a palavra</SelectItem>
+                  <SelectItem value="exact">Exato — só bate se a mensagem for igual</SelectItem>
+                  <SelectItem value="starts_with">Começa com — bate se a mensagem começar com a palavra</SelectItem>
+                  <SelectItem value="regex">Regex (avançado) — cada variante é uma expressão regular</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -433,7 +563,7 @@ function KeywordsPage() {
                 <div>
                   <Label htmlFor="afm" className="text-sm">Eu também disparo (fromMe)</Label>
                   <p className="text-xs text-muted-foreground">
-                    Quando ligado, mensagens enviadas pelo seu chip também acionam o fluxo (útil para o admin "comandar" o bot).
+                    Quando ligado, mensagens enviadas pelo seu chip também acionam o fluxo (útil para "comandar" o bot a partir do seu próprio número).
                   </p>
                 </div>
                 <Switch id="afm" checked={form.allow_from_me} onCheckedChange={(v) => setForm({ ...form, allow_from_me: v })} />
@@ -449,12 +579,22 @@ function KeywordsPage() {
                   <p className="text-xs text-muted-foreground mt-1">Espera antes de iniciar o fluxo.</p>
                 </div>
                 <div>
-                  <Label htmlFor="cool" className="text-sm">Cooldown (segundos)</Label>
+                  <Label htmlFor="cool" className="text-sm">Cooldown global (s)</Label>
                   <Input id="cool" type="number" min={0} max={86400}
                     value={form.cooldown_seconds}
                     onChange={(e) => setForm({ ...form, cooldown_seconds: Math.max(0, Number(e.target.value) || 0) })}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Tempo mínimo entre disparos do mesmo gatilho.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Tempo mínimo entre dois disparos deste gatilho.</p>
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="pcool" className="text-sm">Cooldown por contato (s)</Label>
+                  <Input id="pcool" type="number" min={0} max={86400}
+                    value={form.per_contact_cooldown_seconds}
+                    onChange={(e) => setForm({ ...form, per_contact_cooldown_seconds: Math.max(0, Number(e.target.value) || 0) })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Evita que o mesmo contato dispare o mesmo fluxo várias vezes seguidas. 0 = sem limite.
+                  </p>
                 </div>
               </div>
             </div>
