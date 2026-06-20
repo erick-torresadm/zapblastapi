@@ -3,6 +3,17 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { parseGroupInviteCode, inviteInfoGroup, fetchInstances } from "@/lib/evolution.server";
 
+/** Normalize a list of free-text phone numbers into digits-only entries. */
+export function normalizePhoneList(raw: string[] | null | undefined): string[] {
+  if (!raw) return [];
+  const out: string[] = [];
+  for (const p of raw) {
+    const d = String(p ?? "").replace(/\D/g, "");
+    if (d.length >= 10 && d.length <= 15) out.push(d);
+  }
+  return Array.from(new Set(out));
+}
+
 // Resolve the connected phone of an instance. Tries DB first, then Evolution API
 // (ownerJid / number). Persists the result so subsequent calls are fast.
 export async function resolveInstancePhone(
