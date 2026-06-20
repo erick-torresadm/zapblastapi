@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createGroup, fetchInviteCode, findGroupInfos, updateGroupPicture } from "@/lib/evolution.server";
-import { resolveInstancePhone } from "@/lib/group-launcher.functions";
+import { createGroup, fetchInviteCode, findGroupInfos, updateGroupPicture, updateGroupParticipant } from "@/lib/evolution.server";
+import { resolveInstancePhone, normalizePhoneList } from "@/lib/group-launcher.functions";
 
 
 /**
