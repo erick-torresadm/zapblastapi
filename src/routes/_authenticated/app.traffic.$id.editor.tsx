@@ -180,9 +180,8 @@ function EditorPage() {
         await updateStep({ data: { id: s.id, name: s.name, type: s.type, settings: s.settings ?? {} } });
         await saveBlocks({ data: { funnel_id: id, step_id: s.id, blocks: s.blocks } });
       }
-      // redirect_url no funil
-      await update({ data: { id, settings: { ...(f.settings as any), pixel_id: pixelId || undefined, capi_token: capiToken || undefined, ga4_id: ga4Id || undefined, gtm_id: gtmId || undefined } } });
       toast.success("Salvo");
+
       setDirty(false);
       qc.invalidateQueries({ queryKey: ["traffic-funnel", id] });
       qc.invalidateQueries({ queryKey: ["traffic-funnels"] });
