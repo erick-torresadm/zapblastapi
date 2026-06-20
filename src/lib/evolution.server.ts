@@ -755,3 +755,21 @@ export async function updateGroupPicture(
     },
   );
 }
+
+/** Add / remove / promote / demote participants in a group. */
+export async function updateGroupParticipant(
+  server: EvolutionServer,
+  instanceName: string,
+  groupJid: string,
+  action: "add" | "remove" | "promote" | "demote",
+  participants: string[],
+): Promise<unknown> {
+  return evoFetch(
+    server,
+    ep("updateParticipant", { instance: instanceName, query: { groupJid } }),
+    {
+      method: epMethod("updateParticipant"),
+      body: JSON.stringify({ action, participants }),
+    },
+  );
+}
