@@ -23,28 +23,21 @@ const SITE_URL = "https://zapblastapi.lovable.app";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Perseidas — Disparos em massa, Chatbot e CRM no WhatsApp sem ban" },
-      { name: "description", content: "Plataforma all-in-one para WhatsApp: disparos em massa anti-ban, fluxos por palavra-chave, CRM multi-atendente e aquecimento de chips. 10 dias grátis no Pro, sem cartão." },
+      { title: "Perseidas — Disparos, Chatbot e CRM no WhatsApp sem ban" },
+      { name: "description", content: "Disparos em massa anti-ban, fluxos por palavra-chave, CRM multi-atendente e aquecimento de chips. 10 dias grátis no Pro, sem cartão." },
       { name: "keywords", content: "disparo em massa whatsapp, chatbot whatsapp, crm whatsapp, anti-ban whatsapp, evolution api, aquecimento de chip, automação whatsapp" },
       { name: "author", content: "Perseidas" },
       { property: "og:title", content: "Perseidas — Disparos, Chatbot e CRM no WhatsApp sem ban" },
       { property: "og:description", content: "Disparo + fluxos por palavra-chave + CRM multi-atendente + anti-ban. Tudo num só painel." },
       { property: "og:url", content: `${SITE_URL}/` },
       { property: "og:locale", content: "pt_BR" },
-      { property: "og:locale:alternate", content: "en_US" },
-      { property: "og:locale:alternate", content: "es_ES" },
-      { property: "og:locale:alternate", content: "fr_FR" },
       { name: "twitter:title", content: "Perseidas — Disparos, Chatbot e CRM no WhatsApp" },
       { name: "twitter:description", content: "Disparo + fluxos + CRM + anti-ban. Tudo num só painel." },
     ],
     links: [
       { rel: "canonical", href: `${SITE_URL}/` },
-      { rel: "alternate", hrefLang: "pt-BR", href: `${SITE_URL}/` },
-      { rel: "alternate", hrefLang: "en", href: `${SITE_URL}/` },
-      { rel: "alternate", hrefLang: "es", href: `${SITE_URL}/` },
-      { rel: "alternate", hrefLang: "fr", href: `${SITE_URL}/` },
-      { rel: "alternate", hrefLang: "x-default", href: `${SITE_URL}/` },
     ],
+
     scripts: [
       {
         type: "application/ld+json",
