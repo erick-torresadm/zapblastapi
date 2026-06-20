@@ -307,7 +307,11 @@ function GroupExtractCard({
     mutationFn: () => extract({ data: { instance_id: instanceId, group: group.trim() } }),
     onSuccess: (r) => {
       setResult(r);
-      toast.success(`${r.total} contato(s) extraídos — debitado ${brl(r.cost_cents)}`);
+      const resolved = r.resolved_count ?? r.total;
+      const hidden = r.unresolved_count ?? 0;
+      toast.success(
+        `${resolved} telefone(s) extraído(s)${hidden ? ` · ${hidden} oculto(s) não cobrado(s)` : ""} — debitado ${brl(r.cost_cents)}`,
+      );
       onSuccess();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -316,8 +320,10 @@ function GroupExtractCard({
   function exportCsv() {
     if (!result) return;
     const rows: string[][] = [["telefone", "jid", "admin", "privacidade_oculta"]];
+    // Só exporta linhas com telefone real (oculto não tem valor pro cliente)
     for (const c of result.contacts) {
-      rows.push([c.phone ?? "", c.jid, c.is_admin ? "sim" : "nao", c.is_privacy_hidden ? "sim" : "nao"]);
+      if (!c.phone) continue;
+      rows.push([c.phone, c.jid, c.is_admin ? "sim" : "nao", c.is_privacy_hidden ? "sim" : "nao"]);
     }
     downloadCsv(`grupo-${result.group.subject ?? "export"}-${Date.now()}.csv`, rows);
   }
