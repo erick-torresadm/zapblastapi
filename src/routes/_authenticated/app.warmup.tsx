@@ -101,7 +101,7 @@ function WarmupPage() {
                     <Badge variant={i.status === "connected" ? "default" : "secondary"}>{i.status}</Badge>
                     {i.warmup_enabled && <Badge className="bg-orange-500 hover:bg-orange-600">🔥 Aquecendo</Badge>}
                   </CardTitle>
-                  <CardDescription>{i.phone_number ?? "Sem número"} · Saúde: {i.health_score}%</CardDescription>
+                  <CardDescription>{formatPhone(i.phone_number)} · Saúde: {i.health_score}%</CardDescription>
                 </div>
                 <Switch
                   checked={i.warmup_enabled}
