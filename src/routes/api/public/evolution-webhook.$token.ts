@@ -61,7 +61,9 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           const fromMe = !!key?.fromMe;
           const remoteJid = key?.remoteJid ?? "";
           const senderPn = String((key as { senderPn?: string } | undefined)?.senderPn ?? "");
-          const payloadSender = (payload as { sender?: string }).sender;
+          // Em payloads da Evolution, o campo de topo `sender` normalmente é o
+          // próprio chip/instância, não o contato. Não use esse campo para
+          // resolver contatos @lid, senão o bot responde para o próprio número.
 
           const jidDomain = remoteJid.includes("@") ? remoteJid.split("@")[1] : "";
           const jidUser = remoteJid.includes("@") ? remoteJid.split("@")[0] : remoteJid;
@@ -86,10 +88,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
             const dataPn = (data as { senderPn?: string; participantPn?: string; pn?: string; sender?: string });
             const pn =
               tryPn(senderPn) ?? tryPn(participantPn) ?? tryPn(dataPn.senderPn)
-              ?? tryPn(dataPn.participantPn) ?? tryPn(dataPn.pn) ?? tryPn(dataPn.sender)
-              // Em payloads Evolution com @lid, o telefone real costuma vir no topo como "sender".
-              // Só usamos isso em mensagens recebidas; em fromMe pode ser o próprio chip.
-              ?? (!fromMe ? tryPn(payloadSender) : null);
+              ?? tryPn(dataPn.participantPn) ?? tryPn(dataPn.pn) ?? tryPn(dataPn.sender);
             if (pn) {
               chatType = "user";
               resolvedUser = pn;
