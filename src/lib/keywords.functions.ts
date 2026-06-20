@@ -170,11 +170,11 @@ export const listRecentFlowRunsFn = createServerFn({ method: "GET" })
         ? supabase.from("flows" as any).select("id,name").in("id", flowIds).then((r: any) => r.data ?? [])
         : Promise.resolve([]),
       instIds.length
-        ? supabase.from("whatsapp_instances" as any).select("id,instance_name").in("id", instIds).then((r: any) => r.data ?? [])
+        ? supabase.from("whatsapp_instances" as any).select("id,instance_name,phone_number").in("id", instIds).then((r: any) => r.data ?? [])
         : Promise.resolve([]),
     ]);
     const flowMap = Object.fromEntries((flows as any[]).map((f) => [f.id, f.name]));
-    const instMap = Object.fromEntries((instances as any[]).map((i) => [i.id, i.instance_name]));
+    const instMap = Object.fromEntries((instances as any[]).map((i) => [i.id, i]));
 
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const todayCount = (runs ?? []).filter((r: any) => r.started_at && new Date(r.started_at) >= today).length;
