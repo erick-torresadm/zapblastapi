@@ -1961,10 +1961,12 @@ export type Database = {
       }
       group_campaigns: {
         Row: {
+          admin_participants: string[]
           click_count: number
           created_at: string
           default_description: string | null
           default_image_url: string | null
+          extra_participants: string[]
           id: string
           instance_id: string | null
           is_active: boolean
@@ -1975,10 +1977,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_participants?: string[]
           click_count?: number
           created_at?: string
           default_description?: string | null
           default_image_url?: string | null
+          extra_participants?: string[]
           id?: string
           instance_id?: string | null
           is_active?: boolean
@@ -1989,10 +1993,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_participants?: string[]
           click_count?: number
           created_at?: string
           default_description?: string | null
           default_image_url?: string | null
+          extra_participants?: string[]
           id?: string
           instance_id?: string | null
           is_active?: boolean

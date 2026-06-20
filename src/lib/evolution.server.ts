@@ -71,6 +71,7 @@ export const EVOLUTION_ENDPOINTS = {
   createGroup:        { method: "POST", path: "/group/create/{instance}" },
   fetchInviteCode:    { method: "GET",  path: "/group/inviteCode/{instance}" },
   updateGroupPicture: { method: "POST", path: "/group/updateGroupPicture/{instance}" },
+  updateParticipant:  { method: "POST", path: "/group/updateParticipant/{instance}" },
 
   // Server-level
   root: { method: "GET", path: "/" },
@@ -751,6 +752,24 @@ export async function updateGroupPicture(
     {
       method: epMethod("updateGroupPicture"),
       body: JSON.stringify({ image: imageUrl }),
+    },
+  );
+}
+
+/** Add / remove / promote / demote participants in a group. */
+export async function updateGroupParticipant(
+  server: EvolutionServer,
+  instanceName: string,
+  groupJid: string,
+  action: "add" | "remove" | "promote" | "demote",
+  participants: string[],
+): Promise<unknown> {
+  return evoFetch(
+    server,
+    ep("updateParticipant", { instance: instanceName, query: { groupJid } }),
+    {
+      method: epMethod("updateParticipant"),
+      body: JSON.stringify({ action, participants }),
     },
   );
 }

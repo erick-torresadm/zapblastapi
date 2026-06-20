@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createGroup, fetchInviteCode, findGroupInfos, updateGroupPicture } from "@/lib/evolution.server";
-import { resolveInstancePhone } from "@/lib/group-launcher.functions";
+import { createGroup, fetchInviteCode, findGroupInfos, updateGroupPicture, updateGroupParticipant } from "@/lib/evolution.server";
+import { resolveInstancePhone, normalizePhoneList } from "@/lib/group-launcher.functions";
 
 
 /**
@@ -42,7 +42,7 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
           try {
             const { data: campaign } = await supabaseAdmin
               .from("group_campaigns")
-              .select("instance_id")
+              .select("instance_id, extra_participants, admin_participants")
               .eq("id", job.campaign_id)
               .maybeSingle();
             if (!campaign?.instance_id) throw new Error("Campanha sem instância");
@@ -83,6 +83,23 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
 
             if (job.image_url) {
               try { await updateGroupPicture(server, inst.instance_name, jid, job.image_url); } catch { /* non-fatal */ }
+            }
+
+            // Invite extras + promote admins (best-effort, non-fatal)
+            const extras = normalizePhoneList(campaign.extra_participants as string[] | null)
+              .filter((p) => p !== participantPhone);
+            const admins = normalizePhoneList(campaign.admin_participants as string[] | null)
+              .filter((p) => p !== participantPhone);
+            if (extras.length) {
+              try {
+                await updateGroupParticipant(server, inst.instance_name, jid, "add", extras);
+              } catch (e) { out.errors.push(`add participants ${jid}: ${(e as Error).message}`); }
+            }
+            if (admins.length) {
+              await new Promise((r) => setTimeout(r, 600));
+              try {
+                await updateGroupParticipant(server, inst.instance_name, jid, "promote", admins);
+              } catch (e) { out.errors.push(`promote admins ${jid}: ${(e as Error).message}`); }
             }
 
             // figure out next position

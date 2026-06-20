@@ -3,6 +3,17 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { parseGroupInviteCode, inviteInfoGroup, fetchInstances } from "@/lib/evolution.server";
 
+/** Normalize a list of free-text phone numbers into digits-only entries. */
+export function normalizePhoneList(raw: string[] | null | undefined): string[] {
+  if (!raw) return [];
+  const out: string[] = [];
+  for (const p of raw) {
+    const d = String(p ?? "").replace(/\D/g, "");
+    if (d.length >= 10 && d.length <= 15) out.push(d);
+  }
+  return Array.from(new Set(out));
+}
+
 // Resolve the connected phone of an instance. Tries DB first, then Evolution API
 // (ownerJid / number). Persists the result so subsequent calls are fast.
 export async function resolveInstancePhone(
@@ -160,7 +171,7 @@ export const createGroupCampaignFn = createServerFn({ method: "POST" })
 
 export const updateGroupCampaignFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: { id: string; name?: string; member_limit?: number; instance_id?: string | null; default_description?: string | null; default_image_url?: string | null; is_active?: boolean; slug?: string }) =>
+  .inputValidator((i: { id: string; name?: string; member_limit?: number; instance_id?: string | null; default_description?: string | null; default_image_url?: string | null; is_active?: boolean; slug?: string; extra_participants?: string[]; admin_participants?: string[] }) =>
     z.object({
       id: z.string().uuid(),
       name: z.string().min(2).max(80).optional(),
@@ -170,13 +181,18 @@ export const updateGroupCampaignFn = createServerFn({ method: "POST" })
       default_image_url: z.string().url().nullable().optional(),
       is_active: z.boolean().optional(),
       slug: z.string().regex(/^[a-z0-9-]{2,40}$/).optional(),
+      extra_participants: z.array(z.string()).max(200).optional(),
+      admin_participants: z.array(z.string()).max(200).optional(),
     }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { id, ...patch } = data;
+    const { id, extra_participants, admin_participants, ...rest } = data;
+    const patch: Record<string, unknown> = { ...rest };
+    if (extra_participants) patch.extra_participants = normalizePhoneList(extra_participants);
+    if (admin_participants) patch.admin_participants = normalizePhoneList(admin_participants);
     const { data: row, error } = await supabase
       .from("group_campaigns")
-      .update(patch)
+      .update(patch as never)
       .eq("id", id)
       .select()
       .single();
