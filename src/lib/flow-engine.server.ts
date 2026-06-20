@@ -84,6 +84,16 @@ function renderTemplate(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => vars[k] ?? "");
 }
 
+function normalizeKeywordText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
 function nextEdge(flow: Flow, nodeId: string, handle?: string): Edge | undefined {
   return flow.edges.find((e) => e.source === nodeId && (handle ? e.sourceHandle === handle : true))
     ?? flow.edges.find((e) => e.source === nodeId);
@@ -1171,7 +1181,7 @@ export async function triggerKeywordFlows(
   const text = (args.text ?? "").trim();
   console.log("[trigger] start", { user_id: args.user_id, phone: args.phone, from_me: !!args.from_me, text_len: text.length });
   if (!text) return { matched: 0, runs: [] };
-  const lower = text.toLowerCase();
+  const lower = normalizeKeywordText(text);
 
   const { data: triggers, error: tErr } = await supabaseAdmin.from("flow_keyword_triggers")
     .select("id, flow_id, instance_id, keywords, match_mode, allow_from_me, delay_seconds, cooldown_seconds, last_triggered_at")
@@ -1195,7 +1205,7 @@ export async function triggerKeywordFlows(
       const elapsed = (now - new Date(t.last_triggered_at).getTime()) / 1000;
       if (elapsed < t.cooldown_seconds) { console.log("[trigger] skip (cooldown)", t.id, elapsed); return false; }
     }
-    const kws = (t.keywords ?? []).map((k) => k.toLowerCase().trim()).filter(Boolean);
+    const kws = (t.keywords ?? []).map((k) => normalizeKeywordText(k)).filter(Boolean);
     if (!kws.length) return false;
     let hit = false;
     if (t.match_mode === "exact") hit = kws.includes(lower);
