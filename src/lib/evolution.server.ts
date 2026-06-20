@@ -709,18 +709,17 @@ export async function createGroup(
   server: EvolutionServer,
   instanceName: string,
   payload: { subject: string; description?: string; participants?: string[] },
-): Promise<{ id: string; subject?: string; [k: string]: unknown }> {
+): Promise<{ id?: string; groupJid?: string; subject?: string; [k: string]: unknown }> {
   const body = {
     subject: payload.subject,
     description: payload.description ?? "",
-    // Evolution requires at least one participant on most versions; if empty, send an empty array.
     participants: payload.participants ?? [],
   };
   const r = await evoFetch(server, ep("createGroup", { instance: instanceName }), {
     method: epMethod("createGroup"),
     body: JSON.stringify(body),
   });
-  return r as { id: string };
+  return r as { id?: string; groupJid?: string };
 }
 
 /** Fetch the public invite code for a group (instance must be admin). */
