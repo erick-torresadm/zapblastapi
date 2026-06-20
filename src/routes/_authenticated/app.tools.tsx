@@ -391,7 +391,10 @@ function GroupExtractCard({
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <div className="text-sm font-semibold">{result.group.subject ?? "Grupo"}</div>
-                <div className="text-xs text-muted-foreground">{result.total} contato(s) extraído(s)</div>
+                <div className="text-xs text-muted-foreground">
+                  <span className="text-foreground font-medium">{result.resolved_count ?? result.total}</span> telefone(s) extraído(s)
+                  {result.unresolved_count ? <> · <span className="text-amber-600 dark:text-amber-400">{result.unresolved_count} oculto(s)</span> (não cobrados)</> : null}
+                </div>
               </div>
               <div className="text-right">
                 <div className="text-lg font-bold">{brl(result.cost_cents)}</div>
