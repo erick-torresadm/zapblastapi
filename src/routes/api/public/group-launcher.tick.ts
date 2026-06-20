@@ -60,14 +60,19 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
               .maybeSingle();
             if (!srv) throw new Error("Servidor Evolution não encontrado");
             const server = { base_url: srv.base_url, api_key: srv.api_key };
-            // Always use the instance's own connected number as initial participant
+            // Initial participant: instance's own number, or fall back to first "convidado".
             let participantPhone = String(job.participant_phone ?? "").replace(/\D/g, "");
             if (participantPhone.length < 10) {
               participantPhone = (await resolveInstancePhone(supabaseAdmin, campaign.instance_id)) ?? "";
             }
-            if (!participantPhone || participantPhone.length < 10) {
-              throw new Error("Chip sem número conectado — reconecte o WhatsApp da instância");
+            if (participantPhone.length < 10) {
+              const extras = normalizePhoneList(campaign.extra_participants as string[] | null);
+              if (extras.length > 0) participantPhone = extras[0];
             }
+            if (!participantPhone || participantPhone.length < 10) {
+              throw new Error("Sem participante inicial — adicione um número em Configurações → Convidados ou reconecte o chip");
+            }
+
 
             const grp = await createGroup(server, inst.instance_name, {
               subject: job.subject,
