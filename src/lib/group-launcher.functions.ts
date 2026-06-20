@@ -192,7 +192,7 @@ export const updateGroupCampaignFn = createServerFn({ method: "POST" })
     if (admin_participants) patch.admin_participants = normalizePhoneList(admin_participants);
     const { data: row, error } = await supabase
       .from("group_campaigns")
-      .update(patch)
+      .update(patch as never)
       .eq("id", id)
       .select()
       .single();
