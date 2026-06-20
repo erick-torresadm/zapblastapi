@@ -186,7 +186,7 @@ function KeywordsPage() {
                   <span className="font-medium">{t.flow_name}</span>
                   <Badge variant="outline">{matchLabel[t.match_mode]}</Badge>
                   {t.instance ? (
-                    <Badge variant="secondary">Chip: {t.instance.instance_name}</Badge>
+                    <Badge variant="secondary">Chip: {formatInstanceLabel(t.instance.instance_name, t.instance.phone_number)}</Badge>
                   ) : (
                     <Badge variant="secondary">Qualquer chip</Badge>
                   )}
