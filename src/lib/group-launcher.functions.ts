@@ -1,7 +1,49 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { parseGroupInviteCode, inviteInfoGroup } from "@/lib/evolution.server";
+import { parseGroupInviteCode, inviteInfoGroup, fetchInstances } from "@/lib/evolution.server";
+
+// Resolve the connected phone of an instance. Tries DB first, then Evolution API
+// (ownerJid / number). Persists the result so subsequent calls are fast.
+export async function resolveInstancePhone(
+  sb: any,
+  instanceId: string,
+): Promise<string | null> {
+  const { data: inst } = await sb.from("whatsapp_instances")
+    .select("phone_number, instance_name, server_id")
+    .eq("id", instanceId).maybeSingle();
+  if (!inst) return null;
+  const dbPhone = String(inst.phone_number ?? "").replace(/\D/g, "");
+  if (dbPhone.length >= 10) return dbPhone;
+
+  const { data: srv } = await sb.from("evolution_servers")
+    .select("base_url, api_key")
+    .eq("id", String(inst.server_id)).maybeSingle();
+  if (!srv) return null;
+
+  try {
+    const raw = await fetchInstances({ base_url: String(srv.base_url), api_key: String(srv.api_key) }, String(inst.instance_name));
+    const arr = Array.isArray(raw) ? raw : [raw];
+    for (const r of arr as Array<Record<string, unknown>>) {
+      const candidates: unknown[] = [
+        r.ownerJid, r.number, r.phoneNumber, r.owner,
+        (r.instance as Record<string, unknown> | undefined)?.ownerJid,
+        (r.instance as Record<string, unknown> | undefined)?.number,
+        (r.instance as Record<string, unknown> | undefined)?.owner,
+        (r.connection as Record<string, unknown> | undefined)?.user,
+      ];
+      for (const c of candidates) {
+        if (!c) continue;
+        const cleaned = String(c).split("@")[0].replace(/\D/g, "");
+        if (cleaned.length >= 10 && cleaned.length <= 15) {
+          await sb.from("whatsapp_instances").update({ phone_number: cleaned }).eq("id", instanceId);
+          return cleaned;
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  return null;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // helpers
@@ -175,15 +217,11 @@ export const enqueueBulkCreateFn = createServerFn({ method: "POST" })
     if (!campaign) throw new Error("Campanha não encontrada");
     if (!campaign.instance_id) throw new Error("Selecione uma instância (chip) na campanha antes de criar grupos.");
 
-    // The initial participant is always the instance's own connected number.
-    const { data: inst } = await supabase
-      .from("whatsapp_instances")
-      .select("phone_number")
-      .eq("id", campaign.instance_id)
-      .maybeSingle();
-    const participantPhone = String(inst?.phone_number ?? "").replace(/\D/g, "");
-    if (!participantPhone || participantPhone.length < 10) {
-      throw new Error("O chip selecionado não está conectado ao WhatsApp (sem número). Conecte o chip e tente novamente.");
+    // Initial participant = instance's own connected number (resolves via Evolution API if needed).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const participantPhone = await resolveInstancePhone(supabaseAdmin, campaign.instance_id);
+    if (!participantPhone) {
+      throw new Error("Não consegui descobrir o número conectado neste chip. Reconecte o WhatsApp (escaneie o QR novamente) e tente de novo.");
     }
 
     const { data: maxRow } = await supabase
