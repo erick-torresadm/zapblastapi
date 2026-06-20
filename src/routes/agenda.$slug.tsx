@@ -175,7 +175,7 @@ function PublicAgenda() {
             )}
           </CardContent>
         </Card>
-        <p className="text-center text-xs text-muted-foreground mt-3">Powered by ZapBlast</p>
+        <p className="text-center text-xs text-muted-foreground mt-3">Powered by Perseidas</p>
       </div>
     </div>
   );
