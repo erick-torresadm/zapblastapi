@@ -45,6 +45,7 @@ import { Route as AuthenticatedAppAgendaRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAppTrafficIndexRouteImport } from './routes/_authenticated/app.traffic.index'
 import { Route as AuthenticatedAppFlowsIndexRouteImport } from './routes/_authenticated/app.flows.index'
 import { Route as AuthenticatedAppCampaignsIndexRouteImport } from './routes/_authenticated/app.campaigns.index'
+import { Route as ApiPublicGroupLauncherTickRouteImport } from './routes/api/public/group-launcher.tick'
 import { Route as ApiPublicEvolutionWebhookTokenRouteImport } from './routes/api/public/evolution-webhook.$token'
 import { Route as ApiPublicCrmResolvePendingRouteImport } from './routes/api/public/crm.resolve-pending'
 import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authenticated/app.lists.$id'
@@ -243,6 +244,12 @@ const AuthenticatedAppCampaignsIndexRoute =
     path: '/app/campaigns/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicGroupLauncherTickRoute =
+  ApiPublicGroupLauncherTickRouteImport.update({
+    id: '/api/public/group-launcher/tick',
+    path: '/api/public/group-launcher/tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEvolutionWebhookTokenRoute =
   ApiPublicEvolutionWebhookTokenRouteImport.update({
     id: '/api/public/evolution-webhook/$token',
@@ -352,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
+  '/api/public/group-launcher/tick': typeof ApiPublicGroupLauncherTickRoute
   '/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
   '/app/traffic/': typeof AuthenticatedAppTrafficIndexRoute
@@ -399,6 +407,7 @@ export interface FileRoutesByTo {
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
+  '/api/public/group-launcher/tick': typeof ApiPublicGroupLauncherTickRoute
   '/app/campaigns': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows': typeof AuthenticatedAppFlowsIndexRoute
   '/app/traffic': typeof AuthenticatedAppTrafficIndexRoute
@@ -450,6 +459,7 @@ export interface FileRoutesById {
   '/_authenticated/app/lists/$id': typeof AuthenticatedAppListsIdRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
+  '/api/public/group-launcher/tick': typeof ApiPublicGroupLauncherTickRoute
   '/_authenticated/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/_authenticated/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
   '/_authenticated/app/traffic/': typeof AuthenticatedAppTrafficIndexRoute
@@ -500,6 +510,7 @@ export interface FileRouteTypes {
     | '/app/lists/$id'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
+    | '/api/public/group-launcher/tick'
     | '/app/campaigns/'
     | '/app/flows/'
     | '/app/traffic/'
@@ -547,6 +558,7 @@ export interface FileRouteTypes {
     | '/app/lists/$id'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
+    | '/api/public/group-launcher/tick'
     | '/app/campaigns'
     | '/app/flows'
     | '/app/traffic'
@@ -597,6 +609,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/lists/$id'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
+    | '/api/public/group-launcher/tick'
     | '/_authenticated/app/campaigns/'
     | '/_authenticated/app/flows/'
     | '/_authenticated/app/traffic/'
@@ -627,6 +640,7 @@ export interface RootRouteChildren {
   ApiPublicWarmupWorkerRoute: typeof ApiPublicWarmupWorkerRoute
   ApiPublicCrmResolvePendingRoute: typeof ApiPublicCrmResolvePendingRoute
   ApiPublicEvolutionWebhookTokenRoute: typeof ApiPublicEvolutionWebhookTokenRoute
+  ApiPublicGroupLauncherTickRoute: typeof ApiPublicGroupLauncherTickRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -883,6 +897,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppCampaignsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/group-launcher/tick': {
+      id: '/api/public/group-launcher/tick'
+      path: '/api/public/group-launcher/tick'
+      fullPath: '/api/public/group-launcher/tick'
+      preLoaderRoute: typeof ApiPublicGroupLauncherTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution-webhook/$token': {
       id: '/api/public/evolution-webhook/$token'
       path: '/api/public/evolution-webhook/$token'
@@ -1096,6 +1117,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWarmupWorkerRoute: ApiPublicWarmupWorkerRoute,
   ApiPublicCrmResolvePendingRoute: ApiPublicCrmResolvePendingRoute,
   ApiPublicEvolutionWebhookTokenRoute: ApiPublicEvolutionWebhookTokenRoute,
+  ApiPublicGroupLauncherTickRoute: ApiPublicGroupLauncherTickRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

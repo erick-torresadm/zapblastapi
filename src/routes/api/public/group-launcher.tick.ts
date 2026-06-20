@@ -155,7 +155,10 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
               link.group_jid!,
             );
             const count = info.size ?? info.participants?.length ?? 0;
-            const patch: Record<string, unknown> = { member_count: count, last_checked_at: new Date().toISOString() };
+            const patch: { member_count: number; last_checked_at: string; status?: string; filled_at?: string } = {
+              member_count: count,
+              last_checked_at: new Date().toISOString(),
+            };
             if (count >= campaign.member_limit) {
               patch.status = "full";
               patch.filled_at = new Date().toISOString();
