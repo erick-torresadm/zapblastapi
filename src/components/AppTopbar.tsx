@@ -2,8 +2,9 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Wallet, Sparkles } from "lucide-react";
+import { Wallet, Sparkles, Crown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+
 
 const LABELS: Record<string, string> = {
   app: "Dashboard",
