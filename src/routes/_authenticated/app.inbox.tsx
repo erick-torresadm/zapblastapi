@@ -40,6 +40,8 @@ import { ReplyPreview } from "@/components/crm/ReplyPreview";
 import { EmptyChatState } from "@/components/crm/EmptyChatState";
 import { Avatar } from "@/components/crm/Avatar";
 import { formatPhone as fmtInstancePhone } from "@/lib/format-instance";
+import { formatPhone, displayName, isPhoneResolved } from "@/lib/crm-phone";
+
 
 
 export const Route = createFileRoute("/_authenticated/app/inbox")({ component: Inbox });
