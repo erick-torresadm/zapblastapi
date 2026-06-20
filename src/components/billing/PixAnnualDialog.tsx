@@ -71,24 +71,34 @@ export function PixAnnualDialog({ open, onOpenChange, planId, planName, annualCe
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <QrCode className="h-5 w-5" /> {planName} Anual via PIX
+            <QrCode className="h-5 w-5" /> {upgrade ? `Upgrade para ${planName} (anual)` : `${planName} Anual via PIX`}
           </DialogTitle>
           <DialogDescription>
-            {annualFmt} à vista · 30% off · 12 meses de acesso
+            {upgrade
+              ? `Cobrando apenas a diferença sobre o seu plano anual atual — sem reembolso.`
+              : `${annualFmt} à vista · 30% off · 12 meses de acesso`}
           </DialogDescription>
         </DialogHeader>
 
         {!pix ? (
           <div className="flex flex-col gap-3 py-4">
             <p className="text-sm text-muted-foreground">
-              Gere um QR Code PIX e pague com qualquer banco. Após a confirmação, seu plano anual será ativado automaticamente.
+              {upgrade
+                ? "Vamos gerar um PIX apenas com a diferença entre o plano atual e o novo. Após o pagamento, o upgrade entra em vigor imediatamente."
+                : "Gere um QR Code PIX e pague com qualquer banco. Após a confirmação, seu plano anual será ativado automaticamente."}
             </p>
             <Button onClick={() => create.mutate()} disabled={create.isPending} className="w-full">
-              {create.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gerando...</> : `Gerar PIX de ${annualFmt}`}
+              {create.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gerando...</> : (upgrade ? "Gerar PIX da diferença" : `Gerar PIX de ${annualFmt}`)}
             </Button>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3 py-2">
+            {pix.upgrade_from && (
+              <div className="w-full rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+                <div className="text-muted-foreground">Upgrade <strong>{pix.upgrade_from.plan_name}</strong> → <strong>{planName}</strong></div>
+                <div className="font-medium text-primary">Você paga apenas {chargeFmt} (diferença anual)</div>
+              </div>
+            )}
             <div className="bg-white p-3 rounded-lg border">
               <img src={pix.imagem_qrcode} alt="QR Code PIX" className="w-56 h-56" />
             </div>
