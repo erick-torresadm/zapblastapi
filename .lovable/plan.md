@@ -1,100 +1,62 @@
-## Group Launcher — Criação em lote + Rotator de link
+## Problema
 
-Nova ferramenta para lançamentos meteóricos no WhatsApp: criar dezenas de grupos de uma vez, distribuir o link público com rotação automática quando enche, e monitorar capacidade em background.
+17 conversas no CRM ficam em **"Identificando…"** porque o JID é `@lid` (criptografado do WhatsApp) e o resolvedor atual (`lookup_lid_phone`) só funciona quando o webhook já recebeu uma mensagem **pareada** (`remoteJid=@s.whatsapp.net` + `remoteJidAlt=@lid`) na tabela `incoming_messages`. Se esse pareamento nunca chegou, o número nunca resolve — e o retry só repete a mesma consulta vazia.
 
-### Conceito (modelo de dados)
+A solução correta (usada pelo próprio Evolution e Baileys) é **baixar o mapa `@lid ↔ telefone real` direto da instância**, que o Baileys mantém em memória/disco. A Evolution expõe isso em `POST /chat/findChats/{instance}`, cuja resposta traz `remoteJid` (telefone real) **e** `remoteJidAlt` (o `@lid` correspondente) por chat — exatamente o que falta.
 
-```text
-group_campaigns          → 1 lançamento (ex: "Black Friday 2026")
-  ├─ slug público        → perseidas.app/g/{slug}
-  ├─ member_limit (950)  → quando rotacionar
-  ├─ default_image, default_description
-  └─ instance_id         → qual WhatsApp cria os grupos
+## O que vou construir
 
-group_campaign_links     → cada grupo dentro da campanha
-  ├─ campaign_id
-  ├─ source: 'created'|'pasted'
-  ├─ group_jid           → "5511...-1709...@g.us" (quando criado via Evolution)
-  ├─ invite_code         → código de chat.whatsapp.com/{code}
-  ├─ invite_url          → URL completa
-  ├─ title, position
-  ├─ member_count, last_checked_at
-  ├─ status: 'pending'|'active'|'full'|'broken'|'archived'
-  └─ filled_at
-```
+### 1. Migration: cache de mapeamento + função melhorada
 
-### Backend
+`supabase/migrations/<ts>_crm_lid_map.sql`:
 
-**Migration**
-- Tabelas acima com RLS por `owner_user_id` (mesmo padrão multitenant atual).
-- Grants padrão (`authenticated` + `service_role`).
-- Índice parcial em `(campaign_id, position) WHERE status='active'` para o rotator escolher rápido.
-- RPC `public_get_next_group_link(slug TEXT)` — security definer, sem auth: retorna o próximo `invite_url` ativo, incrementa contador de cliques, marca como "full" se passou do limite.
+- Tabela `public.crm_lid_map(owner_user_id, instance_id, lid_jid, phone, updated_at)` com `UNIQUE(owner_user_id, instance_id, lid_jid)`. RLS scoped por workspace.
+- Função `crm_upsert_lid_map(owner, instance, lid, phone)` SECURITY DEFINER usada pelo sync.
+- **Substituir `lookup_lid_phone`** para consultar `crm_lid_map` em **prioridade 0** (antes das fontes atuais a/b/c). Assim o trigger `BEFORE INSERT` em `chat_messages` resolve instantaneamente quando o mapa já foi sincronizado.
+- Função `crm_apply_lid_resolution(owner_user_id)`: percorre `crm_conversations` com `contact_jid LIKE '%@lid'` e, se houver entrada em `crm_lid_map`, atualiza `contact_phone`/`contact_jid` e marca `is_resolved=true`. Faz merge via `crm_merge_conversations` quando já existe conversa com o telefone real.
 
-**Helper Evolution** (`src/lib/evolution.server.ts` — adicionar)
-- `createGroup(server, instance, { subject, description, participants[] })` → `POST /group/create/{instance}`
-- `fetchInviteCode(server, instance, groupJid)` → `GET /group/inviteCode/{instance}?groupJid=...`
-- `updateGroupPicture(server, instance, groupJid, image)` → opcional, para foto
-- Já temos `findGroupInfos` (lê member_count) e `inviteInfoGroup` (valida link colado).
+### 2. Wrapper Evolution: `findChats`
 
-**Server functions** (`src/lib/group-launcher.functions.ts`)
-- `createCampaign` — cria registro + slug único.
-- `bulkCreateGroups({ campaignId, count, subjectTemplate, description, image })` — loop com throttle (1 grupo a cada ~2s pra não tomar ban) chamando Evolution; salva cada grupo + invite_code retornado. Roda **assíncrono** via job table (`group_create_jobs`) processado por cron, para não travar a UI em criações de 50+ grupos.
-- `pasteGroupLinks({ campaignId, links[] })` — parse invite_code, valida via `inviteInfoGroup`, insere como `source='pasted'`.
-- `reorderLinks`, `archiveLink`, `deleteCampaign`.
+Em `src/lib/evolution.server.ts`:
 
-**Workers (`/api/public/group-launcher/...`)**
-- `tick-create` — pega N jobs `pending` em `group_create_jobs`, cria grupos via Evolution, backoff exponencial em falha.
-- `tick-monitor` — para cada link `active`, chama `findGroupInfos`, atualiza `member_count`; se `>= member_limit` marca `full` e promove o próximo `pending` da fila para `active`.
-- Ambos agendados via `pg_cron`: create a cada 30s, monitor a cada 2min.
+- Adicionar endpoint `findChats: POST /chat/findChats/{instance}`.
+- `export async function findChats(server, instanceName)` → `POST` com body `{}`, retorna array de chats com `remoteJid`, `remoteJidAlt`, `pushName`, `profilePicUrl`, `name`.
 
-### Frontend
+### 3. Server fn: `syncInstanceContactsFn`
 
-**Rota pública** `src/routes/g.$slug.tsx`
-- Server loader chama RPC `public_get_next_group_link`.
-- Redirect 302 direto para `https://chat.whatsapp.com/{code}` (sem página intermediária — o usuário pediu só rotator puro nesta fase).
-- Fallback: se nenhum link ativo, renderiza "Em breve — fique de olho".
+Novo em `src/lib/crm-profile.functions.ts`:
 
-**Painel** `src/routes/_authenticated/app.group-launcher.*`
-- `index.tsx` — lista de campanhas (nome, slug público, total de grupos, total de cliques, % ocupação média).
-- `$id.tsx` — detalhe da campanha com 3 abas:
-  - **Grupos**: tabela com posição, título, status, membros/limite, último check, botão "arquivar". Botão "Reordenar" (drag-and-drop com `@dnd-kit`).
-  - **Adicionar**: dois cards — "Criar em lote" (quantidade, template de nome `{n}`, descrição, foto, instância) e "Colar links" (textarea).
-  - **Configurações**: slug, limite por grupo, imagem padrão, instância padrão.
-- Realtime via Supabase channel para refletir progresso da criação em lote sem refresh.
+- Input: `{ instance_id }`.
+- Autoriza via `requireSupabaseAuth` + checa que a instância pertence ao workspace (`crm_is_workspace_member`).
+- Busca server Evolution + nome da instância (status precisa ser `connected`).
+- Chama `findChats` e `findContacts`:
+  - Para cada chat com `remoteJidAlt` que termina em `@lid` e `remoteJid` que casa `\d+@s.whatsapp.net`: chama `crm_upsert_lid_map`.
+  - Para cada contato com `pushName`/`profilePicUrl` e telefone resolvido: upsert em `crm_contacts_profile`.
+- No fim, executa `crm_apply_lid_resolution(userId)` para destravar as conversas presas.
+- Retorna `{ chats_scanned, lid_mapped, profiles_cached, conversations_resolved }`.
 
-**Componentes novos**
-- `GroupCampaignCard`, `GroupLinkRow`, `BulkCreateForm`, `PasteLinksForm`, `CapacityBar` (barra de progresso colorida).
+### 4. UI: botão de sincronizar + auto-sync na primeira visita
 
-### Navegação
-- Item "Group Launcher" no menu lateral de `app/_authenticated`, ao lado de Campanhas.
+`src/routes/_authenticated/app.inbox.tsx` (ou onde o CRM lista as conversas):
 
-### Detalhes técnicos importantes
+- Botão no header **"Sincronizar contatos do WhatsApp"** que dispara `syncInstanceContactsFn` para cada `whatsapp_instance` conectada do workspace, mostrando toast com totais.
+- `useEffect` na primeira montagem: se existem conversas com `is_resolved=false` E nenhuma sincronização nas últimas 10min, dispara automaticamente em background (sem bloquear UI).
+- `crm-phone.ts`: ajustar `formatPhone` para mostrar **"Aguardando sincronização…"** em vez de "Identificando…" quando o telefone tem 15+ dígitos, para deixar claro a próxima ação.
 
-- **Throttle de criação**: WhatsApp ban risk se criar grupos rápido demais. Limite 1/instância a cada 2s no worker.
-- **Slug colisão**: validar único + sugerir alternativa.
-- **member_count via Evolution**: `findGroupInfos` retorna `participants[]`, contamos `length`. Cache mínimo 60s para não saturar a API.
-- **Race condition no rotator**: RPC usa `FOR UPDATE SKIP LOCKED` ao selecionar o link ativo para evitar dois requests pegarem o mesmo "último slot".
-- **Links colados**: valida formato (`/^[A-Za-z0-9_-]{20,24}$/` para invite_code), chama `inviteInfoGroup` para puxar título e marcar `member_count` inicial.
-- **Bucket de imagens**: reusar `crm-avatars` ou criar `group-images` privado com URL assinada para a foto do grupo.
+### 5. Auto-sync periódico
 
-### Não está nesta fase (anotado para futuro)
-- Captura de lead antes do redirect (você sinalizou que não quer agora).
-- Analytics de cliques por origem (UTM) — fácil de adicionar depois sobre a mesma tabela.
-- Múltiplas instâncias rotacionando criação em paralelo.
+Adicionar tick em `src/routes/api/public/crm.tick.ts` (sem auth, mas protegido por header `x-cron-secret`) que para cada usuário com conversas pendentes >30min roda `syncInstanceContactsFn` em cada instância conectada. Agendar no Supabase via `pg_cron` a cada 15min (mesma estratégia do `agenda-dispatch-every-minute`).
 
-### Arquivos a criar/editar
+## Resultado esperado
 
-**Criar**
-- `supabase/migrations/<ts>_group_launcher.sql`
-- `src/lib/group-launcher.functions.ts`
-- `src/routes/g.$slug.tsx`
-- `src/routes/_authenticated/app.group-launcher.index.tsx`
-- `src/routes/_authenticated/app.group-launcher.$id.tsx`
-- `src/routes/api/public/group-launcher.tick-create.ts`
-- `src/routes/api/public/group-launcher.tick-monitor.ts`
-- `src/components/group-launcher/{GroupCampaignCard,GroupLinkRow,BulkCreateForm,PasteLinksForm,CapacityBar}.tsx`
+- Conversas presas em "Identificando…" passam a mostrar o nome real e o telefone correto após 1 clique no botão (ou ~15min via cron).
+- Novas mensagens `@lid` são resolvidas **na própria inserção** (trigger BEFORE INSERT consulta o cache), sem ficar "identificando".
+- Foto e pushName ficam populados automaticamente.
 
-**Editar**
-- `src/lib/evolution.server.ts` (adicionar `createGroup`, `fetchInviteCode`, `updateGroupPicture`).
-- Menu lateral do `_authenticated` (adicionar item).
+## Referências
+
+- Evolution API `POST /chat/findChats/{instance}` — retorna `remoteJid` + `remoteJidAlt` (PR #1955 do Evolution).
+- Evolution API `POST /chat/findContacts/{instance}` — já usado parcialmente, ampliado para popular `pushName`/`profilePicUrl`.
+- Tracking issue `@lid vs @jid` — github.com/EvolutionAPI/evolution-api/issues/1872.
+
+Posso seguir?
