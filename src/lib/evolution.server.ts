@@ -347,8 +347,8 @@ export async function sendSticker(
   sticker: string,
   opts?: { delayMs?: number },
 ) {
-  return evoFetch(server, `/message/sendSticker/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendSticker", { instance: instanceName }), {
+    method: epMethod("sendSticker"),
     body: JSON.stringify({ number: phone, sticker, ...(opts?.delayMs ? { delay: opts.delayMs } : {}) }),
   });
 }
