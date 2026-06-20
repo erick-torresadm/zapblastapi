@@ -3262,6 +3262,19 @@ export type Database = {
         Args: { _tool: string; _user_id: string }
         Returns: undefined
       }
+      register_funnel_lead: {
+        Args: {
+          _answers?: Json
+          _completed?: boolean
+          _email?: string
+          _last_step_id?: string
+          _name?: string
+          _phone?: string
+          _slug: string
+          _utm?: Json
+        }
+        Returns: string
+      }
       submit_traffic_lead: {
         Args: {
           _email: string
