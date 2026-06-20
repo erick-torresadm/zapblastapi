@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { previewSpintax } from "@/lib/spintax";
+import { formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/campaigns/new")({ component: NewCampaign });
 
