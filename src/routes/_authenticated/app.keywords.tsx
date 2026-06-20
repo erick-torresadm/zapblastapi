@@ -280,7 +280,7 @@ function KeywordsPage() {
                     <span className="font-medium truncate">{r.flow_name}</span>
                     <span className="text-muted-foreground">→ {r.contact_phone}</span>
                     {r.keyword && <Badge variant="outline" className="font-mono text-xs">{r.keyword}</Badge>}
-                    <Badge variant="outline" className="text-xs">{r.instance_name}</Badge>
+                    <Badge variant="outline" className="text-xs">{formatInstanceLabel(r.instance_name, (r as any).instance_phone)}</Badge>
                   </div>
                   {r.error && <div className="text-xs text-destructive mt-1 truncate">{r.error}</div>}
                 </div>
