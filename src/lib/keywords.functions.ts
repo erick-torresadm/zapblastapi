@@ -45,7 +45,7 @@ export const listKeywordTriggersFn = createServerFn({ method: "GET" })
         ? supabase.from("flows" as any).select("id,name").in("id", flowIds).then((r: any) => r.data ?? [])
         : Promise.resolve([]),
       instIds.length
-        ? supabase.from("whatsapp_instances" as any).select("id,instance_name,status").in("id", instIds).then((r: any) => r.data ?? [])
+        ? supabase.from("whatsapp_instances" as any).select("id,instance_name,phone_number,status").in("id", instIds).then((r: any) => r.data ?? [])
         : Promise.resolve([]),
     ]);
 
