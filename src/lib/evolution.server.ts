@@ -17,6 +17,83 @@
 
 export type EvolutionServer = { base_url: string; api_key: string };
 
+// ============================================================================
+// 0) ENDPOINT MAP — SINGLE SOURCE OF TRUTH
+// ----------------------------------------------------------------------------
+// Se a Evolution API mudar um path/método em um update, altere AQUI (1 linha).
+// Toda função neste arquivo lê de EVOLUTION_ENDPOINTS — nada hardcoded.
+//
+// Variáveis nos paths:
+//   {instance} → encodeURIComponent(instanceName)
+// ============================================================================
+
+type Method = "GET" | "POST" | "PUT" | "DELETE";
+type Endpoint = { method: Method; path: string };
+
+export const EVOLUTION_ENDPOINTS = {
+  // Instance lifecycle
+  createInstance:        { method: "POST",   path: "/instance/create" },
+  connectInstance:       { method: "GET",    path: "/instance/connect/{instance}" },
+  instanceState:         { method: "GET",    path: "/instance/connectionState/{instance}" },
+  fetchInstances:        { method: "GET",    path: "/instance/fetchInstances" },
+  logoutInstance:        { method: "DELETE", path: "/instance/logout/{instance}" },
+  deleteInstance:        { method: "DELETE", path: "/instance/delete/{instance}" },
+  restartInstance:       { method: "PUT",    path: "/instance/restart/{instance}" },
+  restartInstanceLegacy: { method: "POST",   path: "/instance/restart/{instance}" },
+
+  // Webhook
+  setWebhook:    { method: "POST", path: "/webhook/set/{instance}" },
+  findWebhook:   { method: "GET",  path: "/webhook/find/{instance}" },
+
+  // Send
+  sendText:           { method: "POST", path: "/message/sendText/{instance}" },
+  sendMedia:          { method: "POST", path: "/message/sendMedia/{instance}" },
+  sendWhatsAppAudio:  { method: "POST", path: "/message/sendWhatsAppAudio/{instance}" },
+  sendSticker:        { method: "POST", path: "/message/sendSticker/{instance}" },
+  sendLocation:       { method: "POST", path: "/message/sendLocation/{instance}" },
+  sendContact:        { method: "POST", path: "/message/sendContact/{instance}" },
+  sendReaction:       { method: "POST", path: "/message/sendReaction/{instance}" },
+  sendPoll:           { method: "POST", path: "/message/sendPoll/{instance}" },
+
+  // Chat / contact
+  whatsappNumbers:           { method: "POST", path: "/chat/whatsappNumbers/{instance}" },
+  fetchProfile:              { method: "POST", path: "/chat/fetchProfile/{instance}" },
+  fetchProfilePictureUrl:    { method: "GET",  path: "/chat/fetchProfilePictureUrl/{instance}" },
+  getBase64FromMediaMessage: { method: "POST", path: "/chat/getBase64FromMediaMessage/{instance}" },
+  markMessageAsRead:         { method: "POST", path: "/chat/markMessageAsRead/{instance}" },
+  sendPresence:              { method: "POST", path: "/chat/sendPresence/{instance}" },
+  findContacts:              { method: "POST", path: "/chat/findContacts/{instance}" },
+
+  // Groups
+  inviteInfoGroup: { method: "GET", path: "/group/inviteInfo/{instance}" },
+  findGroupInfos:  { method: "GET", path: "/group/findGroupInfos/{instance}" },
+  fetchAllGroups:  { method: "GET", path: "/group/fetchAllGroups/{instance}" },
+
+  // Server-level
+  root: { method: "GET", path: "/" },
+} as const satisfies Record<string, Endpoint>;
+
+export type EvolutionEndpointKey = keyof typeof EVOLUTION_ENDPOINTS;
+
+/** Builds a path from EVOLUTION_ENDPOINTS, injecting {instance} and an optional query string. */
+function ep(key: EvolutionEndpointKey, vars?: { instance?: string; query?: Record<string, string | number | boolean | undefined> }): string {
+  let path: string = EVOLUTION_ENDPOINTS[key].path;
+  if (vars?.instance != null) path = path.replace("{instance}", encodeURIComponent(vars.instance));
+  if (vars?.query) {
+    const qs = Object.entries(vars.query)
+      .filter(([, v]) => v !== undefined && v !== null && v !== "")
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+      .join("&");
+    if (qs) path += (path.includes("?") ? "&" : "?") + qs;
+  }
+  return path;
+}
+
+/** Returns the HTTP method registered for an endpoint. */
+function epMethod(key: EvolutionEndpointKey): Method {
+  return EVOLUTION_ENDPOINTS[key].method;
+}
+
 // ----- core fetch ------------------------------------------------------------
 
 async function evoFetchRaw(
@@ -70,8 +147,8 @@ export async function createInstance(
   instanceName: string,
   webhookUrl?: string,
 ) {
-  return evoFetch(server, "/instance/create", {
-    method: "POST",
+  return evoFetch(server, ep("createInstance"), {
+    method: epMethod("createInstance"),
     body: JSON.stringify({
       instanceName,
       qrcode: true,
@@ -89,33 +166,54 @@ export async function createInstance(
 }
 
 export async function connectInstance(server: EvolutionServer, instanceName: string) {
-  return evoFetch(server, `/instance/connect/${encodeURIComponent(instanceName)}`, { method: "GET" });
+  return evoFetch(server, ep("connectInstance", { instance: instanceName }), { method: epMethod("connectInstance") });
 }
 
 export async function instanceState(server: EvolutionServer, instanceName: string) {
-  return evoFetch(server, `/instance/connectionState/${encodeURIComponent(instanceName)}`, { method: "GET" });
+  return evoFetch(server, ep("instanceState", { instance: instanceName }), { method: epMethod("instanceState") });
 }
 
 export async function fetchInstances(server: EvolutionServer, instanceName?: string) {
-  const q = instanceName ? `?instanceName=${encodeURIComponent(instanceName)}` : "";
-  return evoFetch(server, `/instance/fetchInstances${q}`, { method: "GET" });
+  return evoFetch(server, ep("fetchInstances", { query: { instanceName } }), { method: epMethod("fetchInstances") });
 }
 
 export async function logoutInstance(server: EvolutionServer, instanceName: string) {
-  return evoFetch(server, `/instance/logout/${encodeURIComponent(instanceName)}`, { method: "DELETE" });
+  return evoFetch(server, ep("logoutInstance", { instance: instanceName }), { method: epMethod("logoutInstance") });
 }
 
 export async function deleteInstance(server: EvolutionServer, instanceName: string) {
-  return evoFetch(server, `/instance/delete/${encodeURIComponent(instanceName)}`, { method: "DELETE" });
+  return evoFetch(server, ep("deleteInstance", { instance: instanceName }), { method: epMethod("deleteInstance") });
 }
 
 export async function restartInstance(server: EvolutionServer, instanceName: string) {
-  // Docs note v2 uses PUT; older deployments accept POST. Try PUT first, then POST.
+  // v2 usa PUT; deployments antigos aceitam POST. Tenta o canônico primeiro.
   try {
-    return await evoFetch(server, `/instance/restart/${encodeURIComponent(instanceName)}`, { method: "PUT" });
+    return await evoFetch(server, ep("restartInstance", { instance: instanceName }), { method: epMethod("restartInstance") });
   } catch {
-    return evoFetch(server, `/instance/restart/${encodeURIComponent(instanceName)}`, { method: "POST" });
+    return evoFetch(server, ep("restartInstanceLegacy", { instance: instanceName }), { method: epMethod("restartInstanceLegacy") });
   }
+}
+
+// ============================================================================
+// 1b) Server-level helpers (versão / healthcheck)
+// ============================================================================
+
+/** Ping no root da Evolution. Retorna `{ ok, version?, raw? }` sem lançar. */
+export async function pingServer(server: EvolutionServer): Promise<{ ok: boolean; version?: string; raw?: unknown; error?: string }> {
+  try {
+    const r = await evoFetch(server, ep("root"), { method: epMethod("root") });
+    const version = (r as { version?: string; manager?: { version?: string } }).version
+      ?? (r as { manager?: { version?: string } }).manager?.version;
+    return { ok: true, version, raw: r };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+/** Tenta detectar a versão da Evolution. Útil para alertar quando muda. */
+export async function detectEvolutionVersion(server: EvolutionServer): Promise<string | null> {
+  const p = await pingServer(server);
+  return p.version ?? null;
 }
 
 // ============================================================================
@@ -123,8 +221,8 @@ export async function restartInstance(server: EvolutionServer, instanceName: str
 // ============================================================================
 
 export async function setWebhook(server: EvolutionServer, instanceName: string, webhookUrl: string) {
-  return evoFetch(server, `/webhook/set/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("setWebhook", { instance: instanceName }), {
+    method: epMethod("setWebhook"),
     body: JSON.stringify({
       webhook: {
         enabled: true,
@@ -138,7 +236,7 @@ export async function setWebhook(server: EvolutionServer, instanceName: string, 
 }
 
 export async function findWebhook(server: EvolutionServer, instanceName: string) {
-  return evoFetch(server, `/webhook/find/${encodeURIComponent(instanceName)}`, { method: "GET" });
+  return evoFetch(server, ep("findWebhook", { instance: instanceName }), { method: epMethod("findWebhook") });
 }
 
 // ============================================================================
@@ -174,8 +272,8 @@ export async function sendText(
   const opts: SendCommonOpts | undefined = typeof delayMsOrOpts === "number"
     ? { delayMs: delayMsOrOpts }
     : delayMsOrOpts;
-  return evoFetch(server, `/message/sendText/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendText", { instance: instanceName }), {
+    method: epMethod("sendText"),
     body: JSON.stringify({ number: phone, text, ...commonPayload(opts) }),
   });
 }
@@ -206,8 +304,8 @@ export async function sendMedia(
   const o: SendCommonOpts | undefined = typeof delayMsOrOpts === "number"
     ? { delayMs: delayMsOrOpts }
     : delayMsOrOpts;
-  return evoFetch(server, `/message/sendMedia/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendMedia", { instance: instanceName }), {
+    method: epMethod("sendMedia"),
     body: JSON.stringify({
       number: phone,
       mediatype: opts.mediatype,
@@ -231,8 +329,8 @@ export async function sendWhatsAppAudio(
   audio: string,
   opts?: { delayMs?: number; encoding?: boolean },
 ) {
-  return evoFetch(server, `/message/sendWhatsAppAudio/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendWhatsAppAudio", { instance: instanceName }), {
+    method: epMethod("sendWhatsAppAudio"),
     body: JSON.stringify({
       number: phone,
       audio,
@@ -249,8 +347,8 @@ export async function sendSticker(
   sticker: string,
   opts?: { delayMs?: number },
 ) {
-  return evoFetch(server, `/message/sendSticker/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendSticker", { instance: instanceName }), {
+    method: epMethod("sendSticker"),
     body: JSON.stringify({ number: phone, sticker, ...(opts?.delayMs ? { delay: opts.delayMs } : {}) }),
   });
 }
@@ -262,8 +360,8 @@ export async function sendLocation(
   loc: { name?: string; address?: string; latitude: number; longitude: number },
   opts?: { delayMs?: number },
 ) {
-  return evoFetch(server, `/message/sendLocation/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendLocation", { instance: instanceName }), {
+    method: epMethod("sendLocation"),
     body: JSON.stringify({ number: phone, ...loc, ...(opts?.delayMs ? { delay: opts.delayMs } : {}) }),
   });
 }
@@ -281,8 +379,8 @@ export async function sendContact(
     url?: string;
   }>,
 ) {
-  return evoFetch(server, `/message/sendContact/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendContact", { instance: instanceName }), {
+    method: epMethod("sendContact"),
     body: JSON.stringify({ number: phone, contact: contacts }),
   });
 }
@@ -293,8 +391,8 @@ export async function sendReaction(
   key: { remoteJid: string; fromMe: boolean; id: string },
   reaction: string,
 ) {
-  return evoFetch(server, `/message/sendReaction/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendReaction", { instance: instanceName }), {
+    method: epMethod("sendReaction"),
     body: JSON.stringify({ key, reaction }),
   });
 }
@@ -306,8 +404,8 @@ export async function sendPoll(
   poll: { name: string; selectableCount?: number; values: string[] },
   opts?: { delayMs?: number },
 ) {
-  return evoFetch(server, `/message/sendPoll/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendPoll", { instance: instanceName }), {
+    method: epMethod("sendPoll"),
     body: JSON.stringify({
       number: phone,
       name: poll.name,
@@ -334,16 +432,16 @@ export async function checkWhatsappNumbers(
   instanceName: string,
   numbers: string[],
 ): Promise<WhatsappCheck[]> {
-  const res = await evoFetchRaw(server, `/chat/whatsappNumbers/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  const res = await evoFetchRaw(server, ep("whatsappNumbers", { instance: instanceName }), {
+    method: epMethod("whatsappNumbers"),
     body: JSON.stringify({ numbers }),
   });
   return (Array.isArray(res) ? res : []) as WhatsappCheck[];
 }
 
 export async function fetchProfile(server: EvolutionServer, instanceName: string, number: string) {
-  return evoFetch(server, `/chat/fetchProfile/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("fetchProfile", { instance: instanceName }), {
+    method: epMethod("fetchProfile"),
     body: JSON.stringify({ number }),
   });
 }
@@ -351,8 +449,8 @@ export async function fetchProfile(server: EvolutionServer, instanceName: string
 export async function fetchProfilePictureUrl(server: EvolutionServer, instanceName: string, number: string) {
   return evoFetch(
     server,
-    `/chat/fetchProfilePictureUrl/${encodeURIComponent(instanceName)}?number=${encodeURIComponent(number)}&sendUrl=true`,
-    { method: "GET" },
+    ep("fetchProfilePictureUrl", { instance: instanceName, query: { number, sendUrl: true } }),
+    { method: epMethod("fetchProfilePictureUrl") },
   );
 }
 
@@ -370,9 +468,9 @@ export async function getBase64FromMediaMessage(
   try {
     const res = await evoFetch(
       server,
-      `/chat/getBase64FromMediaMessage/${encodeURIComponent(instanceName)}`,
+      ep("getBase64FromMediaMessage", { instance: instanceName }),
       {
-        method: "POST",
+        method: epMethod("getBase64FromMediaMessage"),
         body: JSON.stringify({ message, convertToMp4 }),
       },
     );
@@ -394,8 +492,8 @@ export async function markMessageAsRead(
   instanceName: string,
   messages: Array<{ id: string; fromMe: boolean; remoteJid: string }>,
 ) {
-  return evoFetch(server, `/chat/markMessageAsRead/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("markMessageAsRead", { instance: instanceName }), {
+    method: epMethod("markMessageAsRead"),
     body: JSON.stringify({ readMessages: messages }),
   });
 }
@@ -411,8 +509,8 @@ export async function sendPresence(
   presence: "composing" | "recording" | "paused",
   delayMs: number = 1200,
 ) {
-  return evoFetch(server, `/chat/sendPresence/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendPresence", { instance: instanceName }), {
+    method: epMethod("sendPresence"),
     body: JSON.stringify({ number: phone, presence, delay: delayMs }),
   });
 }
@@ -536,8 +634,8 @@ export async function inviteInfoGroup(
 ): Promise<GroupInfo> {
   const r = await evoFetch(
     server,
-    `/group/inviteInfo/${encodeURIComponent(instanceName)}?inviteCode=${encodeURIComponent(inviteCode)}`,
-    { method: "GET" },
+    ep("inviteInfoGroup", { instance: instanceName, query: { inviteCode } }),
+    { method: epMethod("inviteInfoGroup") },
   );
   return r as GroupInfo;
 }
@@ -550,8 +648,8 @@ export async function findGroupInfos(
 ): Promise<GroupInfo> {
   const r = await evoFetch(
     server,
-    `/group/findGroupInfos/${encodeURIComponent(instanceName)}?groupJid=${encodeURIComponent(groupJid)}`,
-    { method: "GET" },
+    ep("findGroupInfos", { instance: instanceName, query: { groupJid } }),
+    { method: epMethod("findGroupInfos") },
   );
   return r as GroupInfo;
 }
@@ -564,8 +662,8 @@ export async function fetchAllGroups(
 ): Promise<GroupInfo[]> {
   const r = await evoFetchRaw(
     server,
-    `/group/fetchAllGroups/${encodeURIComponent(instanceName)}?getParticipants=${getParticipants ? "true" : "false"}`,
-    { method: "GET" },
+    ep("fetchAllGroups", { instance: instanceName, query: { getParticipants } }),
+    { method: epMethod("fetchAllGroups") },
   );
   return (Array.isArray(r) ? r : []) as GroupInfo[];
 }
@@ -592,8 +690,8 @@ export async function findContacts(
 ): Promise<EvolutionContact[]> {
   const r = await evoFetchRaw(
     server,
-    `/chat/findContacts/${encodeURIComponent(instanceName)}`,
-    { method: "POST", body: JSON.stringify({ where: {} }) },
+    ep("findContacts", { instance: instanceName }),
+    { method: epMethod("findContacts"), body: JSON.stringify({ where: {} }) },
   );
   return (Array.isArray(r) ? r : []) as EvolutionContact[];
 }
