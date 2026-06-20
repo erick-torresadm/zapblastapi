@@ -272,8 +272,8 @@ export async function sendText(
   const opts: SendCommonOpts | undefined = typeof delayMsOrOpts === "number"
     ? { delayMs: delayMsOrOpts }
     : delayMsOrOpts;
-  return evoFetch(server, `/message/sendText/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendText", { instance: instanceName }), {
+    method: epMethod("sendText"),
     body: JSON.stringify({ number: phone, text, ...commonPayload(opts) }),
   });
 }
