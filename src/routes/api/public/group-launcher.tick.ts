@@ -30,7 +30,12 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
           .order("next_attempt_at", { ascending: true })
           .limit(10);
 
-        for (const job of jobs ?? []) {
+        type GroupCreateJob = {
+          id: string; campaign_id: string; owner_user_id: string; subject: string;
+          description: string | null; image_url: string | null; participant_phone: string | null; attempts: number | null;
+        };
+
+        for (const job of ((jobs ?? []) as GroupCreateJob[])) {
           await supabaseAdmin.from("group_create_jobs").update({ status: "processing" }).eq("id", job.id);
           try {
             const { data: campaign } = await supabaseAdmin
