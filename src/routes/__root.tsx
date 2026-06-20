@@ -83,7 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
               "@id": `${SITE_URL}/#website`,
               url: SITE_URL,
               name: "Perseidas",
-              inLanguage: ["pt-BR", "en", "es", "fr"],
+              inLanguage: ["pt-BR"],
               publisher: { "@id": `${SITE_URL}/#organization` },
             },
           ],

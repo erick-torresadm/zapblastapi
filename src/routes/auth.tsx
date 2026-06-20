@@ -17,9 +17,21 @@ import { Meteors } from "@/components/magicui/meteors";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar — Perseidas" }, { name: "description", content: "Acesse sua conta Perseidas" }] }),
+  head: () => ({
+    meta: [
+      { title: "Entrar ou criar conta — Perseidas" },
+      { name: "description", content: "Acesse sua conta Perseidas ou crie uma grátis para liberar disparos em massa, chatbot e CRM no WhatsApp em poucos minutos." },
+      { property: "og:title", content: "Entrar ou criar conta — Perseidas" },
+      { property: "og:description", content: "Acesse a plataforma anti-ban de disparos, fluxos e CRM no WhatsApp." },
+      { property: "og:url", content: "https://zapblastapi.lovable.app/auth" },
+      { property: "og:locale", content: "pt_BR" },
+      { name: "robots", content: "noindex, follow" },
+    ],
+    links: [{ rel: "canonical", href: "https://zapblastapi.lovable.app/auth" }],
+  }),
   component: AuthPage,
 });
+
 
 
 function AuthPage() {

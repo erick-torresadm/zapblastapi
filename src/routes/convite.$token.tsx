@@ -11,8 +11,18 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/convite/$token")({
   component: InvitePage,
-  head: () => ({ meta: [{ title: "Convite • ZapBlast" }] }),
+  head: () => ({
+    meta: [
+      { title: "Convite • Perseidas" },
+      { name: "description", content: "Você foi convidado para entrar em um time na Perseidas — aceite o convite e comece a atender no WhatsApp." },
+      { property: "og:title", content: "Convite • Perseidas" },
+      { property: "og:description", content: "Você foi convidado para entrar em um time na Perseidas." },
+      { property: "og:locale", content: "pt_BR" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
 });
+
 
 function InvitePage() {
   const { token } = Route.useParams();

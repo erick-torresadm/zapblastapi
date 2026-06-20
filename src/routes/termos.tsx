@@ -7,9 +7,15 @@ export const Route = createFileRoute("/termos")({
     meta: [
       { title: "Termos de Uso · Perseidas" },
       { name: "description", content: "Termos de uso da Perseidas, incluindo limites de responsabilidade sobre banimento de números do WhatsApp em API não oficial." },
+      { property: "og:title", content: "Termos de Uso · Perseidas" },
+      { property: "og:description", content: "Termos de uso da Perseidas e limites de responsabilidade sobre banimento de números do WhatsApp em API não oficial." },
+      { property: "og:url", content: "https://zapblastapi.lovable.app/termos" },
+      { property: "og:locale", content: "pt_BR" },
     ],
+    links: [{ rel: "canonical", href: "https://zapblastapi.lovable.app/termos" }],
   }),
 });
+
 
 function TermsPage() {
   return (

@@ -21,13 +21,26 @@ export const Route = createFileRoute("/agenda/$slug")({
   component: PublicAgenda,
   notFoundComponent: () => <div className="p-10 text-center">Agenda não encontrada.</div>,
   errorComponent: ({ error }) => <div className="p-10 text-center text-red-500">{error.message}</div>,
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: loaderData?.business ? `Agendar — ${loaderData.business.name}` : "Agendar" },
-      { name: "description", content: `Agende seu horário em ${loaderData?.business?.name ?? ""}` },
-    ],
-  }),
+  head: ({ params, loaderData }) => {
+    const name = loaderData?.business?.name ?? "negócio";
+    const about = loaderData?.business?.about?.slice(0, 140) ?? `Agende seu horário em ${name} de forma rápida pelo WhatsApp.`;
+    const title = `Agendar horário em ${name}`;
+    const url = `https://zapblastapi.lovable.app/agenda/${params.slug}`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: about },
+        { property: "og:title", content: title },
+        { property: "og:description", content: about },
+        { property: "og:url", content: url },
+        { property: "og:type", content: "website" },
+        { property: "og:locale", content: "pt_BR" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
 });
+
 
 type Service = { id: string; name: string; description: string | null; duration_min: number; price_cents: number; professional_ids: string[] };
 type Pro = { id: string; name: string; color: string | null; avatar_url: string | null };
@@ -75,6 +88,7 @@ function PublicAgenda() {
       <div className="max-w-xl mx-auto p-4 md:p-8">
         <Card>
           <CardHeader style={{ borderBottom: `3px solid ${accent}` }}>
+            <h1 className="sr-only">Agendar horário em {biz.name}</h1>
             <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" style={{ color: accent }} />{biz.name}</CardTitle>
             {biz.about && <CardDescription>{biz.about}</CardDescription>}
           </CardHeader>
@@ -82,6 +96,7 @@ function PublicAgenda() {
             {step === "service" && (
               <>
                 <h2 className="font-semibold">Escolha o serviço</h2>
+
                 {services.length === 0 && <p className="text-sm text-muted-foreground">Nenhum serviço disponível.</p>}
                 {services.map((s) => (
                   <button key={s.id} onClick={() => { setSvc(s); setStep("pro"); }} className="w-full text-left p-3 rounded-lg border hover:border-primary transition">
@@ -160,7 +175,7 @@ function PublicAgenda() {
             )}
           </CardContent>
         </Card>
-        <p className="text-center text-xs text-muted-foreground mt-3">Powered by ZapBlast</p>
+        <p className="text-center text-xs text-muted-foreground mt-3">Powered by Perseidas</p>
       </div>
     </div>
   );
