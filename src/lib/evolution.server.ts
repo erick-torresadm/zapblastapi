@@ -221,8 +221,8 @@ export async function detectEvolutionVersion(server: EvolutionServer): Promise<s
 // ============================================================================
 
 export async function setWebhook(server: EvolutionServer, instanceName: string, webhookUrl: string) {
-  return evoFetch(server, `/webhook/set/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("setWebhook", { instance: instanceName }), {
+    method: epMethod("setWebhook"),
     body: JSON.stringify({
       webhook: {
         enabled: true,
@@ -236,7 +236,7 @@ export async function setWebhook(server: EvolutionServer, instanceName: string, 
 }
 
 export async function findWebhook(server: EvolutionServer, instanceName: string) {
-  return evoFetch(server, `/webhook/find/${encodeURIComponent(instanceName)}`, { method: "GET" });
+  return evoFetch(server, ep("findWebhook", { instance: instanceName }), { method: epMethod("findWebhook") });
 }
 
 // ============================================================================
