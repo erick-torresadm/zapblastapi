@@ -69,6 +69,11 @@ export function MapsExtractorCard({
   onSuccess: () => void;
 }) {
   const run = useServerFn(searchMapsLeadsFn);
+  const getCredits = useServerFn(getToolCreditsFn);
+  const redeemCoupon = useServerFn(redeemToolCreditCouponFn);
+  const pushToList = useServerFn(pushMapsLeadsToListFn);
+  const qc = useQueryClient();
+  const nav = useNavigate();
   const [mode, setMode] = useState<"text" | "nearby">("text");
   const [query, setQuery] = useState("");
   const [city, setCity] = useState("");
@@ -79,8 +84,12 @@ export function MapsExtractorCard({
   const [waCheck, setWaCheck] = useState(false);
   const [waInstance, setWaInstance] = useState<string>("");
   const [result, setResult] = useState<any | null>(null);
+  const [couponCode, setCouponCode] = useState("");
 
-  const insufficient = balance < flatPrice;
+  const creditsQ = useQuery({ queryKey: ["tool-credits"], queryFn: () => getCredits() });
+  const freeMaps = Number((creditsQ.data as any)?.maps_search ?? 0);
+  const hasFree = freeMaps > 0;
+  const insufficient = !hasFree && balance < flatPrice;
 
   const mut = useMutation({
     mutationFn: () => run({
@@ -99,12 +108,49 @@ export function MapsExtractorCard({
     }),
     onSuccess: (r) => {
       setResult(r);
+      qc.invalidateQueries({ queryKey: ["tool-credits"] });
       if (r.refunded) {
-        toast.warning("Nenhum lead retornado — saldo reembolsado");
+        toast.warning("Nenhum lead retornado — saldo/crédito reembolsado");
+      } else if (r.used_free) {
+        toast.success(`${r.total} leads grátis encontrados • ${freeMaps - 1} buscas grátis restantes`);
       } else {
         toast.success(`${r.total} leads encontrados • debitado ${brl(r.cost_cents)}`);
       }
       onSuccess();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const redeem = useMutation({
+    mutationFn: () => redeemCoupon({ data: { code: couponCode.trim() } }),
+    onSuccess: (r: any) => {
+      if (r?.ok) {
+        toast.success(r.message ?? "Cupom resgatado!");
+        setCouponCode("");
+        qc.invalidateQueries({ queryKey: ["tool-credits"] });
+      } else {
+        toast.error(r?.message ?? "Cupom inválido");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const sendToCampaign = useMutation({
+    mutationFn: async () => {
+      if (!result?.leads?.length) throw new Error("Sem leads para enviar");
+      const phoneLeads = result.leads
+        .filter((l: any) => l.phone)
+        .map((l: any) => ({
+          name: l.name, phone: l.phone,
+          address: l.address ?? null, website: l.website ?? null, category: l.category ?? null,
+        }));
+      if (phoneLeads.length === 0) throw new Error("Nenhum lead com telefone para enviar");
+      const listName = `Maps • ${query || category || "leads"}${city ? ` • ${city}` : ""} • ${new Date().toLocaleDateString("pt-BR")}`;
+      return pushToList({ data: { list_name: listName.slice(0, 120), leads: phoneLeads } });
+    },
+    onSuccess: (r) => {
+      toast.success(`Lista criada com ${r.inserted} contatos`);
+      nav({ to: "/app/campaigns/new", search: { list_id: r.list_id } as any });
     },
     onError: (e: Error) => toast.error(e.message),
   });
