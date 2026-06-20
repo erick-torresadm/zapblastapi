@@ -690,8 +690,8 @@ export async function findContacts(
 ): Promise<EvolutionContact[]> {
   const r = await evoFetchRaw(
     server,
-    `/chat/findContacts/${encodeURIComponent(instanceName)}`,
-    { method: "POST", body: JSON.stringify({ where: {} }) },
+    ep("findContacts", { instance: instanceName }),
+    { method: epMethod("findContacts"), body: JSON.stringify({ where: {} }) },
   );
   return (Array.isArray(r) ? r : []) as EvolutionContact[];
 }
