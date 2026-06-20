@@ -71,16 +71,14 @@ export async function resolveLidFromHistory(
   const lid = args.lid_jid;
   if (!lid || !lid.endsWith("@lid")) return null;
   try {
-    const { data, error } = await supabaseAdmin.rpc("lookup_lid_phone", {
+    const res = await supabaseAdmin.rpc("lookup_lid_phone", {
       p_user_id: args.user_id,
       p_instance_id: args.instance_id,
       p_lid_jid: lid,
     });
-    if (error) {
-      console.warn("[lid] lookup_lid_phone error", error);
-      return null;
-    }
-    const phone = pickPhone(data);
+    console.log("[lid] lookup_lid_phone", { lid, instance: args.instance_id, data: res?.data, error: res?.error });
+    if (res?.error) return null;
+    const phone = pickPhone(res?.data);
     if (!phone) return null;
     return { phone, jid: `${phone}@s.whatsapp.net` };
   } catch (e) {
