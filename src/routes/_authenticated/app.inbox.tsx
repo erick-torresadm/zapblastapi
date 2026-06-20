@@ -865,7 +865,7 @@ function Inbox() {
                             <span className="flex items-center gap-1.5">
                               <span>{i.status === "connected" ? "🟢" : "⚪"}</span>
                               <span className="font-medium">{i.instance_name}</span>
-                              <span className="text-muted-foreground text-xs">{formatPhone(i.phone_number)}</span>
+                              <span className="text-muted-foreground text-xs">{fmtInstancePhone(i.phone_number)}</span>
                             </span>
                           </SelectItem>
                         ))}
