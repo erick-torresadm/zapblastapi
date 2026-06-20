@@ -21,13 +21,26 @@ export const Route = createFileRoute("/agenda/$slug")({
   component: PublicAgenda,
   notFoundComponent: () => <div className="p-10 text-center">Agenda não encontrada.</div>,
   errorComponent: ({ error }) => <div className="p-10 text-center text-red-500">{error.message}</div>,
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: loaderData?.business ? `Agendar — ${loaderData.business.name}` : "Agendar" },
-      { name: "description", content: `Agende seu horário em ${loaderData?.business?.name ?? ""}` },
-    ],
-  }),
+  head: ({ params, loaderData }) => {
+    const name = loaderData?.business?.name ?? "negócio";
+    const about = loaderData?.business?.about?.slice(0, 140) ?? `Agende seu horário em ${name} de forma rápida pelo WhatsApp.`;
+    const title = `Agendar horário em ${name}`;
+    const url = `https://zapblastapi.lovable.app/agenda/${params.slug}`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: about },
+        { property: "og:title", content: title },
+        { property: "og:description", content: about },
+        { property: "og:url", content: url },
+        { property: "og:type", content: "website" },
+        { property: "og:locale", content: "pt_BR" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
 });
+
 
 type Service = { id: string; name: string; description: string | null; duration_min: number; price_cents: number; professional_ids: string[] };
 type Pro = { id: string; name: string; color: string | null; avatar_url: string | null };
