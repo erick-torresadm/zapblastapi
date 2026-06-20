@@ -96,7 +96,23 @@ function Page() {
         </CardContent>
       </Card>
 
+      <Card className="border-primary/30 bg-primary/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Info className="h-4 w-4" /> Como funciona o Group Launcher
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p><strong className="text-foreground">1. Link público rotativo:</strong> compartilhe o endereço acima (<code>/g/{campaign.slug}</code>) em campanhas, anúncios e bios. Cada visitante é redirecionado para o próximo grupo do WhatsApp com vaga disponível — sem precisar trocar o link manualmente.</p>
+          <p><strong className="text-foreground">2. Aba "Grupos":</strong> mostra todos os grupos da campanha. Status <em>ativo</em> = recebendo membros, <em>cheio</em> = atingiu o limite e foi rotacionado, <em>pendente</em> = aguardando na fila.</p>
+          <p><strong className="text-foreground">3. Aba "Adicionar":</strong> use <em>"Criar em lote"</em> para que o sistema crie N grupos do WhatsApp automaticamente via o chip conectado, ou <em>"Colar links"</em> para importar grupos que você já tem.</p>
+          <p><strong className="text-foreground">4. Aba "Configurações":</strong> escolha o chip (instância), limite de membros por grupo, números convidados (entram em cada grupo criado), admins (são promovidos), e a <em>auto-reposição</em> (cria um novo grupo sozinho quando o último encher).</p>
+          <p><strong className="text-foreground">5. Monitoramento:</strong> a cada minuto o sistema verifica quantos membros há em cada grupo. Quando atinge o limite, marca como cheio e passa o próximo grupo ativo a ser servido pelo link público.</p>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="links">
+
         <TabsList>
           <TabsTrigger value="links">Grupos ({links.length})</TabsTrigger>
           <TabsTrigger value="add">Adicionar</TabsTrigger>
