@@ -237,6 +237,20 @@ export const deleteInstanceFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const refreshInstancePhoneFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: { instance_id: string }) => z.object({ instance_id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: inst } = await supabase.from("whatsapp_instances").select("id,user_id").eq("id", data.instance_id).maybeSingle();
+    if (!inst || inst.user_id !== userId) throw new Error("Chip não encontrado");
+    const { resolveInstancePhone } = await import("@/lib/group-launcher.functions");
+    const phone = await resolveInstancePhone(supabase, data.instance_id);
+    return { phone };
+  });
+
+
+
 // Lista chips do usuário com nome do servidor (resolvido server-side, sem expor URL/key).
 export const listInstancesFn = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
