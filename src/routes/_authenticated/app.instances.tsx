@@ -174,6 +174,11 @@ function InstancesPage() {
                       <TableCell>{i.sent_today}</TableCell>
                       <TableCell>{i.daily_limit}</TableCell>
                       <TableCell className="space-x-1">
+                        {i.status === "connected" && !i.phone_number && (
+                          <Button variant="ghost" size="icon" title="Identificar número conectado" onClick={() => refreshPhone.mutate(i.id)} disabled={refreshPhone.isPending}>
+                            <Phone className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" title="Ver QR" onClick={() => { setQrData({ qrcode: null, state: i.status, instanceId: i.id, error: null, tries: 0 }); setQrOpen(true); refreshQr.mutate({ instance_id: i.id }); }}>
                           <QrCode className="h-4 w-4" />
                         </Button>
@@ -181,6 +186,7 @@ function InstancesPage() {
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
+
                     </TableRow>
                   );
                 })}
