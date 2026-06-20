@@ -125,6 +125,72 @@ export const validateNumbersFn = createServerFn({ method: "POST" })
 // 2) Group participant extractor
 // ===========================================================================
 
+const LID_JID_RE = /^\d+@lid$/i;
+const REAL_WA_JID_RE = /^(\d{8,15})@(s\.whatsapp\.net|c\.us)$/i;
+
+function phoneFromJid(value: unknown): string | null {
+  const raw = String(value ?? "").trim();
+  const m = raw.match(REAL_WA_JID_RE);
+  return m?.[1] ?? null;
+}
+
+function phoneFromKeyValue(key: string, value: unknown): string | null {
+  const fromJid = phoneFromJid(value);
+  if (fromJid) return fromJid;
+  if (/lid/i.test(key)) return null;
+  if (!/(phone|number|wuid|senderPn|participantPn|\bpn\b)/i.test(key)) return null;
+  const digits = String(value ?? "").replace(/\D/g, "");
+  return digits.length >= 8 && digits.length <= 15 ? digits : null;
+}
+
+function collectLidMappings(source: unknown, out = new Map<string, string>(), depth = 0): Map<string, string> {
+  if (!source || depth > 5) return out;
+  if (Array.isArray(source)) {
+    for (const item of source) collectLidMappings(item, out, depth + 1);
+    return out;
+  }
+  if (typeof source !== "object") return out;
+
+  const record = source as Record<string, unknown>;
+  const lids = new Set<string>();
+  const phones = new Set<string>();
+
+  for (const [key, value] of Object.entries(record)) {
+    if (typeof value === "string") {
+      const raw = value.trim();
+      if (LID_JID_RE.test(raw)) lids.add(raw);
+      const phone = phoneFromKeyValue(key, raw);
+      if (phone) phones.add(phone);
+    }
+  }
+
+  for (const lid of lids) {
+    for (const phone of phones) out.set(lid, phone);
+  }
+
+  for (const value of Object.values(record)) {
+    if (value && typeof value === "object") collectLidMappings(value, out, depth + 1);
+  }
+  return out;
+}
+
+async function persistLidMappings(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabaseAdmin: any,
+  args: { userId: string; instanceId: string; mappings: Map<string, string> },
+) {
+  if (args.mappings.size === 0) return;
+  await supabaseAdmin.from("crm_lid_map").upsert(
+    Array.from(args.mappings.entries()).map(([lid_jid, phone]) => ({
+      owner_user_id: args.userId,
+      instance_id: args.instanceId,
+      lid_jid,
+      phone,
+    })),
+    { onConflict: "owner_user_id,lid_jid" },
+  );
+}
+
 export const extractGroupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { instance_id: string; group: string }) =>
