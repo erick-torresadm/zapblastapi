@@ -127,10 +127,26 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={path.startsWith("/app/admin")} className="h-9 rounded-lg">
+                  <SidebarMenuButton asChild isActive={path === "/app/admin/catalog"} className="h-9 rounded-lg">
                     <Link to="/app/admin/catalog">
                       <Shield className="h-4 w-4" />
                       <span>Catálogo</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={path === "/app/admin/coupons"} className="h-9 rounded-lg">
+                    <Link to="/app/admin/coupons">
+                      <Ticket className="h-4 w-4" />
+                      <span>Cupons</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={path === "/app/admin/users"} className="h-9 rounded-lg">
+                    <Link to="/app/admin/users">
+                      <UserCog className="h-4 w-4" />
+                      <span>Usuários</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -151,6 +167,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
+
             </SidebarGroupContent>
           </SidebarGroup>
         )}
