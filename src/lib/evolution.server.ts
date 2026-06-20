@@ -329,8 +329,8 @@ export async function sendWhatsAppAudio(
   audio: string,
   opts?: { delayMs?: number; encoding?: boolean },
 ) {
-  return evoFetch(server, `/message/sendWhatsAppAudio/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendWhatsAppAudio", { instance: instanceName }), {
+    method: epMethod("sendWhatsAppAudio"),
     body: JSON.stringify({
       number: phone,
       audio,
