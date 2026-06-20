@@ -30,7 +30,8 @@ const getPublicFunnelFn = createServerFn({ method: "GET" })
     );
     const { data: result, error } = await sb.rpc("get_published_funnel_by_slug", { _slug: data.slug });
     if (error) throw new Error(error.message);
-    return (result as unknown as PublicFunnel | null) ?? null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (result ?? null) as any;
   });
 
 export const Route = createFileRoute("/f/$slug")({
