@@ -6,7 +6,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Server, Smartphone, Users, Send, Inbox, UserCog,
-  LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, Bot, Sparkles,
+  LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, Bot, Sparkles, Ticket,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
