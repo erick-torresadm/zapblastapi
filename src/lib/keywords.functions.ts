@@ -184,7 +184,8 @@ export const listRecentFlowRunsFn = createServerFn({ method: "GET" })
       items: (runs ?? []).map((r: any) => ({
         id: r.id,
         flow_name: flowMap[r.flow_id] ?? "—",
-        instance_name: r.instance_id ? instMap[r.instance_id] ?? "—" : "—",
+        instance_name: r.instance_id ? instMap[r.instance_id]?.instance_name ?? "—" : "—",
+        instance_phone: r.instance_id ? instMap[r.instance_id]?.phone_number ?? null : null,
         contact_phone: r.contact_phone,
         status: r.status,
         error: r.error,
