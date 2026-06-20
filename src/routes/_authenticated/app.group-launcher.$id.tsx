@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Copy, ExternalLink, Trash2, RefreshCw, Loader2, ChevronRight, AlertCircle } from "lucide-react";
+import { ArrowLeft, Copy, ExternalLink, Trash2, RefreshCw, Loader2, ChevronRight, AlertCircle, Info } from "lucide-react";
 import { toast } from "sonner";
 import {
   getGroupCampaignFn, enqueueBulkCreateFn, pasteGroupLinksFn,
