@@ -49,8 +49,8 @@ export const recordLoginAttemptFn = createServerFn({ method: "POST" })
   });
 
 // ============ Admin: lê security_events / admin_audit_log / login_attempts ============
-async function ensureAdmin(ctx: { supabase: { rpc: (fn: "has_role", args: { _user_id: string; _role: "admin" | "moderator" | "user" }) => Promise<{ data: boolean | null; error: { message: string } | null }> }; userId: string }) {
-  const { data, error } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" });
+async function ensureAdmin(context: { supabase: import("@supabase/supabase-js").SupabaseClient<import("@/integrations/supabase/types").Database>; userId: string }) {
+  const { data, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
   if (error) throw new Error("Falha ao verificar permissão.");
   if (!data) throw new Error("Acesso restrito a administradores.");
 }
