@@ -88,6 +88,7 @@ function PublicAgenda() {
       <div className="max-w-xl mx-auto p-4 md:p-8">
         <Card>
           <CardHeader style={{ borderBottom: `3px solid ${accent}` }}>
+            <h1 className="sr-only">Agendar horário em {biz.name}</h1>
             <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" style={{ color: accent }} />{biz.name}</CardTitle>
             {biz.about && <CardDescription>{biz.about}</CardDescription>}
           </CardHeader>
@@ -95,6 +96,7 @@ function PublicAgenda() {
             {step === "service" && (
               <>
                 <h2 className="font-semibold">Escolha o serviço</h2>
+
                 {services.length === 0 && <p className="text-sm text-muted-foreground">Nenhum serviço disponível.</p>}
                 {services.map((s) => (
                   <button key={s.id} onClick={() => { setSvc(s); setStep("pro"); }} className="w-full text-left p-3 rounded-lg border hover:border-primary transition">
