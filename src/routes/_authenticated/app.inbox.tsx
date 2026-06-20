@@ -31,6 +31,7 @@ import {
   sendChatMediaFn, signMediaUrlsFn, signAvatarsFn, sendPresenceFn,
   listQuickRepliesFn, saveQuickReplyFn, deleteQuickReplyFn,
 } from "@/lib/crm-media.functions";
+import { syncInstanceContactsFn } from "@/lib/crm-profile.functions";
 import { MessageBubble, type Msg } from "@/components/crm/MessageBubble";
 import { AudioRecorder } from "@/components/crm/AudioRecorder";
 import { ContactPanel, type ContactConv } from "@/components/crm/ContactPanel";
