@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useServerFn } from "@tanstack/react-start";
 import { preSignupCheckFn, recordSignupFn } from "@/lib/signup-guard.functions";
+import { checkLoginLockoutFn, recordLoginAttemptFn, validatePasswordStrength, STRONG_PASSWORD_MIN } from "@/lib/security.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
