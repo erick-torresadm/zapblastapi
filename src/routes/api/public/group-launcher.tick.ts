@@ -42,7 +42,7 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
           try {
             const { data: campaign } = await supabaseAdmin
               .from("group_campaigns")
-              .select("instance_id")
+              .select("instance_id, extra_participants, admin_participants")
               .eq("id", job.campaign_id)
               .maybeSingle();
             if (!campaign?.instance_id) throw new Error("Campanha sem instância");
