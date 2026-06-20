@@ -398,6 +398,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       total: contacts.length,
       resolved_count: resolved.length,
       unresolved_count: unresolved.length,
+      joined_now: joinedNow,
       contacts,
     };
   });
