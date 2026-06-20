@@ -312,8 +312,9 @@ function ProfessionalsTab({ business }: { business: Business }) {
 
   const { data: pros = [] } = useQuery({
     queryKey: ["agenda-pros", business.id],
-    queryFn: () => list({ data: { business_id: business.id } }) as unknown as Promise<Array<{ id: string; name: string; phone: string | null; color: string | null; active: boolean }>>,
+    queryFn: () => list({ data: { business_id: business.id } }) as unknown as Promise<Array<{ id: string; name: string; phone: string | null; color: string | null; active: boolean; agenda_availability: { id: string }[] }>>,
   });
+
 
   const [editing, setEditing] = useState<null | { id?: string; name: string; phone: string; color: string; active: boolean }>(null);
   const [availPro, setAvailPro] = useState<string | null>(null);
