@@ -2377,28 +2377,34 @@ export type Database = {
       traffic_blocks: {
         Row: {
           created_at: string
+          field_key: string | null
           funnel_id: string
           id: string
           position: number
           props: Json
+          step_id: string | null
           type: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          field_key?: string | null
           funnel_id: string
           id?: string
           position?: number
           props?: Json
+          step_id?: string | null
           type: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          field_key?: string | null
           funnel_id?: string
           id?: string
           position?: number
           props?: Json
+          step_id?: string | null
           type?: string
           updated_at?: string
         }
@@ -2408,6 +2414,13 @@ export type Database = {
             columns: ["funnel_id"]
             isOneToOne: false
             referencedRelation: "traffic_funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "traffic_blocks_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_steps"
             referencedColumns: ["id"]
           },
         ]
@@ -2468,6 +2481,7 @@ export type Database = {
           page_url: string | null
           payload: Json
           referrer: string | null
+          step_id: string | null
           ua: string | null
           utm: Json | null
         }
@@ -2485,6 +2499,7 @@ export type Database = {
           page_url?: string | null
           payload?: Json
           referrer?: string | null
+          step_id?: string | null
           ua?: string | null
           utm?: Json | null
         }
@@ -2502,6 +2517,7 @@ export type Database = {
           page_url?: string | null
           payload?: Json
           referrer?: string | null
+          step_id?: string | null
           ua?: string | null
           utm?: Json | null
         }
@@ -2511,6 +2527,13 @@ export type Database = {
             columns: ["funnel_id"]
             isOneToOne: false
             referencedRelation: "traffic_funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "traffic_events_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_steps"
             referencedColumns: ["id"]
           },
         ]
@@ -2524,13 +2547,18 @@ export type Database = {
           id: string
           og_image_url: string | null
           owner_user_id: string
+          pixel_id: string | null
+          pixel_token: string | null
           primary_color: string
+          published_at: string | null
+          redirect_url: string | null
           seo_description: string | null
           seo_title: string | null
           settings: Json
           slug: string
           status: string
           template: string
+          theme: Json
           title: string
           updated_at: string
         }
@@ -2542,13 +2570,18 @@ export type Database = {
           id?: string
           og_image_url?: string | null
           owner_user_id: string
+          pixel_id?: string | null
+          pixel_token?: string | null
           primary_color?: string
+          published_at?: string | null
+          redirect_url?: string | null
           seo_description?: string | null
           seo_title?: string | null
           settings?: Json
           slug: string
           status?: string
           template?: string
+          theme?: Json
           title?: string
           updated_at?: string
         }
@@ -2560,13 +2593,18 @@ export type Database = {
           id?: string
           og_image_url?: string | null
           owner_user_id?: string
+          pixel_id?: string | null
+          pixel_token?: string | null
           primary_color?: string
+          published_at?: string | null
+          redirect_url?: string | null
           seo_description?: string | null
           seo_title?: string | null
           settings?: Json
           slug?: string
           status?: string
           template?: string
+          theme?: Json
           title?: string
           updated_at?: string
         }
@@ -2574,33 +2612,42 @@ export type Database = {
       }
       traffic_leads: {
         Row: {
+          answers: Json
+          completed_at: string | null
           created_at: string
           email: string | null
           extra: Json
           funnel_id: string
           id: string
+          last_step_id: string | null
           name: string | null
           phone: string | null
           pushed_to_list_id: string | null
           utm: Json | null
         }
         Insert: {
+          answers?: Json
+          completed_at?: string | null
           created_at?: string
           email?: string | null
           extra?: Json
           funnel_id: string
           id?: string
+          last_step_id?: string | null
           name?: string | null
           phone?: string | null
           pushed_to_list_id?: string | null
           utm?: Json | null
         }
         Update: {
+          answers?: Json
+          completed_at?: string | null
           created_at?: string
           email?: string | null
           extra?: Json
           funnel_id?: string
           id?: string
+          last_step_id?: string | null
           name?: string | null
           phone?: string | null
           pushed_to_list_id?: string | null
@@ -2612,6 +2659,129 @@ export type Database = {
             columns: ["funnel_id"]
             isOneToOne: false
             referencedRelation: "traffic_funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "traffic_leads_last_step_id_fkey"
+            columns: ["last_step_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traffic_logic: {
+        Row: {
+          block_id: string | null
+          condition: Json
+          created_at: string
+          funnel_id: string
+          id: string
+          next_step_id: string | null
+          position: number
+          redirect_url: string | null
+          step_id: string
+        }
+        Insert: {
+          block_id?: string | null
+          condition?: Json
+          created_at?: string
+          funnel_id: string
+          id?: string
+          next_step_id?: string | null
+          position?: number
+          redirect_url?: string | null
+          step_id: string
+        }
+        Update: {
+          block_id?: string | null
+          condition?: Json
+          created_at?: string
+          funnel_id?: string
+          id?: string
+          next_step_id?: string | null
+          position?: number
+          redirect_url?: string | null
+          step_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traffic_logic_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "traffic_logic_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "traffic_logic_next_step_id_fkey"
+            columns: ["next_step_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "traffic_logic_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traffic_steps: {
+        Row: {
+          created_at: string
+          funnel_id: string
+          id: string
+          name: string
+          next_step_id: string | null
+          position: number
+          settings: Json
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          funnel_id: string
+          id?: string
+          name?: string
+          next_step_id?: string | null
+          position?: number
+          settings?: Json
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          funnel_id?: string
+          id?: string
+          name?: string
+          next_step_id?: string | null
+          position?: number
+          settings?: Json
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traffic_steps_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "traffic_steps_next_step_fk"
+            columns: ["next_step_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_steps"
             referencedColumns: ["id"]
           },
         ]
@@ -3092,17 +3262,44 @@ export type Database = {
         Args: { _tool: string; _user_id: string }
         Returns: undefined
       }
-      submit_traffic_lead: {
+      register_funnel_lead: {
         Args: {
-          _email: string
-          _extra: Json
-          _name: string
-          _phone: string
+          _answers?: Json
+          _completed?: boolean
+          _email?: string
+          _last_step_id?: string
+          _name?: string
+          _phone?: string
           _slug: string
-          _utm: Json
+          _utm?: Json
         }
         Returns: string
       }
+      submit_traffic_lead:
+        | {
+            Args: {
+              _email: string
+              _extra: Json
+              _name: string
+              _phone: string
+              _slug: string
+              _utm: Json
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _answers?: Json
+              _completed?: boolean
+              _email: string
+              _extra: Json
+              _name: string
+              _phone: string
+              _slug: string
+              _utm: Json
+            }
+            Returns: string
+          }
       validate_coupon: {
         Args: { _code: string; _plan_id?: string }
         Returns: Json

@@ -25,9 +25,12 @@ export const Route = createFileRoute("/api/public/traffic-lead")({
           _email: email,
           _extra: (body.extra as Record<string, unknown>) ?? {},
           _utm: (body.utm as Record<string, string>) ?? null,
+          _answers: (body.answers as Record<string, unknown>) ?? {},
+          _completed: body.completed !== false,
         });
         if (error) return new Response(error.message, { status: 400 });
         return new Response(JSON.stringify({ ok: true, id: data }), { headers: { "content-type": "application/json" } });
+
       },
     },
   },

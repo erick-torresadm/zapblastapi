@@ -32,7 +32,7 @@ function TrafficDashboard() {
   const [open, setOpen] = useState(false);
   const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
-  const [template, setTemplate] = useState<"funnel" | "linkbio">("funnel");
+  const [template, setTemplate] = useState<"funnel" | "linkbio" | "quiz">("quiz");
   const [busy, setBusy] = useState(false);
 
   async function handleCreate() {
@@ -123,13 +123,15 @@ function TrafficDashboard() {
             </div>
             <div>
               <label className="text-xs font-medium">Template</label>
-              <Select value={template} onValueChange={(v) => setTemplate(v as "funnel" | "linkbio")}>
+              <Select value={template} onValueChange={(v) => setTemplate(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="quiz">Quiz interativo (multi-step)</SelectItem>
                   <SelectItem value="funnel">Funil de captura</SelectItem>
                   <SelectItem value="linkbio">Link-in-bio</SelectItem>
                 </SelectContent>
               </Select>
+
             </div>
           </div>
           <DialogFooter>
