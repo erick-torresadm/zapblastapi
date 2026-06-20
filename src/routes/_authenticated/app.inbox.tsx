@@ -354,6 +354,49 @@ function Inbox() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const syncContactsSf = useServerFn(syncInstanceContactsFn);
+  const syncContactsMut = useMutation({
+    mutationFn: async () => {
+      const connected = (instances ?? []).filter((i) => i.status === "connected");
+      if (!connected.length) throw new Error("Nenhuma instância conectada para sincronizar");
+      let totalResolved = 0;
+      let totalMerged = 0;
+      let totalLid = 0;
+      for (const inst of connected) {
+        try {
+          const r = await syncContactsSf({ data: { instance_id: inst.id } }) as any;
+          totalResolved += r?.conversations_resolved ?? 0;
+          totalMerged += r?.conversations_merged ?? 0;
+          totalLid += r?.lid_mapped ?? 0;
+        } catch (e) {
+          console.warn("[sync]", inst.instance_name, (e as Error).message);
+        }
+      }
+      return { totalResolved, totalMerged, totalLid };
+    },
+    onSuccess: (r) => {
+      invalidateConvLists();
+      toast.success(
+        `Sincronização concluída — ${r.totalResolved} resolvidas, ${r.totalMerged} mescladas, ${r.totalLid} contatos mapeados`,
+      );
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Auto-sync ao abrir a primeira vez se houver conversas em "Identificando…"
+  const autoSyncRef = useRef(false);
+  useEffect(() => {
+    if (autoSyncRef.current) return;
+    if (!instances?.length || !workspace) return;
+    const pending = (conversations ?? []).some((c: any) =>
+      !c.contact_phone || /^[0-9]{15,}$/.test(c.contact_phone) || (c.contact_jid ?? "").endsWith("@lid"),
+    );
+    if (!pending) return;
+    autoSyncRef.current = true;
+    syncContactsMut.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instances, workspace, conversations]);
+
   const assignMut = useMutation({
     mutationFn: (agent_user_id: string | null) =>
       assignFn({ data: { conversation_id: selectedId!, agent_user_id } }),
