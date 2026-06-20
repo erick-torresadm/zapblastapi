@@ -142,6 +142,16 @@ async function evoFetch(
   return (body && typeof body === "object" && !Array.isArray(body) ? body : { value: body }) as Record<string, unknown>;
 }
 
+function evoArray<T>(body: unknown, keys: string[] = []): T[] {
+  if (Array.isArray(body)) return body as T[];
+  if (!body || typeof body !== "object") return [];
+  const record = body as Record<string, unknown>;
+  for (const key of [...keys, "data", "value", "contacts", "chats", "groups"]) {
+    if (Array.isArray(record[key])) return record[key] as T[];
+  }
+  return [];
+}
+
 // ============================================================================
 // 1) Instance management
 // ============================================================================
@@ -441,7 +451,7 @@ export async function checkWhatsappNumbers(
     method: epMethod("whatsappNumbers"),
     body: JSON.stringify({ numbers }),
   });
-  return (Array.isArray(res) ? res : []) as WhatsappCheck[];
+  return evoArray<WhatsappCheck>(res, ["numbers"]);
 }
 
 export async function fetchProfile(server: EvolutionServer, instanceName: string, number: string) {
@@ -670,7 +680,7 @@ export async function fetchAllGroups(
     ep("fetchAllGroups", { instance: instanceName, query: { getParticipants } }),
     { method: epMethod("fetchAllGroups") },
   );
-  return (Array.isArray(r) ? r : []) as GroupInfo[];
+  return evoArray<GroupInfo>(r, ["groups"]);
 }
 
 // ============================================================================
@@ -698,7 +708,7 @@ export async function findContacts(
     ep("findContacts", { instance: instanceName }),
     { method: epMethod("findContacts"), body: JSON.stringify({ where: {} }) },
   );
-  return (Array.isArray(r) ? r : []) as EvolutionContact[];
+  return evoArray<EvolutionContact>(r, ["contacts"]);
 }
 
 export type EvolutionChat = {
@@ -721,7 +731,7 @@ export async function findChats(
     ep("findChats", { instance: instanceName }),
     { method: epMethod("findChats"), body: JSON.stringify({}) },
   );
-  return (Array.isArray(r) ? r : []) as EvolutionChat[];
+  return evoArray<EvolutionChat>(r, ["chats"]);
 }
 
 
