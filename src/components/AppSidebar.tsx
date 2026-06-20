@@ -70,6 +70,28 @@ export function AppSidebar() {
     queryFn: async () => (await supabase.auth.getUser()).data.user,
   });
 
+  const { data: profileMini } = useQuery({
+    queryKey: ["profile-avatar-sidebar", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!data?.avatar_url) return { full_name: data?.full_name ?? null, signedUrl: null as string | null };
+      let signedUrl: string | null = null;
+      if (data.avatar_url.startsWith("http")) signedUrl = data.avatar_url;
+      else {
+        const { data: s } = await supabase.storage.from("avatars").createSignedUrl(data.avatar_url, 60 * 60 * 24);
+        signedUrl = s?.signedUrl ?? null;
+      }
+      return { full_name: data.full_name ?? null, signedUrl };
+    },
+  });
+
+
   async function signOut() {
     await qc.cancelQueries();
     qc.clear();
