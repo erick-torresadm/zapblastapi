@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/_admin/app/admin/coupons")
   component: CouponsAdminPage,
 });
 
-type CouponType = "percent" | "fixed" | "free";
+type CouponType = "percent" | "fixed" | "free" | "tool_credits";
 
 function CouponsAdminPage() {
   const list = useServerFn(adminListCouponsFn);
@@ -150,11 +150,17 @@ function CouponRow({ c }: { c: any }) {
   };
   const copy = () => { navigator.clipboard.writeText(c.code); toast.success("Código copiado"); };
 
-  const valueLabel = c.type === "percent"
-    ? `${c.value}%`
-    : c.type === "fixed"
-      ? `R$ ${(Number(c.value) / 100).toFixed(2)}`
-      : `${c.free_duration_days ?? 30} dias grátis`;
+  const valueLabel = c.tool_scope && c.tool_free_uses > 0
+    ? `${c.tool_free_uses} uso(s) em ${c.tool_scope}`
+    : c.type === "percent"
+      ? `${c.value}%`
+      : c.type === "fixed"
+        ? `R$ ${(Number(c.value) / 100).toFixed(2)}`
+        : `${c.free_duration_days ?? 30} dias grátis`;
+
+  const typeLabel = c.tool_scope && c.tool_free_uses > 0
+    ? "Ferramenta"
+    : c.type === "percent" ? "%" : c.type === "fixed" ? "R$" : "Grátis";
 
   return (
     <TableRow>
@@ -164,8 +170,8 @@ function CouponRow({ c }: { c: any }) {
         </button>
       </TableCell>
       <TableCell>
-        <Badge variant={c.type === "free" ? "default" : "secondary"}>
-          {c.type === "percent" ? "%" : c.type === "fixed" ? "R$" : "Grátis"}
+        <Badge variant={c.tool_scope ? "default" : c.type === "free" ? "default" : "secondary"}>
+          {typeLabel}
         </Badge>
       </TableCell>
       <TableCell>{valueLabel}</TableCell>
