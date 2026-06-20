@@ -523,10 +523,17 @@ function Inbox() {
     { id: "archived", label: "Arquivadas", icon: <Archive className="h-3 w-3" /> },
   ];
 
+  function avatarUrlFor(c: Conv): string | null {
+    if (c.contact_avatar_path && avatarMap[c.contact_avatar_path]) return avatarMap[c.contact_avatar_path];
+    if (c.contact_avatar_url) return c.contact_avatar_url;
+    return null;
+  }
+
   function renderConvRow(c: Conv) {
     const active = selectedId === c.id;
     const assignedName = c.assigned_agent_id ? agentMap[c.assigned_agent_id] ?? "—" : null;
     const muted = isMuted(c);
+    const resolved = c.is_resolved && isPhoneResolved(c.contact_phone);
     return (
       <div key={c.id} className="group relative">
         <button
@@ -534,20 +541,17 @@ function Inbox() {
           className={`flex w-full items-start gap-3 border-b px-3 py-3 text-left transition hover:bg-muted/50 ${active ? "bg-muted" : ""}`}
         >
           {active && <span className="absolute left-0 top-0 h-full w-1 bg-primary" />}
-          {c.contact_avatar_url ? (
-            <img src={c.contact_avatar_url} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
-          ) : (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/70 to-primary-glow/70 text-sm font-bold text-primary-foreground">
-              {(c.contact_name ?? c.contact_phone).slice(-2)}
-            </div>
-          )}
+          <Avatar name={c.contact_name} phone={c.contact_phone} url={avatarUrlFor(c)} size="lg" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="truncate text-sm font-semibold">{c.contact_name ?? fmtPhone(c.contact_phone)}</span>
+              <span className="truncate text-sm font-semibold">
+                {resolved ? displayName(c.contact_name, c.contact_phone) : (c.contact_name ?? "Identificando…")}
+              </span>
               <span className={`shrink-0 text-[10px] ${c.unread_count > 0 ? "font-semibold text-primary" : "text-muted-foreground"}`}>
                 {fmtTime(c.last_message_at)}
               </span>
             </div>
+
             <div className="flex items-center justify-between gap-2">
               <p className="truncate text-xs text-muted-foreground">
                 {c.last_message_direction === "out" ? "↗ " : "↙ "}{lastPreview(c)}
