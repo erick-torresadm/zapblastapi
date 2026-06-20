@@ -65,9 +65,12 @@ export const EVOLUTION_ENDPOINTS = {
   findContacts:              { method: "POST", path: "/chat/findContacts/{instance}" },
 
   // Groups
-  inviteInfoGroup: { method: "GET", path: "/group/inviteInfo/{instance}" },
-  findGroupInfos:  { method: "GET", path: "/group/findGroupInfos/{instance}" },
-  fetchAllGroups:  { method: "GET", path: "/group/fetchAllGroups/{instance}" },
+  inviteInfoGroup:    { method: "GET",  path: "/group/inviteInfo/{instance}" },
+  findGroupInfos:     { method: "GET",  path: "/group/findGroupInfos/{instance}" },
+  fetchAllGroups:     { method: "GET",  path: "/group/fetchAllGroups/{instance}" },
+  createGroup:        { method: "POST", path: "/group/create/{instance}" },
+  fetchInviteCode:    { method: "GET",  path: "/group/inviteCode/{instance}" },
+  updateGroupPicture: { method: "POST", path: "/group/updateGroupPicture/{instance}" },
 
   // Server-level
   root: { method: "GET", path: "/" },
