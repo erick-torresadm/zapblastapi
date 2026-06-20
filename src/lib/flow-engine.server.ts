@@ -362,12 +362,13 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       sender?: unknown;
       data?: { sender?: unknown; key?: { remoteJid?: unknown; senderPn?: unknown; participantPn?: unknown } };
     };
+    const remoteJid = String(raw.data?.key?.remoteJid ?? "");
+    const remotePhone = extractRealPhone(remoteJid);
 
     const phones = uniq([
-      extractRealPhone(raw.sender),
-      extractRealPhone(raw.data?.sender),
       extractRealPhone(raw.data?.key?.senderPn),
       extractRealPhone(raw.data?.key?.participantPn),
+      remotePhone,
       extractRealPhone(run.contact_phone),
     ]);
 
@@ -415,8 +416,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     }
 
     // Último recurso: tenta o remoteJid LID (chips com migração LID).
-    const lid = String(raw.data?.key?.remoteJid ?? "");
-    if (lid.endsWith("@lid")) targets.push(lid);
+    if (remoteJid.endsWith("@lid")) targets.push(remoteJid);
 
     if (targets.length === 0) {
       const fallback = extractRealPhone(run.contact_phone);
