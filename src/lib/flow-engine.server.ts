@@ -193,6 +193,7 @@ function safetyWaitMs(inst: InstanceRow, opts: { respectQuietHours?: boolean; re
 async function bumpCounters(supabaseAdmin: any, inst: InstanceRow) {
   const nowIso = new Date().toISOString();
   await supabaseAdmin.from("whatsapp_instances").update({
+    status: "connected",
     sent_today: inst.sent_today + 1,
     sent_hour: inst.sent_hour + 1,
     sent_hour_at: inst.sent_hour_at ?? nowIso,
@@ -422,7 +423,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
 
 
   async function sendTextSafely(text: string): Promise<SendAttemptResult | null> {
-    if (!srv || !inst || inst.status !== "connected") return null;
+    if (!srv || !inst) return null;
     const targets = await resolveEvolutionTargets();
     const primary = targets[0]!;
     console.log("[flow] sendText targets", { runId, phone: run.contact_phone, targets });
@@ -456,7 +457,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     caption?: string,
     fileName?: string,
   ): Promise<SendAttemptResult | null> {
-    if (!srv || !inst || inst.status !== "connected") return null;
+    if (!srv || !inst) return null;
     const evoSrv = { base_url: srv.base_url, api_key: srv.api_key };
     const targets = await resolveEvolutionTargets();
     const primary = targets[0]!;
@@ -493,7 +494,20 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
               console.warn("[flow] failed to prefetch ogg, falling back to URL", (e as Error).message);
             }
           }
-          response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, audioPayload, { encoding });
+          try {
+            response = await sendWhatsAppAudio(evoSrv, inst.instance_name, t, audioPayload, { encoding });
+          } catch (audioErr) {
+            console.warn("[flow] sendWhatsAppAudio failed, falling back to regular audio media", {
+              target: t,
+              err: (audioErr as Error).message,
+            });
+            response = await sendMedia(evoSrv, inst.instance_name, t, {
+              mediatype: "audio",
+              media: url,
+              caption,
+              fileName,
+            });
+          }
 
         } else {
           response = await sendMedia(evoSrv, inst.instance_name, t, { mediatype, media: url, caption, fileName });
@@ -562,7 +576,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       const url = String(data.mediaUrl ?? "");
       const caption = data.caption ? renderTemplate(String(data.caption), vars) : undefined;
       const fileName = data.fileName ? String(data.fileName) : undefined;
-      if (url && srv && inst && inst.status === "connected") {
+      if (url && srv && inst) {
         if (!(await gateSafetyOrDefer())) return;
         try {
           const sent = await sendMediaSafely(mediatype, url, caption, fileName);
@@ -571,7 +585,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           const msg = (e as Error).message;
           console.error("[flow] sendMedia failed", msg);
           await logStep("error", msg);
-          await supabaseAdmin.from("flow_runs").update({ status: "failed", error: msg.slice(0, 500), finished_at: new Date().toISOString() }).eq("id", runId);
+          await goNext();
           return;
         }
       } else {
@@ -586,7 +600,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       // Mostra "digitando" ou "gravando" sem enviar nada. Útil pra dar realismo entre mensagens.
       const presence = (String(data.presence ?? "composing")) as "composing" | "recording";
       const secs = Math.max(1, Math.min(15, Number(data.seconds ?? 3)));
-      if (srv && inst && inst.status === "connected") {
+      if (srv && inst) {
         try { await sendPresence({ base_url: srv.base_url, api_key: srv.api_key }, inst.instance_name, await resolveEvolutionTarget(), presence, secs * 1000); } catch {}
       }
       await logStep("ok", undefined, { presence, secs });
@@ -806,7 +820,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
 
     if (node.type === "sticker") {
       const url = String(data.stickerUrl ?? "");
-      if (url && srv && inst && inst.status === "connected") {
+      if (url && srv && inst) {
         if (!(await gateSafetyOrDefer())) return;
         try {
           const t = await resolveEvolutionTarget();
@@ -827,7 +841,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     if (node.type === "location") {
       const lat = Number(data.latitude);
       const lng = Number(data.longitude);
-      if (Number.isFinite(lat) && Number.isFinite(lng) && srv && inst && inst.status === "connected") {
+      if (Number.isFinite(lat) && Number.isFinite(lng) && srv && inst) {
         if (!(await gateSafetyOrDefer())) return;
         try {
           const t = await resolveEvolutionTarget();
@@ -853,7 +867,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     if (node.type === "contact_card") {
       const fullName = String(data.contactName ?? "").trim();
       const phone = String(data.contactPhone ?? "").replace(/\D/g, "");
-      if (fullName && phone && srv && inst && inst.status === "connected") {
+      if (fullName && phone && srv && inst) {
         if (!(await gateSafetyOrDefer())) return;
         try {
           const t = await resolveEvolutionTarget();
@@ -882,7 +896,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
       const raw = String(data.pollOptions ?? "");
       const values = raw.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
       const selectable = Math.max(1, Math.min(values.length || 1, Number(data.pollSelectable ?? 1)));
-      if (name && values.length >= 2 && srv && inst && inst.status === "connected") {
+      if (name && values.length >= 2 && srv && inst) {
         if (!(await gateSafetyOrDefer())) return;
         try {
           const t = await resolveEvolutionTarget();
@@ -905,7 +919,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     if (node.type === "reaction") {
       // Reage à ÚLTIMA mensagem recebida do contato (chat_messages direction='in').
       const emoji = String(data.emoji ?? "👍");
-      if (srv && inst && inst.status === "connected") {
+      if (srv && inst) {
         const { data: last } = await supabaseAdmin
           .from("chat_messages")
           .select("evolution_message_id, contact_jid, contact_phone")

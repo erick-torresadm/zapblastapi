@@ -218,6 +218,18 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
             instance: instanceName, instanceId, chatType, fromMe, mediaType,
           });
 
+          // Se a Evolution acabou de entregar uma mensagem desse chip, ele está ativo
+          // mesmo que o último CONNECTION_UPDATE tenha deixado o status local como desconectado.
+          // Sem isso, o fluxo pode ser criado mas não responder porque o motor bloqueia envios
+          // quando a instância parece offline no banco.
+          if (instanceId) {
+            await supabaseAdmin.from("whatsapp_instances").update({
+              status: "connected",
+              last_qr_base64: null,
+              last_qr_error: null,
+            }).eq("id", instanceId).neq("status", "connected");
+          }
+
           // Grava em chat_messages (CRM/Inbox)
           await supabaseAdmin.from("chat_messages").insert({
             user_id: server.user_id,
