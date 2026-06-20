@@ -24,6 +24,7 @@ const operationNav = [
   { to: "/app/inbox", label: "Conversas (CRM)", icon: Inbox },
   { to: "/app/tools", label: "Ferramentas", icon: Sparkles },
   { to: "/app/agenda", label: "Agenda", icon: Calendar },
+  { to: "/app/traffic", label: "Tráfego & Funis", icon: Megaphone },
   { to: "/app/team", label: "Equipe", icon: UserCog },
 
   { to: "/app/anti-ban", label: "Anti-ban", icon: ShieldCheck },
