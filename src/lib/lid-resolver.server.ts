@@ -109,6 +109,10 @@ export async function resolveLidFromHistory(
         return { phone, jid: `${phone}@s.whatsapp.net` };
       }
     }
+  } catch (e) {
+    console.warn("[lid] history strat2 exception", (e as Error).message);
+  }
+
   // Estratégia 3 (fallback robusto): varre as últimas 500 mensagens da instância
   // e procura em memória por uma com remoteJidAlt == lid.
   try {
