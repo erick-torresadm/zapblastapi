@@ -24,7 +24,7 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
         // ── 1) CREATE JOBS ──
         const { data: jobs } = await supabaseAdmin
           .from("group_create_jobs")
-          .select("id, campaign_id, owner_user_id, subject, description, image_url, attempts")
+          .select("id, campaign_id, owner_user_id, subject, description, image_url, participant_phone, attempts")
           .eq("status", "pending")
           .lte("next_attempt_at", new Date().toISOString())
           .order("next_attempt_at", { ascending: true })
@@ -53,12 +53,15 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
               .maybeSingle();
             if (!srv) throw new Error("Servidor Evolution não encontrado");
             const server = { base_url: srv.base_url, api_key: srv.api_key };
+            const participantPhone = String(job.participant_phone ?? "").replace(/\D/g, "");
+            if (!participantPhone) throw new Error("Informe pelo menos 1 participante inicial para criar o grupo");
 
             const grp = await createGroup(server, inst.instance_name, {
               subject: job.subject,
               description: job.description ?? undefined,
+              participants: [participantPhone],
             });
-            const jid = String(grp.id ?? "");
+            const jid = String(grp.id ?? grp.groupJid ?? "");
             if (!jid) throw new Error("Evolution não retornou ID do grupo");
 
             // small delay before fetching invite to let WhatsApp settle
