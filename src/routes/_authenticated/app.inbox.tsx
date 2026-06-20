@@ -153,6 +153,8 @@ function Inbox() {
   const [showConvSearch, setShowConvSearch] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [signedMap, setSignedMap] = useState<Record<string, string>>({});
+  const [avatarMap, setAvatarMap] = useState<Record<string, string>>({});
+
   const [replyTo, setReplyTo] = useState<Msg | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
