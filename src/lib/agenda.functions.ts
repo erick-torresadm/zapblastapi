@@ -61,12 +61,13 @@ export const listProfessionalsFn = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("agenda_professionals")
-      .select("*, agenda_service_professionals(service_id)")
+      .select("*, agenda_service_professionals(service_id), agenda_availability(id)")
       .eq("business_id", data.business_id)
       .order("name");
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
 
 export const upsertProfessionalFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
