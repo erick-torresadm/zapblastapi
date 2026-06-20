@@ -60,6 +60,11 @@ type Conv = ContactConv & {
   archived_at: string | null;
   muted_until: string | null;
   last_seen_at: string | null;
+  is_resolved: boolean;
+  contact_avatar_path: string | null;
+  snoozed_until: string | null;
+  label_ids: string[];
+  chat_type: string | null;
 };
 type Agent = { id: string; agent_user_id: string; role: string; display_name: string | null; active: boolean };
 type Workspace = { owner_user_id: string; role: string; display_name: string | null };
@@ -71,9 +76,9 @@ const EMOJIS = ["😀","😅","😂","🙂","😉","😍","🥰","😘","🤔","
 type FilterKind = "all" | "unread" | "mine" | "queue" | "favorites" | "archived";
 
 function fmtPhone(p: string) {
-  const m = p.match(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/);
-  return m ? `+${m[1]} (${m[2]}) ${m[3]}-${m[4]}` : p;
+  return formatPhone(p);
 }
+
 function fmtTime(iso: string) {
   const d = new Date(iso);
   const today = new Date(); today.setHours(0,0,0,0);
