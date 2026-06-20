@@ -33,7 +33,8 @@ function ServersPage() {
   const { data: servers } = useQuery({
     queryKey: ["servers", isAdmin],
     queryFn: async () => {
-      const { data, error } = await supabase.from("evolution_servers").select("*").order("created_at", { ascending: false });
+      // Nunca selecionar api_key no cliente — sensível, lido apenas server-side
+      const { data, error } = await supabase.from("evolution_servers").select("id, name, base_url, is_shared, webhook_token, user_id, created_at, updated_at").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
