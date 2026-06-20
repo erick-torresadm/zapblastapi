@@ -744,6 +744,71 @@ export type Database = {
         }
         Relationships: []
       }
+      flow_keyword_audit: {
+        Row: {
+          contact_jid: string | null
+          contact_phone: string | null
+          created_at: string
+          from_me: boolean
+          id: string
+          instance_id: string | null
+          matched_flow_ids: string[]
+          matched_trigger_ids: string[]
+          note: string | null
+          remote_jid: string | null
+          resolution_status: string
+          run_ids: string[]
+          text_excerpt: string | null
+          triggers_evaluated: number
+          triggers_matched: number
+          user_id: string
+        }
+        Insert: {
+          contact_jid?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          from_me?: boolean
+          id?: string
+          instance_id?: string | null
+          matched_flow_ids?: string[]
+          matched_trigger_ids?: string[]
+          note?: string | null
+          remote_jid?: string | null
+          resolution_status: string
+          run_ids?: string[]
+          text_excerpt?: string | null
+          triggers_evaluated?: number
+          triggers_matched?: number
+          user_id: string
+        }
+        Update: {
+          contact_jid?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          from_me?: boolean
+          id?: string
+          instance_id?: string | null
+          matched_flow_ids?: string[]
+          matched_trigger_ids?: string[]
+          note?: string | null
+          remote_jid?: string | null
+          resolution_status?: string
+          run_ids?: string[]
+          text_excerpt?: string | null
+          triggers_evaluated?: number
+          triggers_matched?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_keyword_audit_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flow_keyword_triggers: {
         Row: {
           active: boolean
@@ -758,6 +823,7 @@ export type Database = {
           keywords: string[]
           last_triggered_at: string | null
           match_mode: string
+          per_contact_cooldown_seconds: number
           updated_at: string
           user_id: string
         }
@@ -774,6 +840,7 @@ export type Database = {
           keywords?: string[]
           last_triggered_at?: string | null
           match_mode?: string
+          per_contact_cooldown_seconds?: number
           updated_at?: string
           user_id: string
         }
@@ -790,6 +857,7 @@ export type Database = {
           keywords?: string[]
           last_triggered_at?: string | null
           match_mode?: string
+          per_contact_cooldown_seconds?: number
           updated_at?: string
           user_id?: string
         }
