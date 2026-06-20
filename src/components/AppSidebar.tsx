@@ -33,9 +33,11 @@ const operationNav = [
   { to: "/app/anti-ban", label: "Anti-ban", icon: ShieldCheck },
 ];
 const accountNav = [
+  { to: "/app/profile", label: "Meu perfil", icon: User2 },
   { to: "/app/wallet", label: "Carteira", icon: Wallet },
   { to: "/app/billing", label: "Planos", icon: CreditCard },
 ];
+
 
 export function AppSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
