@@ -20,6 +20,7 @@ import { Route as AgendaSlugRouteImport } from './routes/agenda.$slug'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as ApiPublicWarmupWorkerRouteImport } from './routes/api/public/warmup-worker'
+import { Route as ApiPublicTrafficLeadRouteImport } from './routes/api/public/traffic-lead'
 import { Route as ApiPublicTrafficEventRouteImport } from './routes/api/public/traffic-event'
 import { Route as ApiPublicFlowWorkerRouteImport } from './routes/api/public/flow-worker'
 import { Route as ApiPublicFlowTriggerTestRouteImport } from './routes/api/public/flow-trigger-test'
@@ -104,6 +105,11 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
 const ApiPublicWarmupWorkerRoute = ApiPublicWarmupWorkerRouteImport.update({
   id: '/api/public/warmup-worker',
   path: '/api/public/warmup-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTrafficLeadRoute = ApiPublicTrafficLeadRouteImport.update({
+  id: '/api/public/traffic-lead',
+  path: '/api/public/traffic-lead',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicTrafficEventRoute = ApiPublicTrafficEventRouteImport.update({
@@ -310,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
+  '/api/public/traffic-lead': typeof ApiPublicTrafficLeadRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
@@ -352,6 +359,7 @@ export interface FileRoutesByTo {
   '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
+  '/api/public/traffic-lead': typeof ApiPublicTrafficLeadRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
@@ -398,6 +406,7 @@ export interface FileRoutesById {
   '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
+  '/api/public/traffic-lead': typeof ApiPublicTrafficLeadRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
@@ -443,6 +452,7 @@ export interface FileRouteTypes {
     | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
     | '/api/public/traffic-event'
+    | '/api/public/traffic-lead'
     | '/api/public/warmup-worker'
     | '/app/'
     | '/app/campaigns/$id'
@@ -485,6 +495,7 @@ export interface FileRouteTypes {
     | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
     | '/api/public/traffic-event'
+    | '/api/public/traffic-lead'
     | '/api/public/warmup-worker'
     | '/app'
     | '/app/campaigns/$id'
@@ -530,6 +541,7 @@ export interface FileRouteTypes {
     | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
     | '/api/public/traffic-event'
+    | '/api/public/traffic-lead'
     | '/api/public/warmup-worker'
     | '/_authenticated/app/'
     | '/_authenticated/app/campaigns/$id'
@@ -560,6 +572,7 @@ export interface RootRouteChildren {
   ApiPublicFlowTriggerTestRoute: typeof ApiPublicFlowTriggerTestRoute
   ApiPublicFlowWorkerRoute: typeof ApiPublicFlowWorkerRoute
   ApiPublicTrafficEventRoute: typeof ApiPublicTrafficEventRoute
+  ApiPublicTrafficLeadRoute: typeof ApiPublicTrafficLeadRoute
   ApiPublicWarmupWorkerRoute: typeof ApiPublicWarmupWorkerRoute
   ApiPublicEvolutionWebhookTokenRoute: typeof ApiPublicEvolutionWebhookTokenRoute
 }
@@ -641,6 +654,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/warmup-worker'
       fullPath: '/api/public/warmup-worker'
       preLoaderRoute: typeof ApiPublicWarmupWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/traffic-lead': {
+      id: '/api/public/traffic-lead'
+      path: '/api/public/traffic-lead'
+      fullPath: '/api/public/traffic-lead'
+      preLoaderRoute: typeof ApiPublicTrafficLeadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/traffic-event': {
@@ -985,6 +1005,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicFlowTriggerTestRoute: ApiPublicFlowTriggerTestRoute,
   ApiPublicFlowWorkerRoute: ApiPublicFlowWorkerRoute,
   ApiPublicTrafficEventRoute: ApiPublicTrafficEventRoute,
+  ApiPublicTrafficLeadRoute: ApiPublicTrafficLeadRoute,
   ApiPublicWarmupWorkerRoute: ApiPublicWarmupWorkerRoute,
   ApiPublicEvolutionWebhookTokenRoute: ApiPublicEvolutionWebhookTokenRoute,
 }
