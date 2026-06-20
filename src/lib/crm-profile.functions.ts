@@ -50,7 +50,7 @@ export const backfillCrmProfilesFn = createServerFn({ method: "POST" })
             await supabase.from("crm_conversations")
               .update({ contact_phone: realPhone })
               .eq("id", conv.id);
-            conv.contact_phone = realPhone;
+            conv.contact_phone = realPhone as string;
             resolved++;
           }
         }
