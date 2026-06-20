@@ -82,7 +82,10 @@ export const upsertKeywordTriggerFn = createServerFn({ method: "POST" })
       if (!inst) throw new Error("Chip inválido");
     }
 
-    const keywords = data.keywords.map((k) => k.trim().toLowerCase()).filter(Boolean);
+    // No modo regex preservamos case/forma; nos outros normalizamos.
+    const keywords = data.match_mode === "regex"
+      ? data.keywords.map((k) => k.trim()).filter(Boolean)
+      : data.keywords.map((k) => k.trim().toLowerCase()).filter(Boolean);
 
     if (data.id) {
       const { error } = await supabase.from("flow_keyword_triggers" as any).update({
@@ -94,6 +97,7 @@ export const upsertKeywordTriggerFn = createServerFn({ method: "POST" })
         allow_from_me: data.allow_from_me,
         delay_seconds: data.delay_seconds,
         cooldown_seconds: data.cooldown_seconds,
+        per_contact_cooldown_seconds: data.per_contact_cooldown_seconds,
       }).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
@@ -109,6 +113,7 @@ export const upsertKeywordTriggerFn = createServerFn({ method: "POST" })
       allow_from_me: data.allow_from_me,
       delay_seconds: data.delay_seconds,
       cooldown_seconds: data.cooldown_seconds,
+      per_contact_cooldown_seconds: data.per_contact_cooldown_seconds,
       created_by_admin: admin && targetUserId !== userId,
     }).select("id").single() as any);
     if (error) throw new Error(error.message);
