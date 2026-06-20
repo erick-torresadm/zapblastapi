@@ -257,7 +257,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
               from_phone: fromPhone,
               message_text: messageText,
               evolution_message_id: key?.id ?? null,
-              raw_payload: payload as never,
+              raw_payload: rawPayload as never,
             });
             const isDuplicate = !!incErr && /duplicate key|uq_incoming_messages_evo_id|23505/i.test(String(incErr.message));
             if (incErr && !isDuplicate) {
