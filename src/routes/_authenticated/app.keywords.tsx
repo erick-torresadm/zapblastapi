@@ -396,7 +396,11 @@ function KeywordsPage() {
                     .filter((i: any) => !form.user_id || i.user_id === form.user_id)
                     .map((i: any) => (
                       <SelectItem key={i.id} value={i.id}>
-                        {i.instance_name} {i.status === "connected" ? "🟢" : "⚪"}
+                        <span className="flex items-center gap-1.5">
+                          <span>{i.status === "connected" ? "🟢" : "⚪"}</span>
+                          <span className="font-medium">{i.instance_name}</span>
+                          <span className="text-muted-foreground text-xs">{formatPhone(i.phone_number)}</span>
+                        </span>
                       </SelectItem>
                     ))}
                 </SelectContent>
