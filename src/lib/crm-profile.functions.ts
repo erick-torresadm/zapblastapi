@@ -41,9 +41,9 @@ export const backfillCrmProfilesFn = createServerFn({ method: "POST" })
           (conv.contact_phone && /^[0-9]{15,}$/.test(conv.contact_phone));
 
         if (isLid && conv.contact_jid) {
-          const { data: realPhone } = await supabase.rpc("lookup_lid_phone", {
+          const { data: realPhone } = await (supabase as any).rpc("lookup_lid_phone", {
             p_user_id: userId,
-            p_instance_id: conv.instance_id,
+            p_instance_id: conv.instance_id ?? null,
             p_lid_jid: conv.contact_jid,
           });
           if (realPhone && realPhone !== conv.contact_phone) {
