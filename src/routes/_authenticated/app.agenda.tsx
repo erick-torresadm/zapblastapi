@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Calendar, Plus, Trash2, Link2, Copy, Users, Wrench, Clock, Sparkles, CheckCircle2, XCircle } from "lucide-react";
+import { Calendar, Plus, Trash2, Link2, Copy, Users, Wrench, Clock, Sparkles, CheckCircle2, XCircle, Info, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import {
   getMyBusinessFn, upsertBusinessFn,
@@ -60,7 +60,10 @@ function AgendaPage() {
         </div>
       </div>
 
+      <HowItWorks />
+
       <Tabs defaultValue="calendar">
+
         <TabsList className="grid grid-cols-5 max-w-2xl">
           <TabsTrigger value="calendar"><Calendar className="h-4 w-4 mr-1" />Agenda</TabsTrigger>
           <TabsTrigger value="services"><Wrench className="h-4 w-4 mr-1" />Serviços</TabsTrigger>
@@ -309,8 +312,9 @@ function ProfessionalsTab({ business }: { business: Business }) {
 
   const { data: pros = [] } = useQuery({
     queryKey: ["agenda-pros", business.id],
-    queryFn: () => list({ data: { business_id: business.id } }) as unknown as Promise<Array<{ id: string; name: string; phone: string | null; color: string | null; active: boolean }>>,
+    queryFn: () => list({ data: { business_id: business.id } }) as unknown as Promise<Array<{ id: string; name: string; phone: string | null; color: string | null; active: boolean; agenda_availability: { id: string }[] }>>,
   });
+
 
   const [editing, setEditing] = useState<null | { id?: string; name: string; phone: string; color: string; active: boolean }>(null);
   const [availPro, setAvailPro] = useState<string | null>(null);
@@ -324,21 +328,37 @@ function ProfessionalsTab({ business }: { business: Business }) {
   return (
     <div className="space-y-3">
       <Button onClick={() => setEditing({ name: "", phone: "", color: "#6366f1", active: true })}><Plus className="h-4 w-4 mr-1" />Novo profissional</Button>
-      {pros.map((p) => (
-        <Card key={p.id}>
+      {pros.length === 0 && (
+        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Cadastre o primeiro profissional e depois clique em <b>Horários</b> pra definir os dias e horas que ele atende.</CardContent></Card>
+      )}
+      {pros.map((p) => {
+        const noHours = (p.agenda_availability?.length ?? 0) === 0;
+        return (
+        <Card key={p.id} className={noHours ? "border-amber-500/50" : undefined}>
           <CardContent className="p-3 flex items-center gap-3 flex-wrap">
             <div className="w-3 h-3 rounded-full" style={{ background: p.color || "#888" }} />
             <div className="flex-1 min-w-[200px]">
-              <div className="font-medium">{p.name}</div>
+              <div className="font-medium flex items-center gap-2">
+                {p.name}
+                {noHours && (
+                  <Badge variant="secondary" className="bg-amber-500/20 text-amber-700">
+                    <AlertTriangle className="h-3 w-3 mr-1" />sem horários
+                  </Badge>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground">{p.phone || "sem WhatsApp"}</div>
             </div>
             {!p.active && <Badge variant="secondary">Inativo</Badge>}
-            <Button size="sm" variant="outline" onClick={() => setAvailPro(p.id)}>Horários</Button>
+            <Button size="sm" variant={noHours ? "default" : "outline"} onClick={() => setAvailPro(p.id)}>
+              <Clock className="h-3 w-3 mr-1" />Horários
+            </Button>
             <Button size="sm" variant="outline" onClick={() => setEditing({ id: p.id, name: p.name, phone: p.phone ?? "", color: p.color ?? "#6366f1", active: p.active })}>Editar</Button>
             <Button size="sm" variant="ghost" onClick={() => { if (confirm("Remover?")) del({ data: { id: p.id } }).then(() => qc.invalidateQueries({ queryKey: ["agenda-pros"] })); }}><Trash2 className="h-3 w-3" /></Button>
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
+
 
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         <DialogContent>
@@ -380,46 +400,171 @@ function AvailabilityDialog({ professionalId, onClose, list, save }: {
     enabled: !!professionalId,
     queryFn: () => list({ data: { professional_id: professionalId! } }) as unknown as Promise<Array<{ id: string; weekday: number; start_time: string; end_time: string }>>,
   });
-  const [local, setLocal] = useState<Array<{ weekday: number; start_time: string; end_time: string }>>([]);
-  // sync once when opened
-  const key = (windows ?? []).map((w) => `${w.weekday}-${w.start_time}-${w.end_time}`).join("|");
-  useMemo(() => { setLocal(windows.map((w) => ({ weekday: w.weekday, start_time: w.start_time.slice(0, 5), end_time: w.end_time.slice(0, 5) }))); }, [key]);
+
+  // Local state: per-weekday list of windows
+  type Win = { start: string; end: string };
+  const [byDay, setByDay] = useState<Record<number, Win[]>>({});
+  const key = windows.map((w) => `${w.weekday}-${w.start_time}-${w.end_time}`).join("|");
+  useMemo(() => {
+    const map: Record<number, Win[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+    for (const w of windows) {
+      map[w.weekday] = map[w.weekday] ?? [];
+      map[w.weekday].push({ start: w.start_time.slice(0, 5), end: w.end_time.slice(0, 5) });
+    }
+    setByDay(map);
+  }, [key]);
 
   const saveMut = useMutation({
-    mutationFn: () => save({ data: { professional_id: professionalId!, windows: local } }) as Promise<unknown>,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["agenda-avail"] }); toast.success("Horários salvos"); onClose(); },
+    mutationFn: () => {
+      const flat: Array<{ weekday: number; start_time: string; end_time: string }> = [];
+      for (const [wd, wins] of Object.entries(byDay)) {
+        for (const w of wins) flat.push({ weekday: parseInt(wd), start_time: w.start, end_time: w.end });
+      }
+      return save({ data: { professional_id: professionalId!, windows: flat } }) as Promise<unknown>;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agenda-avail"] });
+      qc.invalidateQueries({ queryKey: ["agenda-pros"] });
+      toast.success("Horários salvos");
+      onClose();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Presets
+  const applyPreset = (preset: "weekdays" | "weekdays-lunch" | "everyday" | "clear") => {
+    const map: Record<number, Win[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+    if (preset === "weekdays") {
+      for (let d = 1; d <= 5; d++) map[d] = [{ start: "09:00", end: "18:00" }];
+    } else if (preset === "weekdays-lunch") {
+      for (let d = 1; d <= 5; d++) map[d] = [{ start: "09:00", end: "12:00" }, { start: "13:00", end: "18:00" }];
+    } else if (preset === "everyday") {
+      for (let d = 0; d <= 6; d++) map[d] = [{ start: "09:00", end: "18:00" }];
+    }
+    setByDay(map);
+  };
+
+  const copyMonday = () => {
+    const src = byDay[1] ?? [];
+    const map = { ...byDay };
+    for (let d = 2; d <= 5; d++) map[d] = src.map((w) => ({ ...w }));
+    setByDay(map);
+  };
+
+  const toggleDay = (wd: number) => {
+    const cur = byDay[wd] ?? [];
+    setByDay({ ...byDay, [wd]: cur.length > 0 ? [] : [{ start: "09:00", end: "18:00" }] });
+  };
+
+  const updateWin = (wd: number, i: number, patch: Partial<Win>) => {
+    const cur = [...(byDay[wd] ?? [])];
+    cur[i] = { ...cur[i], ...patch };
+    setByDay({ ...byDay, [wd]: cur });
+  };
+
+  const addWin = (wd: number) => {
+    const cur = byDay[wd] ?? [];
+    setByDay({ ...byDay, [wd]: [...cur, { start: "13:00", end: "18:00" }] });
+  };
+
+  const removeWin = (wd: number, i: number) => {
+    const cur = [...(byDay[wd] ?? [])];
+    cur.splice(i, 1);
+    setByDay({ ...byDay, [wd]: cur });
+  };
+
   return (
     <Dialog open={!!professionalId} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Horários de atendimento</DialogTitle></DialogHeader>
-        <div className="space-y-2 max-h-[400px] overflow-auto">
-          {local.map((w, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <Select value={String(w.weekday)} onValueChange={(v) => { const c = [...local]; c[i].weekday = parseInt(v); setLocal(c); }}>
-                <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
-                <SelectContent>{WEEKDAYS.map((d, idx) => <SelectItem key={idx} value={String(idx)}>{d}</SelectItem>)}</SelectContent>
-              </Select>
-              <Input type="time" value={w.start_time} onChange={(e) => { const c = [...local]; c[i].start_time = e.target.value; setLocal(c); }} className="w-28" />
-              <span>—</span>
-              <Input type="time" value={w.end_time} onChange={(e) => { const c = [...local]; c[i].end_time = e.target.value; setLocal(c); }} className="w-28" />
-              <Button size="sm" variant="ghost" onClick={() => setLocal(local.filter((_, x) => x !== i))}><Trash2 className="h-3 w-3" /></Button>
-            </div>
-          ))}
-          <Button size="sm" variant="outline" onClick={() => setLocal([...local, { weekday: 1, start_time: "09:00", end_time: "18:00" }])}>
-            <Plus className="h-3 w-3 mr-1" />Adicionar janela
-          </Button>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />Horários de atendimento</DialogTitle>
+          <CardDescription>
+            Marque os dias que esse profissional atende e defina o intervalo de horas. Você pode ter mais de uma janela por dia (ex: manhã e tarde, com almoço no meio).
+          </CardDescription>
+        </DialogHeader>
+
+        <div className="flex flex-wrap gap-2 pb-2 border-b">
+          <Button size="sm" variant="outline" onClick={() => applyPreset("weekdays")}>Seg–Sex 9h–18h</Button>
+          <Button size="sm" variant="outline" onClick={() => applyPreset("weekdays-lunch")}>Seg–Sex 9–12 / 13–18</Button>
+          <Button size="sm" variant="outline" onClick={() => applyPreset("everyday")}>Todo dia 9h–18h</Button>
+          <Button size="sm" variant="outline" onClick={copyMonday}>Copiar segunda → seg-sex</Button>
+          <Button size="sm" variant="ghost" onClick={() => applyPreset("clear")}>Limpar tudo</Button>
         </div>
+
+        <div className="space-y-2 max-h-[440px] overflow-auto">
+          {WEEKDAYS.map((day, wd) => {
+            const wins = byDay[wd] ?? [];
+            const active = wins.length > 0;
+            return (
+              <div key={wd} className={`p-2 rounded border ${active ? "bg-card" : "bg-muted/30"}`}>
+                <div className="flex items-center gap-3">
+                  <Switch checked={active} onCheckedChange={() => toggleDay(wd)} />
+                  <span className={`font-medium w-14 ${active ? "" : "text-muted-foreground"}`}>{day}</span>
+                  {!active && <span className="text-xs text-muted-foreground">Fechado</span>}
+                  {active && (
+                    <Button size="sm" variant="ghost" className="ml-auto" onClick={() => addWin(wd)}>
+                      <Plus className="h-3 w-3 mr-1" />Janela
+                    </Button>
+                  )}
+                </div>
+                {active && (
+                  <div className="mt-2 space-y-1 pl-12">
+                    {wins.map((w, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <Input type="time" value={w.start} onChange={(e) => updateWin(wd, i, { start: e.target.value })} className="w-28" />
+                        <span className="text-muted-foreground">—</span>
+                        <Input type="time" value={w.end} onChange={(e) => updateWin(wd, i, { end: e.target.value })} className="w-28" />
+                        {wins.length > 1 && (
+                          <Button size="sm" variant="ghost" onClick={() => removeWin(wd, i)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>Salvar</Button>
+          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+            {saveMut.isPending ? "Salvando…" : "Salvar horários"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+// ===================== How it works =====================
+function HowItWorks() {
+  const [open, setOpen] = useState(false);
+  return (
+    <Card className="border-primary/30 bg-primary/5">
+      <CardContent className="p-3">
+        <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-2 text-left">
+          <Info className="h-4 w-4 text-primary" />
+          <span className="font-medium text-sm flex-1">Como funciona a Agenda — leia antes de divulgar o link</span>
+          <span className="text-xs text-muted-foreground">{open ? "ocultar" : "mostrar"}</span>
+        </button>
+        {open && (
+          <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+            <p><b className="text-foreground">1. Equipe →</b> cadastre cada profissional que atende. Para cada um, clique no botão <b>Horários</b> e marque os dias e as horas em que ele atende (ex: Seg–Sex 9h–18h). <b>Sem horários definidos, ninguém consegue agendar com esse profissional.</b></p>
+            <p><b className="text-foreground">2. Serviços →</b> cadastre o que você oferece (nome, duração em minutos, preço opcional) e marque quais profissionais executam cada serviço.</p>
+            <p><b className="text-foreground">3. Config →</b> escolha o chip WhatsApp que vai enviar as confirmações e ajuste os lembretes (ex: 1440 = 24h antes, 120 = 2h antes do agendamento).</p>
+            <p><b className="text-foreground">4. Divulgue o link →</b> compartilhe <code className="text-foreground">/agenda/seu-slug</code> com seus clientes. Eles escolhem serviço → profissional → data → horário, recebem confirmação no WhatsApp e o sistema impede agendamentos sobrepostos automaticamente.</p>
+            <p><b className="text-foreground">5. Agenda →</b> acompanhe os próximos 7 dias, marque como <b>Realizado</b>, <b>Faltou</b> ou <b>Cancelar</b>.</p>
+            <p><b className="text-foreground">6. Reengajamento →</b> dispare mensagens automáticas pra clientes que não agendam há X dias, com cupom opcional pra incentivar o retorno.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 
 // ===================== Reengagement =====================
 function ReengagementTab({ business }: { business: Business }) {
