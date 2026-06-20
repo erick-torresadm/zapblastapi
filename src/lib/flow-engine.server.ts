@@ -193,6 +193,7 @@ function safetyWaitMs(inst: InstanceRow, opts: { respectQuietHours?: boolean; re
 async function bumpCounters(supabaseAdmin: any, inst: InstanceRow) {
   const nowIso = new Date().toISOString();
   await supabaseAdmin.from("whatsapp_instances").update({
+    status: "connected",
     sent_today: inst.sent_today + 1,
     sent_hour: inst.sent_hour + 1,
     sent_hour_at: inst.sent_hour_at ?? nowIso,
