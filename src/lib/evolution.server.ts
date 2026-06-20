@@ -432,16 +432,16 @@ export async function checkWhatsappNumbers(
   instanceName: string,
   numbers: string[],
 ): Promise<WhatsappCheck[]> {
-  const res = await evoFetchRaw(server, `/chat/whatsappNumbers/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  const res = await evoFetchRaw(server, ep("whatsappNumbers", { instance: instanceName }), {
+    method: epMethod("whatsappNumbers"),
     body: JSON.stringify({ numbers }),
   });
   return (Array.isArray(res) ? res : []) as WhatsappCheck[];
 }
 
 export async function fetchProfile(server: EvolutionServer, instanceName: string, number: string) {
-  return evoFetch(server, `/chat/fetchProfile/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("fetchProfile", { instance: instanceName }), {
+    method: epMethod("fetchProfile"),
     body: JSON.stringify({ number }),
   });
 }
@@ -449,8 +449,8 @@ export async function fetchProfile(server: EvolutionServer, instanceName: string
 export async function fetchProfilePictureUrl(server: EvolutionServer, instanceName: string, number: string) {
   return evoFetch(
     server,
-    `/chat/fetchProfilePictureUrl/${encodeURIComponent(instanceName)}?number=${encodeURIComponent(number)}&sendUrl=true`,
-    { method: "GET" },
+    ep("fetchProfilePictureUrl", { instance: instanceName, query: { number, sendUrl: true } }),
+    { method: epMethod("fetchProfilePictureUrl") },
   );
 }
 
@@ -468,9 +468,9 @@ export async function getBase64FromMediaMessage(
   try {
     const res = await evoFetch(
       server,
-      `/chat/getBase64FromMediaMessage/${encodeURIComponent(instanceName)}`,
+      ep("getBase64FromMediaMessage", { instance: instanceName }),
       {
-        method: "POST",
+        method: epMethod("getBase64FromMediaMessage"),
         body: JSON.stringify({ message, convertToMp4 }),
       },
     );
@@ -492,8 +492,8 @@ export async function markMessageAsRead(
   instanceName: string,
   messages: Array<{ id: string; fromMe: boolean; remoteJid: string }>,
 ) {
-  return evoFetch(server, `/chat/markMessageAsRead/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("markMessageAsRead", { instance: instanceName }), {
+    method: epMethod("markMessageAsRead"),
     body: JSON.stringify({ readMessages: messages }),
   });
 }
@@ -509,8 +509,8 @@ export async function sendPresence(
   presence: "composing" | "recording" | "paused",
   delayMs: number = 1200,
 ) {
-  return evoFetch(server, `/chat/sendPresence/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendPresence", { instance: instanceName }), {
+    method: epMethod("sendPresence"),
     body: JSON.stringify({ number: phone, presence, delay: delayMs }),
   });
 }
