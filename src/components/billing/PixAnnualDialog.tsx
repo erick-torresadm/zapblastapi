@@ -12,16 +12,23 @@ type Props = {
   planId: string;
   planName: string;
   annualCents: number;
+  /** Quando true, cobra apenas a diferença sobre o plano atual (upgrade anual). */
+  upgrade?: boolean;
 };
 
-type PixData = { txid: string; qrcode: string; imagem_qrcode: string; valor: string; expires_in: number };
+type PixData = {
+  txid: string; qrcode: string; imagem_qrcode: string; valor: string;
+  charge_cents?: number; annual_cents?: number;
+  upgrade_from?: { plan_name: string; annual_cents: number } | null;
+  expires_in: number;
+};
 
 async function functionErrorMessage(error: unknown) {
   const context = (error as { context?: Response })?.context;
   if (context instanceof Response) {
     try {
       const body = await context.clone().json();
-      return body?.details?.mensagem ?? body?.details?.error_description ?? body?.details ?? body?.error;
+      return body?.message ?? body?.details?.mensagem ?? body?.details?.error_description ?? body?.details ?? body?.error;
     } catch {
       return await context.clone().text();
     }
@@ -29,15 +36,17 @@ async function functionErrorMessage(error: unknown) {
   return (error as Error)?.message;
 }
 
-export function PixAnnualDialog({ open, onOpenChange, planId, planName, annualCents }: Props) {
+export function PixAnnualDialog({ open, onOpenChange, planId, planName, annualCents, upgrade }: Props) {
   const [pix, setPix] = useState<PixData | null>(null);
   const [copied, setCopied] = useState(false);
 
   const create = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("efi-pix-annual", { body: { plan_id: planId } });
+      const { data, error } = await supabase.functions.invoke("efi-pix-annual", {
+        body: { plan_id: planId, mode: upgrade ? "upgrade" : "new" },
+      });
       if (error) throw new Error((await functionErrorMessage(error)) ?? "Falha ao gerar PIX");
-      if (data?.error) throw new Error(data.details ?? data.error);
+      if (data?.error) throw new Error(data.message ?? data.details ?? data.error);
       return data as PixData;
     },
     onSuccess: (d) => setPix(d),
@@ -45,6 +54,9 @@ export function PixAnnualDialog({ open, onOpenChange, planId, planName, annualCe
   });
 
   const annualFmt = (annualCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const chargeFmt = pix?.charge_cents != null
+    ? (pix.charge_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+    : annualFmt;
 
   const handleCopy = async () => {
     if (!pix) return;
