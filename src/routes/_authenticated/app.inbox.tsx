@@ -388,7 +388,7 @@ function Inbox() {
   useEffect(() => {
     if (autoSyncRef.current) return;
     if (!instances?.length || !workspace) return;
-    const pending = (conversations ?? []).some((c: any) =>
+    const pending = (convs ?? []).some((c: any) =>
       !c.contact_phone || /^[0-9]{15,}$/.test(c.contact_phone) || (c.contact_jid ?? "").endsWith("@lid"),
     );
     if (!pending) return;
