@@ -391,8 +391,8 @@ export async function sendReaction(
   key: { remoteJid: string; fromMe: boolean; id: string },
   reaction: string,
 ) {
-  return evoFetch(server, `/message/sendReaction/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendReaction", { instance: instanceName }), {
+    method: epMethod("sendReaction"),
     body: JSON.stringify({ key, reaction }),
   });
 }
