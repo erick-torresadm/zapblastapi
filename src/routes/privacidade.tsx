@@ -6,10 +6,16 @@ export const Route = createFileRoute("/privacidade")({
   head: () => ({
     meta: [
       { title: "Política de Privacidade · Perseidas" },
-      { name: "description", content: "Como tratamos seus dados e os limites de responsabilidade no uso de API não oficial do WhatsApp." },
+      { name: "description", content: "Como a Perseidas trata seus dados e os limites de responsabilidade no uso de API não oficial do WhatsApp." },
+      { property: "og:title", content: "Política de Privacidade · Perseidas" },
+      { property: "og:description", content: "Como a Perseidas trata seus dados e os limites de responsabilidade no uso de API não oficial do WhatsApp." },
+      { property: "og:url", content: "https://zapblastapi.lovable.app/privacidade" },
+      { property: "og:locale", content: "pt_BR" },
     ],
+    links: [{ rel: "canonical", href: "https://zapblastapi.lovable.app/privacidade" }],
   }),
 });
+
 
 function PrivacyPage() {
   return (
