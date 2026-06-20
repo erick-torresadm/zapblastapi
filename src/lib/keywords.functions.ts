@@ -140,7 +140,7 @@ export const listFlowsForKeywordsFn = createServerFn({ method: "GET" })
     const admin = await isAdmin(supabase, userId);
     const flowsQ = supabase.from("flows" as any).select("id,name,user_id").order("name");
     const { data: flows } = admin ? await flowsQ : await flowsQ.eq("user_id", userId);
-    const instQ = supabase.from("whatsapp_instances" as any).select("id,instance_name,status,user_id").order("instance_name");
+    const instQ = supabase.from("whatsapp_instances" as any).select("id,instance_name,phone_number,status,user_id").order("instance_name");
     const { data: instances } = admin ? await instQ : await instQ.eq("user_id", userId);
     let users: Array<{ id: string; email: string }> = [];
     if (admin) {
