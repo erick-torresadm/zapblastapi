@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Calendar, Plus, Trash2, Link2, Copy, Users, Wrench, Clock, Sparkles, CheckCircle2, XCircle } from "lucide-react";
+import { Calendar, Plus, Trash2, Link2, Copy, Users, Wrench, Clock, Sparkles, CheckCircle2, XCircle, Info, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import {
   getMyBusinessFn, upsertBusinessFn,
