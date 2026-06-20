@@ -379,8 +379,8 @@ export async function sendContact(
     url?: string;
   }>,
 ) {
-  return evoFetch(server, `/message/sendContact/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendContact", { instance: instanceName }), {
+    method: epMethod("sendContact"),
     body: JSON.stringify({ number: phone, contact: contacts }),
   });
 }
