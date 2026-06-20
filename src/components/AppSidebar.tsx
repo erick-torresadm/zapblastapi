@@ -6,8 +6,10 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Server, Smartphone, Users, Send, Inbox, UserCog,
-  LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, Bot, Sparkles, Ticket, Calendar, Megaphone, Rocket,
+  LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, Bot, Sparkles, Ticket, Calendar, Megaphone, Rocket, User2,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
