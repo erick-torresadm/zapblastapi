@@ -2024,6 +2024,7 @@ export type Database = {
           link_id: string | null
           next_attempt_at: string
           owner_user_id: string
+          participant_phone: string | null
           status: string
           subject: string
           updated_at: string
@@ -2039,6 +2040,7 @@ export type Database = {
           link_id?: string | null
           next_attempt_at?: string
           owner_user_id: string
+          participant_phone?: string | null
           status?: string
           subject: string
           updated_at?: string
@@ -2054,6 +2056,7 @@ export type Database = {
           link_id?: string | null
           next_attempt_at?: string
           owner_user_id?: string
+          participant_phone?: string | null
           status?: string
           subject?: string
           updated_at?: string
