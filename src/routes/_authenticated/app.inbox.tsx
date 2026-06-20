@@ -124,6 +124,7 @@ function Inbox() {
   const addNoteSf = useServerFn(addNoteFn);
   const sendMediaSf = useServerFn(sendChatMediaFn);
   const signFn = useServerFn(signMediaUrlsFn);
+  const signAvatarsSf = useServerFn(signAvatarsFn);
   const presFn = useServerFn(sendPresenceFn);
   const listQrFn = useServerFn(listQuickRepliesFn);
   const saveQrFn = useServerFn(saveQuickReplyFn);
@@ -134,6 +135,7 @@ function Inbox() {
   const reactFn = useServerFn(reactToMessageFn);
   const starFn = useServerFn(starMessageFn);
   const delMsgFn = useServerFn(deleteMessageFn);
+
 
   const [filter, setFilter] = useState<FilterKind>("all");
   const [statusFilter, setStatusFilter] = useState<"open" | "pending" | "resolved" | "any">("any");
