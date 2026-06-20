@@ -49,8 +49,8 @@ export const recordLoginAttemptFn = createServerFn({ method: "POST" })
   });
 
 // ============ Admin: lê security_events / admin_audit_log / login_attempts ============
-async function ensureAdmin(ctx: { supabase: ReturnType<typeof Object>; userId: string }) {
-  // @ts-expect-error supabase is typed by middleware
+type AuthCtx = { supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> }; userId: string };
+async function ensureAdmin(ctx: AuthCtx) {
   const { data, error } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" });
   if (error) throw new Error("Falha ao verificar permissão.");
   if (!data) throw new Error("Acesso restrito a administradores.");

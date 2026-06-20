@@ -14,6 +14,7 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as ApiPublicWarmupWorkerRouteImport } from './routes/api/public/warmup-worker'
 import { Route as ApiPublicFlowWorkerRouteImport } from './routes/api/public/flow-worker'
@@ -41,6 +42,7 @@ import { Route as AuthenticatedAppFlowsIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppCampaignsNewRouteImport } from './routes/_authenticated/app.campaigns.new'
 import { Route as AuthenticatedAppCampaignsIdRouteImport } from './routes/_authenticated/app.campaigns.$id'
 import { Route as AuthenticatedAppAdminCatalogRouteImport } from './routes/_authenticated/app.admin.catalog'
+import { Route as AuthenticatedAdminAppAdminSecurityRouteImport } from './routes/_authenticated/_admin.app.admin.security'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
@@ -65,6 +67,10 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
+  id: '/_admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/app/',
@@ -212,6 +218,12 @@ const AuthenticatedAppAdminCatalogRoute =
     path: '/app/admin/catalog',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminAppAdminSecurityRoute =
+  AuthenticatedAdminAppAdminSecurityRouteImport.update({
+    id: '/app/admin/security',
+    path: '/app/admin/security',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -245,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
+  '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -277,6 +290,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/app/campaigns': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows': typeof AuthenticatedAppFlowsIndexRoute
+  '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -285,6 +299,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
   '/_authenticated/app/cancelar': typeof AuthenticatedAppCancelarRoute
@@ -312,6 +327,7 @@ export interface FileRoutesById {
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/_authenticated/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/_authenticated/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
+  '/_authenticated/_admin/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -347,6 +363,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution-webhook/$token'
     | '/app/campaigns/'
     | '/app/flows/'
+    | '/app/admin/security'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -379,6 +396,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution-webhook/$token'
     | '/app/campaigns'
     | '/app/flows'
+    | '/app/admin/security'
   id:
     | '__root__'
     | '/'
@@ -386,6 +404,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/privacidade'
     | '/termos'
+    | '/_authenticated/_admin'
     | '/_authenticated/app/anti-ban'
     | '/_authenticated/app/billing'
     | '/_authenticated/app/cancelar'
@@ -413,6 +432,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution-webhook/$token'
     | '/_authenticated/app/campaigns/'
     | '/_authenticated/app/flows/'
+    | '/_authenticated/_admin/app/admin/security'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -464,6 +484,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/_admin': {
+      id: '/_authenticated/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/': {
       id: '/_authenticated/app/'
@@ -654,8 +681,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminCatalogRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/_admin/app/admin/security': {
+      id: '/_authenticated/_admin/app/admin/security'
+      path: '/app/admin/security'
+      fullPath: '/app/admin/security'
+      preLoaderRoute: typeof AuthenticatedAdminAppAdminSecurityRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
   }
 }
+
+interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminAppAdminSecurityRoute: typeof AuthenticatedAdminAppAdminSecurityRoute
+}
+
+const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
+  {
+    AuthenticatedAdminAppAdminSecurityRoute:
+      AuthenticatedAdminAppAdminSecurityRoute,
+  }
+
+const AuthenticatedAdminRouteRouteWithChildren =
+  AuthenticatedAdminRouteRoute._addFileChildren(
+    AuthenticatedAdminRouteRouteChildren,
+  )
 
 interface AuthenticatedAppFlowsRouteChildren {
   AuthenticatedAppFlowsIdRoute: typeof AuthenticatedAppFlowsIdRoute
@@ -686,6 +735,7 @@ const AuthenticatedAppListsRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedAppAntiBanRoute: typeof AuthenticatedAppAntiBanRoute
   AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
   AuthenticatedAppCancelarRoute: typeof AuthenticatedAppCancelarRoute
@@ -708,6 +758,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
   AuthenticatedAppAntiBanRoute: AuthenticatedAppAntiBanRoute,
   AuthenticatedAppBillingRoute: AuthenticatedAppBillingRoute,
   AuthenticatedAppCancelarRoute: AuthenticatedAppCancelarRoute,
