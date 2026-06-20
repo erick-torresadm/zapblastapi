@@ -17,6 +17,83 @@
 
 export type EvolutionServer = { base_url: string; api_key: string };
 
+// ============================================================================
+// 0) ENDPOINT MAP — SINGLE SOURCE OF TRUTH
+// ----------------------------------------------------------------------------
+// Se a Evolution API mudar um path/método em um update, altere AQUI (1 linha).
+// Toda função neste arquivo lê de EVOLUTION_ENDPOINTS — nada hardcoded.
+//
+// Variáveis nos paths:
+//   {instance} → encodeURIComponent(instanceName)
+// ============================================================================
+
+type Method = "GET" | "POST" | "PUT" | "DELETE";
+type Endpoint = { method: Method; path: string };
+
+export const EVOLUTION_ENDPOINTS = {
+  // Instance lifecycle
+  createInstance:        { method: "POST",   path: "/instance/create" },
+  connectInstance:       { method: "GET",    path: "/instance/connect/{instance}" },
+  instanceState:         { method: "GET",    path: "/instance/connectionState/{instance}" },
+  fetchInstances:        { method: "GET",    path: "/instance/fetchInstances" },
+  logoutInstance:        { method: "DELETE", path: "/instance/logout/{instance}" },
+  deleteInstance:        { method: "DELETE", path: "/instance/delete/{instance}" },
+  restartInstance:       { method: "PUT",    path: "/instance/restart/{instance}" },
+  restartInstanceLegacy: { method: "POST",   path: "/instance/restart/{instance}" },
+
+  // Webhook
+  setWebhook:    { method: "POST", path: "/webhook/set/{instance}" },
+  findWebhook:   { method: "GET",  path: "/webhook/find/{instance}" },
+
+  // Send
+  sendText:           { method: "POST", path: "/message/sendText/{instance}" },
+  sendMedia:          { method: "POST", path: "/message/sendMedia/{instance}" },
+  sendWhatsAppAudio:  { method: "POST", path: "/message/sendWhatsAppAudio/{instance}" },
+  sendSticker:        { method: "POST", path: "/message/sendSticker/{instance}" },
+  sendLocation:       { method: "POST", path: "/message/sendLocation/{instance}" },
+  sendContact:        { method: "POST", path: "/message/sendContact/{instance}" },
+  sendReaction:       { method: "POST", path: "/message/sendReaction/{instance}" },
+  sendPoll:           { method: "POST", path: "/message/sendPoll/{instance}" },
+
+  // Chat / contact
+  whatsappNumbers:           { method: "POST", path: "/chat/whatsappNumbers/{instance}" },
+  fetchProfile:              { method: "POST", path: "/chat/fetchProfile/{instance}" },
+  fetchProfilePictureUrl:    { method: "GET",  path: "/chat/fetchProfilePictureUrl/{instance}" },
+  getBase64FromMediaMessage: { method: "POST", path: "/chat/getBase64FromMediaMessage/{instance}" },
+  markMessageAsRead:         { method: "POST", path: "/chat/markMessageAsRead/{instance}" },
+  sendPresence:              { method: "POST", path: "/chat/sendPresence/{instance}" },
+  findContacts:              { method: "POST", path: "/chat/findContacts/{instance}" },
+
+  // Groups
+  inviteInfoGroup: { method: "GET", path: "/group/inviteInfo/{instance}" },
+  findGroupInfos:  { method: "GET", path: "/group/findGroupInfos/{instance}" },
+  fetchAllGroups:  { method: "GET", path: "/group/fetchAllGroups/{instance}" },
+
+  // Server-level
+  root: { method: "GET", path: "/" },
+} as const satisfies Record<string, Endpoint>;
+
+export type EvolutionEndpointKey = keyof typeof EVOLUTION_ENDPOINTS;
+
+/** Builds a path from EVOLUTION_ENDPOINTS, injecting {instance} and an optional query string. */
+function ep(key: EvolutionEndpointKey, vars?: { instance?: string; query?: Record<string, string | number | boolean | undefined> }): string {
+  let path = EVOLUTION_ENDPOINTS[key].path;
+  if (vars?.instance != null) path = path.replace("{instance}", encodeURIComponent(vars.instance));
+  if (vars?.query) {
+    const qs = Object.entries(vars.query)
+      .filter(([, v]) => v !== undefined && v !== null && v !== "")
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+      .join("&");
+    if (qs) path += (path.includes("?") ? "&" : "?") + qs;
+  }
+  return path;
+}
+
+/** Returns the HTTP method registered for an endpoint. */
+function epMethod(key: EvolutionEndpointKey): Method {
+  return EVOLUTION_ENDPOINTS[key].method;
+}
+
 // ----- core fetch ------------------------------------------------------------
 
 async function evoFetchRaw(
