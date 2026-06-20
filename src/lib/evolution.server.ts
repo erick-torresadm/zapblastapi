@@ -63,6 +63,7 @@ export const EVOLUTION_ENDPOINTS = {
   markMessageAsRead:         { method: "POST", path: "/chat/markMessageAsRead/{instance}" },
   sendPresence:              { method: "POST", path: "/chat/sendPresence/{instance}" },
   findContacts:              { method: "POST", path: "/chat/findContacts/{instance}" },
+  findChats:                 { method: "POST", path: "/chat/findChats/{instance}" },
 
   // Groups
   inviteInfoGroup:    { method: "GET",  path: "/group/inviteInfo/{instance}" },
