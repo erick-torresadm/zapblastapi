@@ -37,6 +37,26 @@ export function AppTopbar() {
     },
   });
 
+  const { data: planInfo } = useQuery({
+    queryKey: ["current-plan-badge"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return null;
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("status, subscription_plans(name)")
+        .eq("user_id", u.user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data) return { name: "Sem plano", status: "none" as const };
+      const planName = (data as { subscription_plans?: { name?: string } }).subscription_plans?.name ?? "Sem plano";
+      return { name: planName, status: (data.status as string) ?? "none" };
+    },
+    refetchInterval: 60000,
+  });
+
+
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border/60 bg-background/70 px-3 backdrop-blur-xl sm:gap-3 sm:px-4">
       <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
