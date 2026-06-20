@@ -78,10 +78,17 @@ function PublicAgenda() {
   });
 
   const bookMut = useMutation({
-    mutationFn: () => book({ data: {
-      business_id: biz.id, service_id: svc!.id, professional_id: pro!.id, starts_at: slot!,
-      customer_name: form.name, customer_phone: form.phone, customer_notes: form.notes,
-    } }) as unknown as Promise<{ ok: boolean; message?: string; confirm_token?: string }>,
+    mutationFn: () => {
+      const digits = phoneDigits(form.phone);
+      if (digits.length < 10 || digits.length > 11) {
+        return Promise.reject(new Error("Telefone inválido. Use DDD + número, ex: (11) 99999-9999"));
+      }
+      const e164 = `55${digits}`;
+      return book({ data: {
+        business_id: biz.id, service_id: svc!.id, professional_id: pro!.id, starts_at: slot!,
+        customer_name: form.name, customer_phone: e164, customer_notes: form.notes,
+      } }) as unknown as Promise<{ ok: boolean; message?: string; confirm_token?: string }>;
+    },
     onSuccess: (r) => {
       if (!r.ok) { toast.error(r.message || "Erro"); return; }
       setConfirmToken(r.confirm_token ?? null);
