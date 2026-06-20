@@ -3275,17 +3275,31 @@ export type Database = {
         }
         Returns: string
       }
-      submit_traffic_lead: {
-        Args: {
-          _email: string
-          _extra: Json
-          _name: string
-          _phone: string
-          _slug: string
-          _utm: Json
-        }
-        Returns: string
-      }
+      submit_traffic_lead:
+        | {
+            Args: {
+              _email: string
+              _extra: Json
+              _name: string
+              _phone: string
+              _slug: string
+              _utm: Json
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _answers?: Json
+              _completed?: boolean
+              _email: string
+              _extra: Json
+              _name: string
+              _phone: string
+              _slug: string
+              _utm: Json
+            }
+            Returns: string
+          }
       validate_coupon: {
         Args: { _code: string; _plan_id?: string }
         Returns: Json
