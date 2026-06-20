@@ -701,6 +701,29 @@ export async function findContacts(
   return (Array.isArray(r) ? r : []) as EvolutionContact[];
 }
 
+export type EvolutionChat = {
+  id?: string | null;
+  remoteJid?: string | null;
+  remoteJidAlt?: string | null;
+  pushName?: string | null;
+  name?: string | null;
+  profilePicUrl?: string | null;
+  [k: string]: unknown;
+};
+
+/** Fetch all chats the instance knows about. Includes remoteJid/remoteJidAlt (lid mapping). */
+export async function findChats(
+  server: EvolutionServer,
+  instanceName: string,
+): Promise<EvolutionChat[]> {
+  const r = await evoFetchRaw(
+    server,
+    ep("findChats", { instance: instanceName }),
+    { method: epMethod("findChats"), body: JSON.stringify({}) },
+  );
+  return (Array.isArray(r) ? r : []) as EvolutionChat[];
+}
+
 
 // ============================================================================
 // 9) Group write operations (create / invite / picture)
