@@ -109,8 +109,34 @@ export async function resolveLidFromHistory(
         return { phone, jid: `${phone}@s.whatsapp.net` };
       }
     }
+  // Estratégia 3 (fallback robusto): varre as últimas 500 mensagens da instância
+  // e procura em memória por uma com remoteJidAlt == lid.
+  try {
+    let q = supabaseAdmin
+      .from("incoming_messages")
+      .select("raw_payload, received_at")
+      .eq("user_id", args.user_id)
+      .order("received_at", { ascending: false })
+      .limit(500);
+    if (args.instance_id) q = q.eq("instance_id", args.instance_id);
+    const { data, error } = await q;
+    console.log("[lid] history strat3 scan", { lid, count: data?.length, error: error?.message });
+    if (data) {
+      for (const row of data) {
+        const k = row?.raw_payload?.data?.key ?? {};
+        const rja = String(k.remoteJidAlt ?? "");
+        const rj = String(k.remoteJid ?? "");
+        if (rja === lid && rj.endsWith("@s.whatsapp.net")) {
+          const phone = pickPhone(rj);
+          if (phone) {
+            console.log("[lid] strat3 match", { lid, phone });
+            return { phone, jid: `${phone}@s.whatsapp.net` };
+          }
+        }
+      }
+    }
   } catch (e) {
-    console.warn("[lid] history strat2 exception", (e as Error).message);
+    console.warn("[lid] history strat3 exception", (e as Error).message);
   }
 
   return null;
