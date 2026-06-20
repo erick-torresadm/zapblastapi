@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { UserPlus, Download, Loader2, AlertTriangle, Lock, Crown, FileDown, ScanSearch } from "lucide-react";
 import { toast } from "sonner";
 import { listUnsavedContactsFn, exportUnsavedAsVcardFn } from "@/lib/unsaved-contacts.functions";
+import { formatPhone } from "@/lib/format-instance";
 
 function downloadCsv(filename: string, rows: string[][]) {
   const csv = rows.map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
