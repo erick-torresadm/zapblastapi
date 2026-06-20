@@ -395,7 +395,7 @@ function Inbox() {
     autoSyncRef.current = true;
     syncContactsMut.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [instances, workspace, conversations]);
+  }, [instances, workspace, convs]);
 
   const assignMut = useMutation({
     mutationFn: (agent_user_id: string | null) =>
