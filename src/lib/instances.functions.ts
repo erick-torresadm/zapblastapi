@@ -176,8 +176,16 @@ export const getInstanceQrFn = createServerFn({ method: "POST" })
     const stateVal = extractEvolutionState(state) ?? extractEvolutionState(qr) ?? null;
     if (stateVal === "open") {
       await supabase.from("whatsapp_instances").update({ status: "connected", last_qr_base64: null, last_qr_error: null }).eq("id", inst.id);
+      // Tenta descobrir e salvar o número conectado (best-effort, pra exibir no painel)
+      try {
+        const { resolveInstancePhone } = await import("@/lib/group-launcher.functions");
+        await resolveInstancePhone(supabase, inst.id);
+      } catch (e) {
+        console.warn(`[evolution] resolveInstancePhone falhou para ${inst.instance_name}: ${(e as Error).message}`);
+      }
       return { qrcode: null, state: stateVal, error: null, source: "connected" as const };
     }
+
 
     let source: "direct" | "stored" | "none" | "connected" = "none";
 
