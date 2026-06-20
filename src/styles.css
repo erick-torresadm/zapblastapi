@@ -144,6 +144,15 @@
   --shadow-glow: 0 0 60px -10px oklch(0.62 0.21 275 / 0.55);
   --shadow-elegant: 0 20px 60px -20px oklch(0.05 0.02 280 / 0.8);
   --shadow-card: 0 10px 30px -10px oklch(0.05 0.02 280 / 0.6);
+
+  /* ===== Chat / CRM ===== */
+  --chat-bg: oklch(0.12 0.04 280);
+  --chat-out: oklch(0.32 0.16 275);
+  --chat-out-fg: oklch(0.99 0.01 280);
+  --chat-in: oklch(0.20 0.05 280);
+  --chat-in-fg: oklch(0.96 0.01 280);
+  --chat-tick-read: oklch(0.72 0.17 235);
+  --chat-quoted-border: oklch(0.72 0.20 275);
 }
 
 /* ============== LIGHT — Cloud Indigo ============== */
@@ -206,6 +215,15 @@
   --shadow-glow: 0 0 60px -10px oklch(0.58 0.21 275 / 0.30);
   --shadow-elegant: 0 20px 60px -20px oklch(0.20 0.04 280 / 0.18);
   --shadow-card: 0 10px 30px -10px oklch(0.20 0.04 280 / 0.10);
+
+  /* ===== Chat / CRM ===== */
+  --chat-bg: oklch(0.96 0.01 280);
+  --chat-out: oklch(0.62 0.18 275);
+  --chat-out-fg: oklch(0.99 0.005 280);
+  --chat-in: oklch(1 0 0);
+  --chat-in-fg: oklch(0.18 0.04 280);
+  --chat-tick-read: oklch(0.55 0.18 235);
+  --chat-quoted-border: oklch(0.58 0.21 275);
 }
 
 @layer base {
@@ -256,3 +274,27 @@
 @utility shadow-elegant {
   box-shadow: var(--shadow-elegant);
 }
+
+/* ===== Chat wallpaper ===== */
+.chat-wallpaper {
+  background-color: var(--chat-bg);
+  background-image:
+    radial-gradient(circle at 20% 20%, color-mix(in oklab, var(--primary) 8%, transparent) 0, transparent 30%),
+    radial-gradient(circle at 80% 60%, color-mix(in oklab, var(--primary-glow) 6%, transparent) 0, transparent 35%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><g fill='none' stroke='%23ffffff' stroke-width='0.6' opacity='0.05'><circle cx='20' cy='20' r='3'/><circle cx='60' cy='60' r='3'/><path d='M0 40 Q 20 20 40 40 T 80 40'/></g></svg>");
+}
+.light .chat-wallpaper {
+  background-image:
+    radial-gradient(circle at 20% 20%, color-mix(in oklab, var(--primary) 4%, transparent) 0, transparent 30%),
+    radial-gradient(circle at 80% 60%, color-mix(in oklab, var(--primary-glow) 4%, transparent) 0, transparent 35%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><g fill='none' stroke='%23000000' stroke-width='0.6' opacity='0.05'><circle cx='20' cy='20' r='3'/><circle cx='60' cy='60' r='3'/><path d='M0 40 Q 20 20 40 40 T 80 40'/></g></svg>");
+}
+
+/* ===== Chat bubbles ===== */
+.bubble-out { background: var(--chat-out); color: var(--chat-out-fg); }
+.bubble-in  { background: var(--chat-in);  color: var(--chat-in-fg); border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent); }
+.tick-read { color: var(--chat-tick-read); }
+
+/* Bubble actions hover */
+.bubble-row:hover .bubble-actions { opacity: 1; transform: translateY(0); }
+.bubble-actions { opacity: 0; transform: translateY(-4px); transition: opacity .15s ease, transform .15s ease; }

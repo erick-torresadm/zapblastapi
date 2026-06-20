@@ -100,9 +100,10 @@ export const listConversationsFn = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     let q = supabase.from("crm_conversations" as any)
-      .select("id,owner_user_id,instance_id,contact_phone,contact_jid,contact_name,contact_avatar_url,contact_about,contact_email,contact_company,tags,custom_fields,assigned_agent_id,status,last_message_at,last_message_text,last_message_direction,last_message_type,unread_count,presence,presence_at")
+      .select("id,owner_user_id,instance_id,contact_phone,contact_jid,contact_name,contact_avatar_url,contact_about,contact_email,contact_company,tags,custom_fields,assigned_agent_id,status,last_message_at,last_message_text,last_message_direction,last_message_type,unread_count,presence,presence_at,pinned_at,archived_at,muted_until,last_seen_at")
+      .order("pinned_at", { ascending: false, nullsFirst: false })
       .order("last_message_at", { ascending: false })
-      .limit(300);
+      .limit(500);
     if (data.workspace) q = q.eq("owner_user_id", data.workspace);
     if (data.status) q = q.eq("status", data.status);
     if (data.filter === "mine") q = q.eq("assigned_agent_id", userId);
@@ -190,6 +191,81 @@ export const addNoteFn = createServerFn({ method: "POST" })
       author_user_id: userId,
       text: data.text,
     });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ----- Pin / Archive / Mute -----
+export const togglePinConversationFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ conversation_id: z.string().uuid(), pinned: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await context.supabase.from("crm_conversations" as any)
+      .update({ pinned_at: data.pinned ? new Date().toISOString() : null })
+      .eq("id", data.conversation_id);
+    return { ok: true };
+  });
+
+export const toggleArchiveConversationFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ conversation_id: z.string().uuid(), archived: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await context.supabase.from("crm_conversations" as any)
+      .update({ archived_at: data.archived ? new Date().toISOString() : null })
+      .eq("id", data.conversation_id);
+    return { ok: true };
+  });
+
+export const toggleMuteConversationFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    conversation_id: z.string().uuid(),
+    muted_until: z.string().datetime().nullable(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await context.supabase.from("crm_conversations" as any)
+      .update({ muted_until: data.muted_until })
+      .eq("id", data.conversation_id);
+    return { ok: true };
+  });
+
+// ----- Message actions -----
+export const reactToMessageFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    message_id: z.string().uuid(),
+    emoji: z.string().min(1).max(8).nullable(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: msg } = await supabase.from("chat_messages" as any)
+      .select("id,reactions").eq("id", data.message_id).maybeSingle();
+    if (!msg) throw new Error("Mensagem não encontrada");
+    const reactions = ((msg as any).reactions ?? {}) as Record<string, string>;
+    if (data.emoji == null) delete reactions[userId];
+    else reactions[userId] = data.emoji;
+    const { error } = await supabase.from("chat_messages" as any)
+      .update({ reactions }).eq("id", data.message_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const starMessageFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ message_id: z.string().uuid(), starred: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("chat_messages" as any)
+      .update({ starred: data.starred }).eq("id", data.message_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteMessageFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ message_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("chat_messages" as any)
+      .update({ deleted_at: new Date().toISOString() }).eq("id", data.message_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

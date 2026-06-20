@@ -1,5 +1,6 @@
+// CRM estilo WhatsApp Web — lista de conversas, chat, painel do contato.
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Send, Search, MessageCircle, UserPlus, CheckCircle2, Clock, MoreVertical, StickyNote,
-  ArrowLeft, Inbox as InboxIcon, Paperclip, Image as ImgIcon, FileText, Smile, User2, Zap, X,
+  ArrowLeft, Paperclip, Image as ImgIcon, FileText, Smile, User2, Zap, X,
+  Pin, PinOff, Archive, BellOff, Bell, Filter,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,8 @@ import { getConversationMessagesFn, sendChatMessageFn, listChatInstancesFn } fro
 import {
   listConversationsFn, listAgentsFn, myWorkspacesFn, assignConversationFn, claimConversationFn,
   setConversationStatusFn, listNotesFn, addNoteFn,
+  togglePinConversationFn, toggleArchiveConversationFn, toggleMuteConversationFn,
+  reactToMessageFn, starMessageFn, deleteMessageFn,
 } from "@/lib/crm.functions";
 import {
   sendChatMediaFn, signMediaUrlsFn, sendPresenceFn,
@@ -31,6 +34,10 @@ import {
 import { MessageBubble, type Msg } from "@/components/crm/MessageBubble";
 import { AudioRecorder } from "@/components/crm/AudioRecorder";
 import { ContactPanel, type ContactConv } from "@/components/crm/ContactPanel";
+import { DateSeparator } from "@/components/crm/DateSeparator";
+import { MediaPreviewDialog } from "@/components/crm/MediaPreviewDialog";
+import { ReplyPreview } from "@/components/crm/ReplyPreview";
+import { EmptyChatState } from "@/components/crm/EmptyChatState";
 
 export const Route = createFileRoute("/_authenticated/app/inbox")({ component: Inbox });
 
@@ -44,6 +51,10 @@ type Conv = ContactConv & {
   last_message_direction: "in" | "out" | null;
   last_message_type: string | null;
   unread_count: number;
+  pinned_at: string | null;
+  archived_at: string | null;
+  muted_until: string | null;
+  last_seen_at: string | null;
 };
 type Agent = { id: string; agent_user_id: string; role: string; display_name: string | null; active: boolean };
 type Workspace = { owner_user_id: string; role: string; display_name: string | null };
@@ -51,6 +62,8 @@ type Note = { id: string; author_user_id: string; text: string; created_at: stri
 type QR = { id: string; shortcut: string; title: string | null; text: string };
 
 const EMOJIS = ["😀","😅","😂","🙂","😉","😍","🥰","😘","🤔","😎","😢","😭","🙏","👍","👎","👏","🙌","🔥","🎉","✨","💯","❤️","💙","💚","💛","🧡","💜","🖤","✅","❌","⚡","📌","📷","🎵","🎬","💬","📞","🛒","💰","🚀"];
+
+type FilterKind = "all" | "unread" | "mine" | "queue" | "favorites" | "archived";
 
 function fmtPhone(p: string) {
   const m = p.match(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/);
@@ -74,6 +87,11 @@ function lastPreview(c: Conv) {
     default: return "(sem texto)";
   }
 }
+function sameDay(a: string, b: string) {
+  const da = new Date(a); const db = new Date(b);
+  return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
+}
+
 const statusColor: Record<string, string> = {
   open: "bg-success/15 text-success border-success/30",
   pending: "bg-warning/15 text-warning border-warning/30",
@@ -100,9 +118,15 @@ function Inbox() {
   const listQrFn = useServerFn(listQuickRepliesFn);
   const saveQrFn = useServerFn(saveQuickReplyFn);
   const delQrFn = useServerFn(deleteQuickReplyFn);
+  const pinFn = useServerFn(togglePinConversationFn);
+  const archiveFn = useServerFn(toggleArchiveConversationFn);
+  const muteFn = useServerFn(toggleMuteConversationFn);
+  const reactFn = useServerFn(reactToMessageFn);
+  const starFn = useServerFn(starMessageFn);
+  const delMsgFn = useServerFn(deleteMessageFn);
 
-  const [filter, setFilter] = useState<"all" | "mine" | "queue">("all");
-  const [statusFilter, setStatusFilter] = useState<"open" | "pending" | "resolved" | "any">("open");
+  const [filter, setFilter] = useState<FilterKind>("all");
+  const [statusFilter, setStatusFilter] = useState<"open" | "pending" | "resolved" | "any">("any");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<string>("");
@@ -117,9 +141,16 @@ function Inbox() {
   const [showConvSearch, setShowConvSearch] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [signedMap, setSignedMap] = useState<Record<string, string>>({});
+  const [replyTo, setReplyTo] = useState<Msg | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimerRef = useRef<number | null>(null);
+
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null)); }, []);
 
   const { data: workspaces = [] } = useQuery<Workspace[]>({
     queryKey: ["my-workspaces"],
@@ -134,11 +165,11 @@ function Inbox() {
   }, [workspaces, workspace]);
 
   const { data: convs = [] } = useQuery<Conv[]>({
-    queryKey: ["crm-convs", workspace, filter, statusFilter],
+    queryKey: ["crm-convs", workspace, statusFilter],
     queryFn: () => convFn({ data: {
       workspace: workspace || undefined,
       status: statusFilter === "any" ? undefined : statusFilter,
-      filter,
+      filter: "all",
     } }) as unknown as Promise<Conv[]>,
     refetchInterval: 15000,
     enabled: !!workspace,
@@ -178,20 +209,20 @@ function Inbox() {
     enabled: !!workspace,
   });
 
-  // Realtime: chat_messages + crm_conversations
+  // Realtime
   useEffect(() => {
     if (!workspace) return;
     const ch = supabase
       .channel(`crm-${workspace}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "crm_conversations", filter: `owner_user_id=eq.${workspace}` },
         () => qc.invalidateQueries({ queryKey: ["crm-convs"] }))
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `user_id=eq.${workspace}` },
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages", filter: `user_id=eq.${workspace}` },
         (payload) => {
           qc.invalidateQueries({ queryKey: ["crm-convs"] });
           const m: any = payload.new;
           if (selectedId) qc.invalidateQueries({ queryKey: ["crm-msgs", selectedId] });
-          if (m.direction === "in") {
-            try { new Audio("/notify.mp3").play().catch(() => {}); } catch {}
+          if (payload.eventType === "INSERT" && m?.direction === "in") {
+            try { new Audio("/notify.mp3").play().catch(() => {}); } catch { /* ignore */ }
           }
         })
       .subscribe();
@@ -211,7 +242,6 @@ function Inbox() {
     }
   }, [instances, instanceId]);
 
-  // Resolve signed URLs para mídias
   useEffect(() => {
     const paths = messages
       .filter((m) => m.media_url && !m.media_url.startsWith("http") && !signedMap[m.media_url])
@@ -224,15 +254,45 @@ function Inbox() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length, selectedId]);
 
+  // Reset reply quando troca de conversa
+  useEffect(() => { setReplyTo(null); setShowConvSearch(false); setConvSearch(""); }, [selectedId]);
+
+  // Esc fecha conversa
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (replyTo) setReplyTo(null);
+        else if (pendingFile) setPendingFile(null);
+        else if (showContact) setShowContact(false);
+        else if (showNotes) setShowNotes(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [replyTo, pendingFile, showContact, showNotes]);
+
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
-    if (!s) return convs;
-    return convs.filter((c) =>
-      c.contact_phone.includes(s)
-      || (c.contact_name ?? "").toLowerCase().includes(s)
-      || (c.last_message_text ?? "").toLowerCase().includes(s),
-    );
-  }, [convs, search]);
+    return convs.filter((c) => {
+      // Filtro de visibilidade
+      if (filter === "archived") { if (!c.archived_at) return false; }
+      else { if (c.archived_at) return false; }
+      if (filter === "unread" && c.unread_count <= 0) return false;
+      if (filter === "mine" && c.assigned_agent_id !== currentUserId) return false;
+      if (filter === "queue" && c.assigned_agent_id) return false;
+      if (filter === "favorites" && !c.pinned_at) return false;
+      if (s) {
+        const blob = `${c.contact_phone} ${c.contact_name ?? ""} ${c.last_message_text ?? ""}`.toLowerCase();
+        if (!blob.includes(s)) return false;
+      }
+      return true;
+    });
+  }, [convs, search, filter, currentUserId]);
+
+  const pinned = filtered.filter((c) => c.pinned_at);
+  const rest = filtered.filter((c) => !c.pinned_at);
+
+  const totalUnread = convs.reduce((n, c) => n + (c.archived_at ? 0 : c.unread_count), 0);
 
   const agentMap = useMemo(() => {
     const m: Record<string, string> = {};
@@ -247,15 +307,23 @@ function Inbox() {
       (m.text ?? "").toLowerCase().includes(s) || (m.caption ?? "").toLowerCase().includes(s));
   }, [messages, convSearch]);
 
+  const msgById = useMemo(() => {
+    const m: Record<string, Msg> = {};
+    messages.forEach((x) => { m[x.id] = x; });
+    return m;
+  }, [messages]);
+
   const invalidateConvLists = () => qc.invalidateQueries({ queryKey: ["crm-convs"] });
+  const invalidateMsgs = () => selectedId && qc.invalidateQueries({ queryKey: ["crm-msgs", selectedId] });
 
   const sendMut = useMutation({
-    mutationFn: () => sendFn({ data: { conversation_id: selectedId!, text: draft.trim(), instance_id: instanceId || undefined } }),
-    onSuccess: () => {
-      setDraft("");
-      qc.invalidateQueries({ queryKey: ["crm-msgs", selectedId] });
-      invalidateConvLists();
-    },
+    mutationFn: () => sendFn({ data: {
+      conversation_id: selectedId!,
+      text: draft.trim(),
+      instance_id: instanceId || undefined,
+      reply_to_id: replyTo?.id,
+    } }),
+    onSuccess: () => { setDraft(""); setReplyTo(null); invalidateMsgs(); invalidateConvLists(); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -286,12 +354,11 @@ function Inbox() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // --- Upload + envio de mídia ---
-  async function uploadAndSend(file: File, kindOverride?: "image" | "video" | "audio" | "document" | "sticker", extra?: { is_ptt?: boolean; duration_seconds?: number; mimeOverride?: string }) {
+  async function uploadAndSend(file: File, kindOverride?: "image" | "video" | "audio" | "document" | "sticker", extra?: { is_ptt?: boolean; duration_seconds?: number; mimeOverride?: string; caption?: string }) {
     if (!selectedId || !current) return;
     const mime = extra?.mimeOverride ?? file.type ?? "application/octet-stream";
     const kind = kindOverride ?? (
-      mime.startsWith("image/") ? (mime.includes("webp") ? "image" : "image")
+      mime.startsWith("image/") ? "image"
       : mime.startsWith("video/") ? "video"
       : mime.startsWith("audio/") ? "audio"
       : "document"
@@ -310,14 +377,12 @@ function Inbox() {
         mime,
         filename: safeName,
         size: file.size,
-        caption: draft.trim() || undefined,
+        caption: extra?.caption ?? undefined,
         duration_seconds: extra?.duration_seconds,
         is_ptt: extra?.is_ptt,
         instance_id: instanceId || undefined,
       } });
-      setDraft("");
-      qc.invalidateQueries({ queryKey: ["crm-msgs", selectedId] });
-      invalidateConvLists();
+      invalidateMsgs(); invalidateConvLists();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao enviar");
     }
@@ -336,23 +401,39 @@ function Inbox() {
     input.click();
   }
 
-  // typing indicator
+  // Drag-and-drop
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault(); setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f && selectedId) setPendingFile(f);
+  }
+
+  // Paste image
+  useEffect(() => {
+    if (!selectedId) return;
+    const onPaste = (e: ClipboardEvent) => {
+      const item = Array.from(e.clipboardData?.items ?? []).find((it) => it.type.startsWith("image/"));
+      if (item) {
+        const f = item.getAsFile();
+        if (f) setPendingFile(f);
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [selectedId]);
+
   function pingTyping() {
     if (!selectedId) return;
     if (typingTimerRef.current) return;
     presFn({ data: { conversation_id: selectedId, presence: "composing" } }).catch(() => {});
-    typingTimerRef.current = window.setTimeout(() => {
-      typingTimerRef.current = null;
-    }, 3000);
+    typingTimerRef.current = window.setTimeout(() => { typingTimerRef.current = null; }, 3000);
   }
 
-  // Inserir resposta rápida
   function insertQuickReply(qr: QR) {
     setDraft((d) => (d ? `${d} ${qr.text}` : qr.text));
     setShowQRs(false);
   }
 
-  // Detecta "/" no draft pra abrir QRs
   useEffect(() => {
     if (draft.trim().startsWith("/") && !showQRs && quickReplies.length) setShowQRs(true);
   }, [draft, showQRs, quickReplies.length]);
@@ -360,14 +441,132 @@ function Inbox() {
   const myRole = workspaces.find((w) => w.owner_user_id === workspace)?.role ?? "agent";
   const canAssignOthers = myRole === "owner" || myRole === "admin";
 
-  const messagesWithSigned: Msg[] = messages.map((m) => ({
+  const messagesWithSigned: Msg[] = useMemo(() => filteredMessages.map((m) => ({
     ...m,
     signed_url: m.media_url ? (m.media_url.startsWith("http") ? m.media_url : signedMap[m.media_url] ?? null) : null,
-  }));
-  const filteredWithSigned = filteredMessages.map((m) => ({
-    ...m,
-    signed_url: m.media_url ? (m.media_url.startsWith("http") ? m.media_url : signedMap[m.media_url] ?? null) : null,
-  }));
+  })), [filteredMessages, signedMap]);
+
+  function isMuted(c: Conv) {
+    return c.muted_until && new Date(c.muted_until).getTime() > Date.now();
+  }
+
+  // ---- Bubble actions ----
+  const onReact = async (m: Msg, emoji: string | null) => {
+    try { await reactFn({ data: { message_id: m.id, emoji } }); invalidateMsgs(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Falha"); }
+  };
+  const onCopy = (m: Msg) => {
+    const t = m.text ?? m.caption ?? "";
+    if (!t) return;
+    navigator.clipboard.writeText(t).then(() => toast.success("Copiado"));
+  };
+  const onStar = async (m: Msg, starred: boolean) => {
+    try { await starFn({ data: { message_id: m.id, starred } }); invalidateMsgs(); toast.success(starred ? "Estrelada" : "Removida"); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Falha"); }
+  };
+  const onDeleteMsg = async (m: Msg) => {
+    if (!confirm("Apagar essa mensagem para você?")) return;
+    try { await delMsgFn({ data: { message_id: m.id } }); invalidateMsgs(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Falha"); }
+  };
+
+  // ---- Conversation actions ----
+  async function togglePin(c: Conv) {
+    await pinFn({ data: { conversation_id: c.id, pinned: !c.pinned_at } });
+    invalidateConvLists();
+  }
+  async function toggleArchive(c: Conv) {
+    await archiveFn({ data: { conversation_id: c.id, archived: !c.archived_at } });
+    invalidateConvLists();
+    if (selectedId === c.id) setSelectedId(null);
+    toast.success(c.archived_at ? "Desarquivada" : "Arquivada");
+  }
+  async function toggleMute(c: Conv) {
+    const until = isMuted(c) ? null : new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
+    await muteFn({ data: { conversation_id: c.id, muted_until: until } });
+    invalidateConvLists();
+    toast.success(until ? "Silenciado por 8h" : "Som ativado");
+  }
+
+  const filterChips: Array<{ id: FilterKind; label: string; icon?: ReactNode }> = [
+    { id: "all", label: "Todas" },
+    { id: "unread", label: `Não lidas${totalUnread ? ` · ${totalUnread}` : ""}` },
+    { id: "mine", label: "Minhas" },
+    { id: "queue", label: "Fila" },
+    { id: "favorites", label: "Fixadas", icon: <Pin className="h-3 w-3" /> },
+    { id: "archived", label: "Arquivadas", icon: <Archive className="h-3 w-3" /> },
+  ];
+
+  function renderConvRow(c: Conv) {
+    const active = selectedId === c.id;
+    const assignedName = c.assigned_agent_id ? agentMap[c.assigned_agent_id] ?? "—" : null;
+    const muted = isMuted(c);
+    return (
+      <div key={c.id} className="group relative">
+        <button
+          onClick={() => setSelectedId(c.id)}
+          className={`flex w-full items-start gap-3 border-b px-3 py-3 text-left transition hover:bg-muted/50 ${active ? "bg-muted" : ""}`}
+        >
+          {active && <span className="absolute left-0 top-0 h-full w-1 bg-primary" />}
+          {c.contact_avatar_url ? (
+            <img src={c.contact_avatar_url} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
+          ) : (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/70 to-primary-glow/70 text-sm font-bold text-primary-foreground">
+              {(c.contact_name ?? c.contact_phone).slice(-2)}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate text-sm font-semibold">{c.contact_name ?? fmtPhone(c.contact_phone)}</span>
+              <span className={`shrink-0 text-[10px] ${c.unread_count > 0 ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+                {fmtTime(c.last_message_at)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate text-xs text-muted-foreground">
+                {c.last_message_direction === "out" ? "↗ " : "↙ "}{lastPreview(c)}
+              </p>
+              <div className="flex items-center gap-1 shrink-0">
+                {muted && <BellOff className="h-3 w-3 text-muted-foreground" />}
+                {c.pinned_at && <Pin className="h-3 w-3 text-muted-foreground" />}
+                {c.unread_count > 0 && (
+                  <Badge className="h-5 min-w-5 rounded-full px-1.5 text-[10px]">{c.unread_count}</Badge>
+                )}
+              </div>
+            </div>
+            <div className="mt-1 flex items-center gap-1">
+              <span className={`rounded-full border px-1.5 py-0 text-[9px] font-medium ${statusColor[c.status]}`}>
+                {statusLabel[c.status]}
+              </span>
+              {assignedName ? (
+                <span className="truncate text-[10px] text-muted-foreground">👤 {assignedName}</span>
+              ) : (
+                <span className="text-[10px] font-medium text-warning">📥 fila</span>
+              )}
+            </div>
+          </div>
+        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="absolute right-2 top-2 hidden group-hover:flex h-6 w-6 items-center justify-center rounded-full bg-card border shadow-sm">
+              <MoreVertical className="h-3 w-3" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => togglePin(c)}>
+              {c.pinned_at ? <><PinOff className="mr-2 h-4 w-4" /> Desafixar</> : <><Pin className="mr-2 h-4 w-4" /> Fixar</>}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toggleMute(c)}>
+              {muted ? <><Bell className="mr-2 h-4 w-4" /> Tirar do silêncio</> : <><BellOff className="mr-2 h-4 w-4" /> Silenciar 8h</>}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toggleArchive(c)}>
+              <Archive className="mr-2 h-4 w-4" /> {c.archived_at ? "Desarquivar" : "Arquivar"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden rounded-3xl border bg-card">
@@ -377,12 +576,11 @@ function Inbox() {
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0]; if (!f) return;
-          const kind = (fileInputRef.current?.dataset.kind || undefined) as any;
-          uploadAndSend(f, kind);
+          setPendingFile(f);
         }}
       />
 
-      {/* Lightbox de imagem */}
+      {/* Lightbox */}
       <Dialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader><DialogTitle>Visualização</DialogTitle></DialogHeader>
@@ -390,12 +588,22 @@ function Inbox() {
         </DialogContent>
       </Dialog>
 
+      {/* Media preview */}
+      <MediaPreviewDialog
+        file={pendingFile}
+        onCancel={() => setPendingFile(null)}
+        onSend={async (caption) => {
+          const f = pendingFile; setPendingFile(null);
+          if (f) await uploadAndSend(f, undefined, { caption });
+        }}
+      />
+
       {/* Lista de conversas */}
-      <aside className={`flex w-full flex-col border-r md:w-96 md:shrink-0 ${selectedId ? "hidden md:flex" : "flex"}`}>
-        <div className="space-y-3 border-b p-3">
+      <aside className={`flex w-full flex-col border-r md:w-[360px] md:shrink-0 ${selectedId ? "hidden md:flex" : "flex"}`}>
+        <div className="space-y-2 border-b p-3">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold">CRM</h2>
+            <h2 className="font-display text-lg font-semibold">CRM</h2>
             {workspaces.length > 1 && (
               <Select value={workspace} onValueChange={setWorkspace}>
                 <SelectTrigger className="ml-auto h-7 w-[140px] text-xs"><SelectValue /></SelectTrigger>
@@ -410,95 +618,90 @@ function Inbox() {
             )}
           </div>
 
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as "all" | "mine" | "queue")}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="mine" className="text-xs">Minhas</TabsTrigger>
-              <TabsTrigger value="queue" className="text-xs">Fila</TabsTrigger>
-              <TabsTrigger value="all" className="text-xs">Todas</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "open" | "pending" | "resolved" | "any")}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="open">Abertas</SelectItem>
-              <SelectItem value="pending">Pendentes</SelectItem>
-              <SelectItem value="resolved">Resolvidas</SelectItem>
-              <SelectItem value="any">Todas</SelectItem>
-            </SelectContent>
-          </Select>
-
           <div className="relative">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar…" className="h-8 pl-8 text-sm" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar conversa ou mensagem…" className="h-9 pl-8 text-sm rounded-full" />
+          </div>
+
+          <div className="flex gap-1 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-thin">
+            {filterChips.map((fc) => (
+              <button
+                key={fc.id}
+                onClick={() => setFilter(fc.id)}
+                className={`shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium border transition ${
+                  filter === fc.id
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted/40 text-muted-foreground border-transparent hover:bg-muted"
+                }`}
+              >
+                {fc.icon}
+                {fc.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Filter className="h-3 w-3 text-muted-foreground" />
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "open" | "pending" | "resolved" | "any")}>
+              <SelectTrigger className="h-7 text-[11px] border-none bg-transparent shadow-none px-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Todos os status</SelectItem>
+                <SelectItem value="open">Abertas</SelectItem>
+                <SelectItem value="pending">Pendentes</SelectItem>
+                <SelectItem value="resolved">Resolvidas</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {!filtered.length && (
             <p className="p-6 text-center text-sm text-muted-foreground">
-              {filter === "queue" ? "Sem conversas na fila." : filter === "mine" ? "Você não tem conversas." : "Sem conversas."}
+              {filter === "queue" ? "Sem conversas na fila." :
+               filter === "archived" ? "Nenhuma arquivada." :
+               filter === "unread" ? "Tudo lido por aqui ✨" :
+               filter === "favorites" ? "Fixe conversas pra elas aparecerem aqui." :
+               "Sem conversas ainda."}
             </p>
           )}
-          {filtered.map((c) => {
-            const active = selectedId === c.id;
-            const assignedName = c.assigned_agent_id ? agentMap[c.assigned_agent_id] ?? "—" : null;
-            return (
-              <button
-                key={c.id}
-                onClick={() => setSelectedId(c.id)}
-                className={`flex w-full items-start gap-3 border-b p-3 text-left transition hover:bg-muted/50 ${active ? "bg-muted" : ""}`}
-              >
-                {c.contact_avatar_url ? (
-                  <img src={c.contact_avatar_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-                ) : (
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/70 to-primary-glow/70 text-xs font-bold text-primary-foreground">
-                    {(c.contact_name ?? c.contact_phone).slice(-2)}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-medium">{c.contact_name ?? fmtPhone(c.contact_phone)}</span>
-                    <span className="shrink-0 text-[10px] text-muted-foreground">{fmtTime(c.last_message_at)}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-xs text-muted-foreground">
-                      {c.last_message_direction === "out" ? "↗ " : "↙ "}{lastPreview(c)}
-                    </p>
-                    {c.unread_count > 0 && (
-                      <Badge className="h-5 min-w-5 rounded-full px-1.5 text-[10px]">{c.unread_count}</Badge>
-                    )}
-                  </div>
-                  <div className="mt-1 flex items-center gap-1">
-                    <span className={`rounded-full border px-1.5 py-0 text-[9px] font-medium ${statusColor[c.status]}`}>
-                      {statusLabel[c.status]}
-                    </span>
-                    {assignedName ? (
-                      <span className="truncate text-[10px] text-muted-foreground">👤 {assignedName}</span>
-                    ) : (
-                      <span className="text-[10px] font-medium text-warning">📥 na fila</span>
-                    )}
-                    {c.tags?.length > 0 && (
-                      <span className="truncate text-[10px] text-primary">🏷️ {c.tags.slice(0, 2).join(", ")}</span>
-                    )}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+          {pinned.length > 0 && (
+            <>
+              <div className="px-3 py-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/30">
+                <Pin className="inline h-3 w-3 mr-1" /> Fixadas
+              </div>
+              {pinned.map(renderConvRow)}
+            </>
+          )}
+          {rest.length > 0 && pinned.length > 0 && (
+            <div className="px-3 py-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/30">
+              Todas
+            </div>
+          )}
+          {rest.map(renderConvRow)}
         </div>
       </aside>
 
       {/* Painel direito */}
-      <section className={`flex flex-1 flex-col bg-muted/20 ${selectedId ? "flex" : "hidden md:flex"}`}>
-        {!current ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
-            <InboxIcon className="h-10 w-10 opacity-40" />
-            Selecione uma conversa.
+      <section
+        className={`flex flex-1 flex-col chat-wallpaper relative ${selectedId ? "flex" : "hidden md:flex"}`}
+        onDragOver={(e) => { if (selectedId) { e.preventDefault(); setDragOver(true); } }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={onDrop}
+      >
+        {dragOver && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-primary/20 border-4 border-dashed border-primary pointer-events-none">
+            <div className="rounded-2xl bg-card px-6 py-4 text-center shadow-elegant">
+              <Paperclip className="mx-auto h-8 w-8 text-primary" />
+              <p className="mt-2 font-semibold">Solte o arquivo aqui</p>
+            </div>
           </div>
+        )}
+
+        {!current ? (
+          <EmptyChatState />
         ) : (
           <>
-            <header className="flex items-center gap-2 border-b bg-card p-3 sm:gap-3">
+            <header className="flex items-center gap-2 border-b bg-card/95 backdrop-blur p-3 sm:gap-3">
               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 md:hidden" onClick={() => setSelectedId(null)} aria-label="Voltar">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
@@ -510,7 +713,7 @@ function Inbox() {
                 </div>
               )}
               <button className="min-w-0 flex-1 text-left" onClick={() => setShowContact((s) => !s)}>
-                <div className="truncate text-sm font-medium">{current.contact_name ?? fmtPhone(current.contact_phone)}</div>
+                <div className="truncate text-sm font-semibold">{current.contact_name ?? fmtPhone(current.contact_phone)}</div>
                 <div className="font-mono text-xs text-muted-foreground">
                   {current.presence === "composing" ? <span className="text-success">digitando…</span>
                     : current.presence === "recording" ? <span className="text-success">gravando áudio…</span>
@@ -520,6 +723,12 @@ function Inbox() {
 
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowConvSearch((s) => !s)} title="Buscar na conversa">
                 <Search className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => togglePin(current)} title={current.pinned_at ? "Desafixar" : "Fixar"}>
+                {current.pinned_at ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleArchive(current)} title="Arquivar">
+                <Archive className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowContact((s) => !s)} title="Perfil do contato">
                 <User2 className="h-4 w-4" />
@@ -543,9 +752,9 @@ function Inbox() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>Status</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => statusMut.mutate("open")}><Clock className="mr-2 h-4 w-4" /> Marcar como aberta</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => statusMut.mutate("pending")}><Clock className="mr-2 h-4 w-4" /> Marcar como pendente</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => statusMut.mutate("resolved")}><CheckCircle2 className="mr-2 h-4 w-4" /> Resolver</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => statusMut.mutate("open")}><Clock className="mr-2 h-4 w-4" /> Aberta</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => statusMut.mutate("pending")}><Clock className="mr-2 h-4 w-4" /> Pendente</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => statusMut.mutate("resolved")}><CheckCircle2 className="mr-2 h-4 w-4" /> Resolvida</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel>Atribuir</DropdownMenuLabel>
                   {canAssignOthers ? (
@@ -563,6 +772,9 @@ function Inbox() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setShowNotes((s) => !s)}>
                     <StickyNote className="mr-2 h-4 w-4" /> {showNotes ? "Esconder notas" : "Mostrar notas"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toggleMute(current)}>
+                    {isMuted(current) ? <><Bell className="mr-2 h-4 w-4" /> Ativar som</> : <><BellOff className="mr-2 h-4 w-4" /> Silenciar 8h</>}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -582,13 +794,30 @@ function Inbox() {
 
             <div className="flex flex-1 overflow-hidden">
               <div className="flex flex-1 flex-col">
-                <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto p-4">
-                  {filteredWithSigned.map((m) => (
-                    <MessageBubble key={m.id} m={m}
-                      authorName={m.sent_by_agent_id ? agentMap[m.sent_by_agent_id] : null}
-                      onImageClick={(u) => setLightbox(u)} />
-                  ))}
-                  {!filteredWithSigned.length && (
+                <div ref={scrollRef} className="flex-1 space-y-1 overflow-y-auto px-4 py-3">
+                  {messagesWithSigned.map((m, i) => {
+                    const prev = messagesWithSigned[i - 1];
+                    const showDate = !prev || !sameDay(prev.created_at, m.created_at);
+                    const quoted = m.reply_to_id ? msgById[m.reply_to_id] : null;
+                    return (
+                      <div key={m.id}>
+                        {showDate && <DateSeparator iso={m.created_at} />}
+                        <MessageBubble
+                          m={m}
+                          quoted={quoted}
+                          currentUserId={currentUserId}
+                          authorName={m.sent_by_agent_id ? agentMap[m.sent_by_agent_id] : null}
+                          onImageClick={(u) => setLightbox(u)}
+                          onReply={(x) => setReplyTo(x)}
+                          onReact={onReact}
+                          onCopy={onCopy}
+                          onStar={onStar}
+                          onDelete={onDeleteMsg}
+                        />
+                      </div>
+                    );
+                  })}
+                  {!messagesWithSigned.length && (
                     <p className="py-12 text-center text-sm text-muted-foreground">
                       {convSearch ? "Nada encontrado." : "Sem mensagens nessa conversa."}
                     </p>
@@ -596,7 +825,9 @@ function Inbox() {
                 </div>
 
                 {/* Composer */}
-                <footer className="border-t bg-card p-3 space-y-2">
+                <footer className="border-t bg-card/95 backdrop-blur p-3 space-y-2">
+                  {replyTo && <ReplyPreview msg={replyTo} onCancel={() => setReplyTo(null)} />}
+
                   {showQRs && quickReplies.length > 0 && (
                     <div className="max-h-40 overflow-y-auto rounded-2xl border bg-popover p-2">
                       <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -632,6 +863,10 @@ function Inbox() {
                       </SelectContent>
                     </Select>
 
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setShowEmoji((s) => !s)} title="Emoji">
+                      <Smile className="h-5 w-5" />
+                    </Button>
+
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button type="button" variant="ghost" size="icon" title="Anexar"><Paperclip className="h-5 w-5" /></Button>
@@ -643,9 +878,6 @@ function Inbox() {
                       </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setShowEmoji((s) => !s)} title="Emoji">
-                      <Smile className="h-5 w-5" />
-                    </Button>
                     <Button type="button" variant="ghost" size="icon" onClick={() => setShowQRs((s) => !s)} title="Respostas rápidas">
                       <Zap className="h-5 w-5" />
                     </Button>
@@ -653,7 +885,7 @@ function Inbox() {
                     <Textarea
                       value={draft}
                       onChange={(e) => { setDraft(e.target.value); pingTyping(); }}
-                      placeholder="Digite uma mensagem… (use / para atalhos)"
+                      placeholder={replyTo ? "Responder…" : "Digite uma mensagem… (use / para atalhos, arraste arquivo, cole imagem)"}
                       rows={1}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (draft.trim() && selectedId) sendMut.mutate(); }
@@ -710,7 +942,6 @@ function Inbox() {
         )}
       </section>
 
-      {/* Gerenciador de respostas rápidas (admin) */}
       {canAssignOthers && (
         <QuickReplyManager
           workspace={workspace}
@@ -752,6 +983,12 @@ function QuickReplyManager({ workspace: _w, quickReplies, onSave, onDelete, onCh
     } catch (e) { toast.error(e instanceof Error ? e.message : "Falha"); }
   }
 
+  async function remove(id: string) {
+    if (!confirm("Apagar essa resposta rápida?")) return;
+    try { await onDelete(id); onChanged(); toast.success("Apagada"); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Falha"); }
+  }
+
   return (
     <>
       <button onClick={() => setOpen(true)}
@@ -767,28 +1004,27 @@ function QuickReplyManager({ workspace: _w, quickReplies, onSave, onDelete, onCh
               <div className="max-h-72 space-y-1 overflow-y-auto rounded-2xl border p-2">
                 {quickReplies.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">Nenhuma resposta rápida ainda.</p>}
                 {quickReplies.map((qr) => (
-                  <div key={qr.id} className="flex items-start gap-2 rounded-xl p-2 hover:bg-muted">
+                  <div key={qr.id} className="group flex items-start gap-1 rounded-lg p-1.5 hover:bg-muted">
                     <button className="flex-1 text-left text-xs" onClick={() => setEditing(qr)}>
                       <span className="font-mono text-primary">/{qr.shortcut}</span>
                       {qr.title && <span className="ml-1 font-medium">— {qr.title}</span>}
                       <p className="truncate text-muted-foreground">{qr.text}</p>
                     </button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={async () => { await onDelete(qr.id); onChanged(); }}>
-                      <X className="h-3 w-3 text-destructive" />
-                    </Button>
+                    <button onClick={() => remove(qr.id)} className="opacity-0 group-hover:opacity-100 text-destructive">
+                      <X className="h-3 w-3" />
+                    </button>
                   </div>
                 ))}
               </div>
+              <Button size="sm" variant="outline" className="w-full" onClick={() => setEditing(null)}>+ Nova</Button>
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">{editing ? "Editar" : "Novo atalho"}</p>
-              <Input value={shortcut} onChange={(e) => setShortcut(e.target.value.replace(/[^a-zA-Z0-9_\-]/g, ""))} placeholder="atalho (ex: oi)" className="font-mono text-xs" />
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="título (opcional)" />
-              <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="texto da resposta…" rows={6} />
-              <div className="flex gap-2">
-                <Button onClick={save} className="flex-1">{editing ? "Salvar" : "Criar"}</Button>
-                {editing && <Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button>}
-              </div>
+              <Input value={shortcut} onChange={(e) => setShortcut(e.target.value)} placeholder="atalho (ex: ola)" className="h-8 font-mono text-sm" />
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título (opcional)" className="h-8 text-sm" />
+              <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Mensagem…" rows={6} className="text-sm" />
+              <Button onClick={save} className="w-full" disabled={!shortcut.trim() || !text.trim()}>
+                {editing ? "Atualizar" : "Criar"}
+              </Button>
             </div>
           </div>
         </DialogContent>
