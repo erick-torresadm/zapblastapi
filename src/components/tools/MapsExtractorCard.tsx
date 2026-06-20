@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,10 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { MapPin, Search, Loader2, Download, Star, ExternalLink, Phone, Globe, MessageCircle } from "lucide-react";
+import { MapPin, Search, Loader2, Download, Star, ExternalLink, Phone, Globe, MessageCircle, Send, Gift, Ticket, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { searchMapsLeadsFn } from "@/lib/maps.functions";
+import { getToolCreditsFn, redeemToolCreditCouponFn, pushMapsLeadsToListFn } from "@/lib/tool-credits.functions";
 import { formatPhone } from "@/lib/format-instance";
 
 declare global {
