@@ -14,6 +14,7 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GSlugRouteImport } from './routes/g.$slug'
 import { Route as FSlugRouteImport } from './routes/f.$slug'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as AgendaSlugRouteImport } from './routes/agenda.$slug'
@@ -42,11 +43,14 @@ import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppAntiBanRouteImport } from './routes/_authenticated/app.anti-ban'
 import { Route as AuthenticatedAppAgendaRouteImport } from './routes/_authenticated/app.agenda'
 import { Route as AuthenticatedAppTrafficIndexRouteImport } from './routes/_authenticated/app.traffic.index'
+import { Route as AuthenticatedAppGroupLauncherIndexRouteImport } from './routes/_authenticated/app.group-launcher.index'
 import { Route as AuthenticatedAppFlowsIndexRouteImport } from './routes/_authenticated/app.flows.index'
 import { Route as AuthenticatedAppCampaignsIndexRouteImport } from './routes/_authenticated/app.campaigns.index'
+import { Route as ApiPublicGroupLauncherTickRouteImport } from './routes/api/public/group-launcher.tick'
 import { Route as ApiPublicEvolutionWebhookTokenRouteImport } from './routes/api/public/evolution-webhook.$token'
 import { Route as ApiPublicCrmResolvePendingRouteImport } from './routes/api/public/crm.resolve-pending'
 import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authenticated/app.lists.$id'
+import { Route as AuthenticatedAppGroupLauncherIdRouteImport } from './routes/_authenticated/app.group-launcher.$id'
 import { Route as AuthenticatedAppFlowsIdRouteImport } from './routes/_authenticated/app.flows.$id'
 import { Route as AuthenticatedAppCampaignsNewRouteImport } from './routes/_authenticated/app.campaigns.new'
 import { Route as AuthenticatedAppCampaignsIdRouteImport } from './routes/_authenticated/app.campaigns.$id'
@@ -79,6 +83,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GSlugRoute = GSlugRouteImport.update({
+  id: '/g/$slug',
+  path: '/g/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FSlugRoute = FSlugRouteImport.update({
@@ -225,6 +234,12 @@ const AuthenticatedAppTrafficIndexRoute =
     path: '/app/traffic/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppGroupLauncherIndexRoute =
+  AuthenticatedAppGroupLauncherIndexRouteImport.update({
+    id: '/app/group-launcher/',
+    path: '/app/group-launcher/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppFlowsIndexRoute =
   AuthenticatedAppFlowsIndexRouteImport.update({
     id: '/',
@@ -236,6 +251,12 @@ const AuthenticatedAppCampaignsIndexRoute =
     id: '/app/campaigns/',
     path: '/app/campaigns/',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const ApiPublicGroupLauncherTickRoute =
+  ApiPublicGroupLauncherTickRouteImport.update({
+    id: '/api/public/group-launcher/tick',
+    path: '/api/public/group-launcher/tick',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicEvolutionWebhookTokenRoute =
   ApiPublicEvolutionWebhookTokenRouteImport.update({
@@ -254,6 +275,12 @@ const AuthenticatedAppListsIdRoute = AuthenticatedAppListsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedAppListsRoute,
 } as any)
+const AuthenticatedAppGroupLauncherIdRoute =
+  AuthenticatedAppGroupLauncherIdRouteImport.update({
+    id: '/app/group-launcher/$id',
+    path: '/app/group-launcher/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppFlowsIdRoute = AuthenticatedAppFlowsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -316,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/f/$slug': typeof FSlugRoute
+  '/g/$slug': typeof GSlugRoute
   '/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -342,11 +370,14 @@ export interface FileRoutesByFullPath {
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
+  '/app/group-launcher/$id': typeof AuthenticatedAppGroupLauncherIdRoute
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
+  '/api/public/group-launcher/tick': typeof ApiPublicGroupLauncherTickRoute
   '/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
+  '/app/group-launcher/': typeof AuthenticatedAppGroupLauncherIndexRoute
   '/app/traffic/': typeof AuthenticatedAppTrafficIndexRoute
   '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
@@ -363,6 +394,7 @@ export interface FileRoutesByTo {
   '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/f/$slug': typeof FSlugRoute
+  '/g/$slug': typeof GSlugRoute
   '/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -388,11 +420,14 @@ export interface FileRoutesByTo {
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
+  '/app/group-launcher/$id': typeof AuthenticatedAppGroupLauncherIdRoute
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
+  '/api/public/group-launcher/tick': typeof ApiPublicGroupLauncherTickRoute
   '/app/campaigns': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows': typeof AuthenticatedAppFlowsIndexRoute
+  '/app/group-launcher': typeof AuthenticatedAppGroupLauncherIndexRoute
   '/app/traffic': typeof AuthenticatedAppTrafficIndexRoute
   '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
@@ -412,6 +447,7 @@ export interface FileRoutesById {
   '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/f/$slug': typeof FSlugRoute
+  '/g/$slug': typeof GSlugRoute
   '/_authenticated/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/_authenticated/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
@@ -438,11 +474,14 @@ export interface FileRoutesById {
   '/_authenticated/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/_authenticated/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/_authenticated/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
+  '/_authenticated/app/group-launcher/$id': typeof AuthenticatedAppGroupLauncherIdRoute
   '/_authenticated/app/lists/$id': typeof AuthenticatedAppListsIdRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
+  '/api/public/group-launcher/tick': typeof ApiPublicGroupLauncherTickRoute
   '/_authenticated/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/_authenticated/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
+  '/_authenticated/app/group-launcher/': typeof AuthenticatedAppGroupLauncherIndexRoute
   '/_authenticated/app/traffic/': typeof AuthenticatedAppTrafficIndexRoute
   '/_authenticated/_admin/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/_authenticated/_admin/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
@@ -461,6 +500,7 @@ export interface FileRouteTypes {
     | '/agenda/$slug'
     | '/convite/$token'
     | '/f/$slug'
+    | '/g/$slug'
     | '/app/agenda'
     | '/app/anti-ban'
     | '/app/billing'
@@ -487,11 +527,14 @@ export interface FileRouteTypes {
     | '/app/campaigns/$id'
     | '/app/campaigns/new'
     | '/app/flows/$id'
+    | '/app/group-launcher/$id'
     | '/app/lists/$id'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
+    | '/api/public/group-launcher/tick'
     | '/app/campaigns/'
     | '/app/flows/'
+    | '/app/group-launcher/'
     | '/app/traffic/'
     | '/app/admin/catalog'
     | '/app/admin/coupons'
@@ -508,6 +551,7 @@ export interface FileRouteTypes {
     | '/agenda/$slug'
     | '/convite/$token'
     | '/f/$slug'
+    | '/g/$slug'
     | '/app/agenda'
     | '/app/anti-ban'
     | '/app/billing'
@@ -533,11 +577,14 @@ export interface FileRouteTypes {
     | '/app/campaigns/$id'
     | '/app/campaigns/new'
     | '/app/flows/$id'
+    | '/app/group-launcher/$id'
     | '/app/lists/$id'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
+    | '/api/public/group-launcher/tick'
     | '/app/campaigns'
     | '/app/flows'
+    | '/app/group-launcher'
     | '/app/traffic'
     | '/app/admin/catalog'
     | '/app/admin/coupons'
@@ -556,6 +603,7 @@ export interface FileRouteTypes {
     | '/agenda/$slug'
     | '/convite/$token'
     | '/f/$slug'
+    | '/g/$slug'
     | '/_authenticated/app/agenda'
     | '/_authenticated/app/anti-ban'
     | '/_authenticated/app/billing'
@@ -582,11 +630,14 @@ export interface FileRouteTypes {
     | '/_authenticated/app/campaigns/$id'
     | '/_authenticated/app/campaigns/new'
     | '/_authenticated/app/flows/$id'
+    | '/_authenticated/app/group-launcher/$id'
     | '/_authenticated/app/lists/$id'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
+    | '/api/public/group-launcher/tick'
     | '/_authenticated/app/campaigns/'
     | '/_authenticated/app/flows/'
+    | '/_authenticated/app/group-launcher/'
     | '/_authenticated/app/traffic/'
     | '/_authenticated/_admin/app/admin/catalog'
     | '/_authenticated/_admin/app/admin/coupons'
@@ -605,6 +656,7 @@ export interface RootRouteChildren {
   AgendaSlugRoute: typeof AgendaSlugRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   FSlugRoute: typeof FSlugRoute
+  GSlugRoute: typeof GSlugRoute
   AgendaConfirmarTokenRoute: typeof AgendaConfirmarTokenRoute
   ApiPublicAgendaDispatchRoute: typeof ApiPublicAgendaDispatchRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
@@ -614,6 +666,7 @@ export interface RootRouteChildren {
   ApiPublicWarmupWorkerRoute: typeof ApiPublicWarmupWorkerRoute
   ApiPublicCrmResolvePendingRoute: typeof ApiPublicCrmResolvePendingRoute
   ApiPublicEvolutionWebhookTokenRoute: typeof ApiPublicEvolutionWebhookTokenRoute
+  ApiPublicGroupLauncherTickRoute: typeof ApiPublicGroupLauncherTickRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -651,6 +704,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/g/$slug': {
+      id: '/g/$slug'
+      path: '/g/$slug'
+      fullPath: '/g/$slug'
+      preLoaderRoute: typeof GSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/f/$slug': {
@@ -849,6 +909,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppTrafficIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/group-launcher/': {
+      id: '/_authenticated/app/group-launcher/'
+      path: '/app/group-launcher'
+      fullPath: '/app/group-launcher/'
+      preLoaderRoute: typeof AuthenticatedAppGroupLauncherIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/flows/': {
       id: '/_authenticated/app/flows/'
       path: '/'
@@ -862,6 +929,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/campaigns/'
       preLoaderRoute: typeof AuthenticatedAppCampaignsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/group-launcher/tick': {
+      id: '/api/public/group-launcher/tick'
+      path: '/api/public/group-launcher/tick'
+      fullPath: '/api/public/group-launcher/tick'
+      preLoaderRoute: typeof ApiPublicGroupLauncherTickRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/evolution-webhook/$token': {
       id: '/api/public/evolution-webhook/$token'
@@ -883,6 +957,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/lists/$id'
       preLoaderRoute: typeof AuthenticatedAppListsIdRouteImport
       parentRoute: typeof AuthenticatedAppListsRoute
+    }
+    '/_authenticated/app/group-launcher/$id': {
+      id: '/_authenticated/app/group-launcher/$id'
+      path: '/app/group-launcher/$id'
+      fullPath: '/app/group-launcher/$id'
+      preLoaderRoute: typeof AuthenticatedAppGroupLauncherIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/flows/$id': {
       id: '/_authenticated/app/flows/$id'
@@ -1021,7 +1102,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppCampaignsIdRoute: typeof AuthenticatedAppCampaignsIdRoute
   AuthenticatedAppCampaignsNewRoute: typeof AuthenticatedAppCampaignsNewRoute
+  AuthenticatedAppGroupLauncherIdRoute: typeof AuthenticatedAppGroupLauncherIdRoute
   AuthenticatedAppCampaignsIndexRoute: typeof AuthenticatedAppCampaignsIndexRoute
+  AuthenticatedAppGroupLauncherIndexRoute: typeof AuthenticatedAppGroupLauncherIndexRoute
   AuthenticatedAppTrafficIndexRoute: typeof AuthenticatedAppTrafficIndexRoute
   AuthenticatedAppTrafficIdAnalyticsRoute: typeof AuthenticatedAppTrafficIdAnalyticsRoute
   AuthenticatedAppTrafficIdEditorRoute: typeof AuthenticatedAppTrafficIdEditorRoute
@@ -1047,7 +1130,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppCampaignsIdRoute: AuthenticatedAppCampaignsIdRoute,
   AuthenticatedAppCampaignsNewRoute: AuthenticatedAppCampaignsNewRoute,
+  AuthenticatedAppGroupLauncherIdRoute: AuthenticatedAppGroupLauncherIdRoute,
   AuthenticatedAppCampaignsIndexRoute: AuthenticatedAppCampaignsIndexRoute,
+  AuthenticatedAppGroupLauncherIndexRoute:
+    AuthenticatedAppGroupLauncherIndexRoute,
   AuthenticatedAppTrafficIndexRoute: AuthenticatedAppTrafficIndexRoute,
   AuthenticatedAppTrafficIdAnalyticsRoute:
     AuthenticatedAppTrafficIdAnalyticsRoute,
@@ -1066,6 +1152,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgendaSlugRoute: AgendaSlugRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   FSlugRoute: FSlugRoute,
+  GSlugRoute: GSlugRoute,
   AgendaConfirmarTokenRoute: AgendaConfirmarTokenRoute,
   ApiPublicAgendaDispatchRoute: ApiPublicAgendaDispatchRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
@@ -1075,17 +1162,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWarmupWorkerRoute: ApiPublicWarmupWorkerRoute,
   ApiPublicCrmResolvePendingRoute: ApiPublicCrmResolvePendingRoute,
   ApiPublicEvolutionWebhookTokenRoute: ApiPublicEvolutionWebhookTokenRoute,
+  ApiPublicGroupLauncherTickRoute: ApiPublicGroupLauncherTickRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

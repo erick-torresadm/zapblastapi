@@ -65,9 +65,12 @@ export const EVOLUTION_ENDPOINTS = {
   findContacts:              { method: "POST", path: "/chat/findContacts/{instance}" },
 
   // Groups
-  inviteInfoGroup: { method: "GET", path: "/group/inviteInfo/{instance}" },
-  findGroupInfos:  { method: "GET", path: "/group/findGroupInfos/{instance}" },
-  fetchAllGroups:  { method: "GET", path: "/group/fetchAllGroups/{instance}" },
+  inviteInfoGroup:    { method: "GET",  path: "/group/inviteInfo/{instance}" },
+  findGroupInfos:     { method: "GET",  path: "/group/findGroupInfos/{instance}" },
+  fetchAllGroups:     { method: "GET",  path: "/group/fetchAllGroups/{instance}" },
+  createGroup:        { method: "POST", path: "/group/create/{instance}" },
+  fetchInviteCode:    { method: "GET",  path: "/group/inviteCode/{instance}" },
+  updateGroupPicture: { method: "POST", path: "/group/updateGroupPicture/{instance}" },
 
   // Server-level
   root: { method: "GET", path: "/" },
@@ -696,3 +699,59 @@ export async function findContacts(
   return (Array.isArray(r) ? r : []) as EvolutionContact[];
 }
 
+
+// ============================================================================
+// 9) Group write operations (create / invite / picture)
+// ============================================================================
+
+/** Create a new WhatsApp group. The instance is automatically an admin. */
+export async function createGroup(
+  server: EvolutionServer,
+  instanceName: string,
+  payload: { subject: string; description?: string; participants?: string[] },
+): Promise<{ id: string; subject?: string; [k: string]: unknown }> {
+  const body = {
+    subject: payload.subject,
+    description: payload.description ?? "",
+    // Evolution requires at least one participant on most versions; if empty, send an empty array.
+    participants: payload.participants ?? [],
+  };
+  const r = await evoFetch(server, ep("createGroup", { instance: instanceName }), {
+    method: epMethod("createGroup"),
+    body: JSON.stringify(body),
+  });
+  return r as { id: string };
+}
+
+/** Fetch the public invite code for a group (instance must be admin). */
+export async function fetchInviteCode(
+  server: EvolutionServer,
+  instanceName: string,
+  groupJid: string,
+): Promise<{ inviteCode: string; inviteUrl: string }> {
+  const r = await evoFetch(
+    server,
+    ep("fetchInviteCode", { instance: instanceName, query: { groupJid } }),
+    { method: epMethod("fetchInviteCode") },
+  );
+  const code = String((r as { inviteCode?: string }).inviteCode ?? "");
+  const url = String((r as { inviteUrl?: string }).inviteUrl ?? (code ? `https://chat.whatsapp.com/${code}` : ""));
+  return { inviteCode: code, inviteUrl: url };
+}
+
+/** Update group picture by URL. */
+export async function updateGroupPicture(
+  server: EvolutionServer,
+  instanceName: string,
+  groupJid: string,
+  imageUrl: string,
+): Promise<unknown> {
+  return evoFetch(
+    server,
+    ep("updateGroupPicture", { instance: instanceName, query: { groupJid } }),
+    {
+      method: epMethod("updateGroupPicture"),
+      body: JSON.stringify({ image: imageUrl }),
+    },
+  );
+}

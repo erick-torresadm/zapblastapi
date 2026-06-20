@@ -1897,6 +1897,184 @@ export type Database = {
           },
         ]
       }
+      group_campaign_links: {
+        Row: {
+          campaign_id: string
+          click_count: number
+          created_at: string
+          filled_at: string | null
+          group_jid: string | null
+          id: string
+          invite_code: string | null
+          invite_url: string | null
+          last_checked_at: string | null
+          member_count: number
+          position: number
+          source: string
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          click_count?: number
+          created_at?: string
+          filled_at?: string | null
+          group_jid?: string | null
+          id?: string
+          invite_code?: string | null
+          invite_url?: string | null
+          last_checked_at?: string | null
+          member_count?: number
+          position?: number
+          source: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          click_count?: number
+          created_at?: string
+          filled_at?: string | null
+          group_jid?: string | null
+          id?: string
+          invite_code?: string | null
+          invite_url?: string | null
+          last_checked_at?: string | null
+          member_count?: number
+          position?: number
+          source?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_campaign_links_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "group_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_campaigns: {
+        Row: {
+          click_count: number
+          created_at: string
+          default_description: string | null
+          default_image_url: string | null
+          id: string
+          instance_id: string | null
+          is_active: boolean
+          member_limit: number
+          name: string
+          owner_user_id: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          click_count?: number
+          created_at?: string
+          default_description?: string | null
+          default_image_url?: string | null
+          id?: string
+          instance_id?: string | null
+          is_active?: boolean
+          member_limit?: number
+          name: string
+          owner_user_id: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          click_count?: number
+          created_at?: string
+          default_description?: string | null
+          default_image_url?: string | null
+          id?: string
+          instance_id?: string | null
+          is_active?: boolean
+          member_limit?: number
+          name?: string
+          owner_user_id?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_campaigns_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_create_jobs: {
+        Row: {
+          attempts: number
+          campaign_id: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          last_error: string | null
+          link_id: string | null
+          next_attempt_at: string
+          owner_user_id: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          campaign_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          last_error?: string | null
+          link_id?: string | null
+          next_attempt_at?: string
+          owner_user_id: string
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          campaign_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          last_error?: string | null
+          link_id?: string | null
+          next_attempt_at?: string
+          owner_user_id?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_create_jobs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "group_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_create_jobs_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "group_campaign_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incoming_messages: {
         Row: {
           evolution_message_id: string | null
@@ -3239,6 +3417,13 @@ export type Database = {
       }
       normalize_email: { Args: { _email: string }; Returns: string }
       preview_invite_link: { Args: { _token: string }; Returns: Json }
+      public_get_next_group_link: {
+        Args: { _slug: string }
+        Returns: {
+          invite_url: string
+          title: string
+        }[]
+      }
       record_login_attempt: {
         Args: {
           _email: string
