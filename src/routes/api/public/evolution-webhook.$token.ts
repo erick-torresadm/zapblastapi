@@ -57,13 +57,13 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
         }
 
         if (event.includes("messages.upsert") || event === "MESSAGES_UPSERT") {
-          const key = (data as { key?: { id?: string; remoteJid?: string; fromMe?: boolean; participant?: string; senderPn?: string } }).key;
+          type WaKey = {
+            id?: string; remoteJid?: string; fromMe?: boolean; participant?: string;
+            senderPn?: string; participantPn?: string; remoteJidAlt?: string;
+          };
+          const key = (data as { key?: WaKey }).key;
           const fromMe = !!key?.fromMe;
           const remoteJid = key?.remoteJid ?? "";
-          const senderPn = String((key as { senderPn?: string } | undefined)?.senderPn ?? "");
-          // Em payloads da Evolution, o campo de topo `sender` normalmente é o
-          // próprio chip/instância, não o contato. Não use esse campo para
-          // resolver contatos @lid, senão o bot responde para o próprio número.
 
           const jidDomain = remoteJid.includes("@") ? remoteJid.split("@")[1] : "";
           const jidUser = remoteJid.includes("@") ? remoteJid.split("@")[0] : remoteJid;
@@ -73,9 +73,13 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           else if (jidDomain === "lid") chatType = "lid";
           else if (jidDomain === "broadcast" || jidUser === "status") chatType = "broadcast";
 
-          // Para LID: tenta extrair telefone real de várias propriedades que a Evolution/Baileys pode enviar
-          let resolvedJid = remoteJid;
-          let resolvedUser = jidUser;
+          // Resolução robusta do telefone real do contato.
+          // Ordem (recomendada pelos PRs do Evolution v2.4+):
+          //  1) key.remoteJidAlt quando @s.whatsapp.net
+          //  2) key.senderPn / key.participantPn
+          //  3) data.senderPn / data.participantPn / data.pn
+          //  4) remoteJid quando já for @s.whatsapp.net
+          // Nunca use o campo `sender` de topo — esse é o próprio chip.
           const tryPn = (v: unknown): string | null => {
             if (!v) return null;
             const s = String(v);
@@ -83,23 +87,32 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
             const d = u.replace(/[^0-9]/g, "");
             return d.length >= 8 && d.length <= 14 ? d : null;
           };
+          const dataPn = (data as {
+            senderPn?: string; participantPn?: string; pn?: string;
+            key?: { remoteJidAlt?: string; senderPn?: string; participantPn?: string };
+          });
+          const altRaw = key?.remoteJidAlt ?? dataPn.key?.remoteJidAlt;
+          const altUser = altRaw && altRaw.endsWith("@s.whatsapp.net") ? altRaw.split("@")[0] : null;
+
+          const realPhone =
+            tryPn(altUser)
+            ?? tryPn(key?.senderPn) ?? tryPn(key?.participantPn)
+            ?? tryPn(dataPn.senderPn) ?? tryPn(dataPn.participantPn) ?? tryPn(dataPn.pn)
+            ?? (chatType === "user" ? tryPn(jidUser) : null);
+
+          let resolvedJid = remoteJid;
+          let isUnresolvedLid = false;
           if (chatType === "lid") {
-            const participantPn = (key as { participantPn?: string } | undefined)?.participantPn;
-            const dataPn = (data as { senderPn?: string; participantPn?: string; pn?: string; sender?: string });
-            const pn =
-              tryPn(senderPn) ?? tryPn(participantPn) ?? tryPn(dataPn.senderPn)
-              ?? tryPn(dataPn.participantPn) ?? tryPn(dataPn.pn) ?? tryPn(dataPn.sender);
-            if (pn) {
+            if (realPhone) {
               chatType = "user";
-              resolvedUser = pn;
-              resolvedJid = `${pn}@s.whatsapp.net`;
+              resolvedJid = `${realPhone}@s.whatsapp.net`;
               console.log("[webhook] LID resolvido", { remoteJid, resolvedJid });
             } else {
-              // LID puro: não temos telefone real, mas mantemos como contato usando o próprio LID
-              // para que o gatilho de palavra-chave ainda dispare. Envios voltam pelo JID @lid.
+              // LID sem telefone — mantém como contato para o histórico de chat
+              // mas marcamos para NÃO disparar fluxos (envio falharia 400).
               chatType = "user";
-              resolvedJid = remoteJid; // mantém @lid
-              console.log("[webhook] LID sem telefone, usando LID como identificador", { remoteJid });
+              isUnresolvedLid = true;
+              console.log("[webhook] LID sem telefone, contato não enviável", { remoteJid });
             }
           }
 
@@ -108,7 +121,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
             return Response.json({ ok: true, skipped: chatType });
           }
 
-          const fromPhone = resolvedUser.replace(/[^0-9]/g, "");
+          const fromPhone = realPhone ?? jidUser.replace(/[^0-9]/g, "");
           if (!fromPhone || fromPhone.length < 8 || fromPhone.length > 18) {
             console.log("[webhook] ignorado (telefone inválido)", fromPhone);
             return Response.json({ ok: true, skipped: "invalid_phone" });
