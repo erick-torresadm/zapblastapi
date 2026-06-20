@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const matchModeSchema = z.enum(["exact", "contains", "starts_with"]);
+const matchModeSchema = z.enum(["exact", "contains", "starts_with", "regex"]);
 
 const upsertSchema = z.object({
   id: z.string().uuid().optional(),
@@ -14,7 +14,8 @@ const upsertSchema = z.object({
   allow_from_me: z.boolean().default(false),
   delay_seconds: z.number().int().min(0).max(86400).default(0),
   cooldown_seconds: z.number().int().min(0).max(86400).default(0),
-  user_id: z.string().uuid().optional(), // admin pode definir para outro usuário
+  per_contact_cooldown_seconds: z.number().int().min(0).max(86400).default(0),
+  user_id: z.string().uuid().optional(),
 });
 
 async function isAdmin(supabase: any, userId: string): Promise<boolean> {
