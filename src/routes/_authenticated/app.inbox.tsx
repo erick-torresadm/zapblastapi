@@ -261,8 +261,20 @@ function Inbox() {
       .filter((m) => m.media_url && !m.media_url.startsWith("http") && !signedMap[m.media_url])
       .map((m) => m.media_url!) as string[];
     if (!paths.length) return;
-    signFn({ data: { paths } }).then((map) => setSignedMap((prev) => ({ ...prev, ...map }))).catch(() => {});
+    signFn({ data: { paths, bucket: "crm-media" } }).then((map) => setSignedMap((prev) => ({ ...prev, ...map }))).catch(() => {});
   }, [messages, signFn, signedMap]);
+
+  // Assina avatares (bucket crm-avatars) das conversas visíveis
+  useEffect(() => {
+    const paths = convs
+      .map((c) => c.contact_avatar_path)
+      .filter((p): p is string => !!p && !avatarMap[p]);
+    if (!paths.length) return;
+    signAvatarsSf({ data: { paths } })
+      .then((map) => setAvatarMap((prev) => ({ ...prev, ...map })))
+      .catch(() => {});
+  }, [convs, signAvatarsSf, avatarMap]);
+
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
