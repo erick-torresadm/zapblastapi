@@ -50,6 +50,473 @@ export type Database = {
         }
         Relationships: []
       }
+      agenda_appointments: {
+        Row: {
+          business_id: string
+          confirm_token: string
+          created_at: string
+          created_via: string
+          customer_name: string
+          customer_notes: string | null
+          customer_phone: string
+          ends_at: string
+          id: string
+          owner_user_id: string
+          professional_id: string
+          service_id: string
+          starts_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          confirm_token?: string
+          created_at?: string
+          created_via?: string
+          customer_name: string
+          customer_notes?: string | null
+          customer_phone: string
+          ends_at: string
+          id?: string
+          owner_user_id: string
+          professional_id: string
+          service_id: string
+          starts_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          confirm_token?: string
+          created_at?: string
+          created_via?: string
+          customer_name?: string
+          customer_notes?: string | null
+          customer_phone?: string
+          ends_at?: string
+          id?: string
+          owner_user_id?: string
+          professional_id?: string
+          service_id?: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_appointments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_appointments_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_appointments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_availability: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          owner_user_id: string
+          professional_id: string
+          start_time: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          owner_user_id: string
+          professional_id: string
+          start_time: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          owner_user_id?: string
+          professional_id?: string
+          start_time?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_availability_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_blocks: {
+        Row: {
+          created_at: string
+          ends_at: string
+          id: string
+          owner_user_id: string
+          professional_id: string
+          reason: string | null
+          starts_at: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          id?: string
+          owner_user_id: string
+          professional_id: string
+          reason?: string | null
+          starts_at: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          id?: string
+          owner_user_id?: string
+          professional_id?: string
+          reason?: string | null
+          starts_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_blocks_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_businesses: {
+        Row: {
+          about: string | null
+          active: boolean
+          confirm_offsets_minutes: number[]
+          created_at: string
+          default_instance_id: string | null
+          id: string
+          name: string
+          notify_professional: boolean
+          owner_user_id: string
+          primary_color: string | null
+          slug: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          about?: string | null
+          active?: boolean
+          confirm_offsets_minutes?: number[]
+          created_at?: string
+          default_instance_id?: string | null
+          id?: string
+          name: string
+          notify_professional?: boolean
+          owner_user_id: string
+          primary_color?: string | null
+          slug: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          about?: string | null
+          active?: boolean
+          confirm_offsets_minutes?: number[]
+          created_at?: string
+          default_instance_id?: string | null
+          id?: string
+          name?: string
+          notify_professional?: boolean
+          owner_user_id?: string
+          primary_color?: string | null
+          slug?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_businesses_default_instance_id_fkey"
+            columns: ["default_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_notifications: {
+        Row: {
+          appointment_id: string | null
+          business_id: string
+          created_at: string
+          error: string | null
+          id: string
+          instance_id: string | null
+          kind: string
+          message_text: string | null
+          owner_user_id: string
+          phone: string
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          target: string
+          wa_message_id: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          business_id: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          instance_id?: string | null
+          kind: string
+          message_text?: string | null
+          owner_user_id: string
+          phone: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          target: string
+          wa_message_id?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          business_id?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          instance_id?: string | null
+          kind?: string
+          message_text?: string | null
+          owner_user_id?: string
+          phone?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          target?: string
+          wa_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_notifications_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_notifications_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_notifications_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_professionals: {
+        Row: {
+          active: boolean
+          avatar_url: string | null
+          business_id: string
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          owner_user_id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          avatar_url?: string | null
+          business_id: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          owner_user_id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          avatar_url?: string | null
+          business_id?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          owner_user_id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_professionals_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_reengagement_campaigns: {
+        Row: {
+          active: boolean
+          business_id: string
+          cadence: string
+          coupon_code: string | null
+          created_at: string
+          id: string
+          inactive_days: number
+          last_run_at: string | null
+          message_template: string
+          name: string
+          owner_user_id: string
+          service_ids: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          business_id: string
+          cadence?: string
+          coupon_code?: string | null
+          created_at?: string
+          id?: string
+          inactive_days?: number
+          last_run_at?: string | null
+          message_template: string
+          name: string
+          owner_user_id: string
+          service_ids?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          business_id?: string
+          cadence?: string
+          coupon_code?: string | null
+          created_at?: string
+          id?: string
+          inactive_days?: number
+          last_run_at?: string | null
+          message_template?: string
+          name?: string
+          owner_user_id?: string
+          service_ids?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_reengagement_campaigns_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_service_professionals: {
+        Row: {
+          professional_id: string
+          service_id: string
+        }
+        Insert: {
+          professional_id: string
+          service_id: string
+        }
+        Update: {
+          professional_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_service_professionals_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_service_professionals_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_services: {
+        Row: {
+          active: boolean
+          business_id: string
+          created_at: string
+          description: string | null
+          duration_min: number
+          id: string
+          name: string
+          owner_user_id: string
+          price_cents: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          business_id: string
+          created_at?: string
+          description?: string | null
+          duration_min?: number
+          id?: string
+          name: string
+          owner_user_id: string
+          price_cents?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          business_id?: string
+          created_at?: string
+          description?: string | null
+          duration_min?: number
+          id?: string
+          name?: string
+          owner_user_id?: string
+          price_cents?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_services_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_messages: {
         Row: {
           attempts: number
@@ -1671,6 +2138,7 @@ export type Database = {
           efi_plan_id_prod: number | null
           efi_plan_id_sandbox: number | null
           featured: boolean
+          has_agenda: boolean
           id: string
           max_active_campaigns: number
           max_chips: number
@@ -1694,6 +2162,7 @@ export type Database = {
           efi_plan_id_prod?: number | null
           efi_plan_id_sandbox?: number | null
           featured?: boolean
+          has_agenda?: boolean
           id?: string
           max_active_campaigns?: number
           max_chips?: number
@@ -1717,6 +2186,7 @@ export type Database = {
           efi_plan_id_prod?: number | null
           efi_plan_id_sandbox?: number | null
           featured?: boolean
+          has_agenda?: boolean
           id?: string
           max_active_campaigns?: number
           max_chips?: number
@@ -2185,6 +2655,34 @@ export type Database = {
     }
     Functions: {
       accept_invite_link: { Args: { _token: string }; Returns: Json }
+      agenda_public_book: {
+        Args: {
+          _business_id: string
+          _customer_name: string
+          _customer_notes: string
+          _customer_phone: string
+          _professional_id: string
+          _service_id: string
+          _starts_at: string
+        }
+        Returns: Json
+      }
+      agenda_public_cancel: { Args: { _token: string }; Returns: Json }
+      agenda_public_confirm: {
+        Args: { _by: string; _token: string }
+        Returns: Json
+      }
+      agenda_public_get_business: { Args: { _slug: string }; Returns: Json }
+      agenda_public_get_by_token: { Args: { _token: string }; Returns: Json }
+      agenda_public_get_slots: {
+        Args: {
+          _business_id: string
+          _date: string
+          _professional_id: string
+          _service_id: string
+        }
+        Returns: Json
+      }
       apply_free_coupon: {
         Args: { _code: string; _plan_id: string }
         Returns: Json

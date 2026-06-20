@@ -15,12 +15,15 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
+import { Route as AgendaSlugRouteImport } from './routes/agenda.$slug'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as ApiPublicWarmupWorkerRouteImport } from './routes/api/public/warmup-worker'
 import { Route as ApiPublicFlowWorkerRouteImport } from './routes/api/public/flow-worker'
 import { Route as ApiPublicFlowTriggerTestRouteImport } from './routes/api/public/flow-trigger-test'
 import { Route as ApiPublicDispatchWorkerRouteImport } from './routes/api/public/dispatch-worker'
+import { Route as ApiPublicAgendaDispatchRouteImport } from './routes/api/public/agenda-dispatch'
+import { Route as AgendaConfirmarTokenRouteImport } from './routes/agenda.confirmar.$token'
 import { Route as AuthenticatedAppWarmupRouteImport } from './routes/_authenticated/app.warmup'
 import { Route as AuthenticatedAppWalletRouteImport } from './routes/_authenticated/app.wallet'
 import { Route as AuthenticatedAppToolsRouteImport } from './routes/_authenticated/app.tools'
@@ -35,6 +38,7 @@ import { Route as AuthenticatedAppFlowsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppCancelarRouteImport } from './routes/_authenticated/app.cancelar'
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppAntiBanRouteImport } from './routes/_authenticated/app.anti-ban'
+import { Route as AuthenticatedAppAgendaRouteImport } from './routes/_authenticated/app.agenda'
 import { Route as AuthenticatedAppFlowsIndexRouteImport } from './routes/_authenticated/app.flows.index'
 import { Route as AuthenticatedAppCampaignsIndexRouteImport } from './routes/_authenticated/app.campaigns.index'
 import { Route as ApiPublicEvolutionWebhookTokenRouteImport } from './routes/api/public/evolution-webhook.$token'
@@ -76,6 +80,11 @@ const ConviteTokenRoute = ConviteTokenRouteImport.update({
   path: '/convite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgendaSlugRoute = AgendaSlugRouteImport.update({
+  id: '/agenda/$slug',
+  path: '/agenda/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
   id: '/_admin',
   getParentRoute: () => AuthenticatedRouteRoute,
@@ -104,6 +113,16 @@ const ApiPublicFlowTriggerTestRoute =
 const ApiPublicDispatchWorkerRoute = ApiPublicDispatchWorkerRouteImport.update({
   id: '/api/public/dispatch-worker',
   path: '/api/public/dispatch-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAgendaDispatchRoute = ApiPublicAgendaDispatchRouteImport.update({
+  id: '/api/public/agenda-dispatch',
+  path: '/api/public/agenda-dispatch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgendaConfirmarTokenRoute = AgendaConfirmarTokenRouteImport.update({
+  id: '/agenda/confirmar/$token',
+  path: '/agenda/confirmar/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppWarmupRoute = AuthenticatedAppWarmupRouteImport.update({
@@ -180,6 +199,11 @@ const AuthenticatedAppAntiBanRoute = AuthenticatedAppAntiBanRouteImport.update({
   path: '/app/anti-ban',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppAgendaRoute = AuthenticatedAppAgendaRouteImport.update({
+  id: '/app/agenda',
+  path: '/app/agenda',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAppFlowsIndexRoute =
   AuthenticatedAppFlowsIndexRouteImport.update({
     id: '/',
@@ -250,7 +274,9 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/cancelar': typeof AuthenticatedAppCancelarRoute
@@ -265,6 +291,8 @@ export interface FileRoutesByFullPath {
   '/app/tools': typeof AuthenticatedAppToolsRoute
   '/app/wallet': typeof AuthenticatedAppWalletRoute
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
+  '/agenda/confirmar/$token': typeof AgendaConfirmarTokenRoute
+  '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
@@ -287,7 +315,9 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/cancelar': typeof AuthenticatedAppCancelarRoute
@@ -301,6 +331,8 @@ export interface FileRoutesByTo {
   '/app/tools': typeof AuthenticatedAppToolsRoute
   '/app/wallet': typeof AuthenticatedAppWalletRoute
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
+  '/agenda/confirmar/$token': typeof AgendaConfirmarTokenRoute
+  '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
@@ -326,7 +358,9 @@ export interface FileRoutesById {
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/_authenticated/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/_authenticated/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
   '/_authenticated/app/cancelar': typeof AuthenticatedAppCancelarRoute
@@ -341,6 +375,8 @@ export interface FileRoutesById {
   '/_authenticated/app/tools': typeof AuthenticatedAppToolsRoute
   '/_authenticated/app/wallet': typeof AuthenticatedAppWalletRoute
   '/_authenticated/app/warmup': typeof AuthenticatedAppWarmupRoute
+  '/agenda/confirmar/$token': typeof AgendaConfirmarTokenRoute
+  '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
@@ -365,7 +401,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/privacidade'
     | '/termos'
+    | '/agenda/$slug'
     | '/convite/$token'
+    | '/app/agenda'
     | '/app/anti-ban'
     | '/app/billing'
     | '/app/cancelar'
@@ -380,6 +418,8 @@ export interface FileRouteTypes {
     | '/app/tools'
     | '/app/wallet'
     | '/app/warmup'
+    | '/agenda/confirmar/$token'
+    | '/api/public/agenda-dispatch'
     | '/api/public/dispatch-worker'
     | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
@@ -402,7 +442,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/privacidade'
     | '/termos'
+    | '/agenda/$slug'
     | '/convite/$token'
+    | '/app/agenda'
     | '/app/anti-ban'
     | '/app/billing'
     | '/app/cancelar'
@@ -416,6 +458,8 @@ export interface FileRouteTypes {
     | '/app/tools'
     | '/app/wallet'
     | '/app/warmup'
+    | '/agenda/confirmar/$token'
+    | '/api/public/agenda-dispatch'
     | '/api/public/dispatch-worker'
     | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
@@ -440,7 +484,9 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/termos'
     | '/_authenticated/_admin'
+    | '/agenda/$slug'
     | '/convite/$token'
+    | '/_authenticated/app/agenda'
     | '/_authenticated/app/anti-ban'
     | '/_authenticated/app/billing'
     | '/_authenticated/app/cancelar'
@@ -455,6 +501,8 @@ export interface FileRouteTypes {
     | '/_authenticated/app/tools'
     | '/_authenticated/app/wallet'
     | '/_authenticated/app/warmup'
+    | '/agenda/confirmar/$token'
+    | '/api/public/agenda-dispatch'
     | '/api/public/dispatch-worker'
     | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
@@ -479,7 +527,10 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   TermosRoute: typeof TermosRoute
+  AgendaSlugRoute: typeof AgendaSlugRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
+  AgendaConfirmarTokenRoute: typeof AgendaConfirmarTokenRoute
+  ApiPublicAgendaDispatchRoute: typeof ApiPublicAgendaDispatchRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
   ApiPublicFlowTriggerTestRoute: typeof ApiPublicFlowTriggerTestRoute
   ApiPublicFlowWorkerRoute: typeof ApiPublicFlowWorkerRoute
@@ -531,6 +582,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agenda/$slug': {
+      id: '/agenda/$slug'
+      path: '/agenda/$slug'
+      fullPath: '/agenda/$slug'
+      preLoaderRoute: typeof AgendaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/_admin': {
       id: '/_authenticated/_admin'
       path: ''
@@ -571,6 +629,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/dispatch-worker'
       fullPath: '/api/public/dispatch-worker'
       preLoaderRoute: typeof ApiPublicDispatchWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/agenda-dispatch': {
+      id: '/api/public/agenda-dispatch'
+      path: '/api/public/agenda-dispatch'
+      fullPath: '/api/public/agenda-dispatch'
+      preLoaderRoute: typeof ApiPublicAgendaDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agenda/confirmar/$token': {
+      id: '/agenda/confirmar/$token'
+      path: '/agenda/confirmar/$token'
+      fullPath: '/agenda/confirmar/$token'
+      preLoaderRoute: typeof AgendaConfirmarTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/warmup': {
@@ -669,6 +741,13 @@ declare module '@tanstack/react-router' {
       path: '/app/anti-ban'
       fullPath: '/app/anti-ban'
       preLoaderRoute: typeof AuthenticatedAppAntiBanRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/agenda': {
+      id: '/_authenticated/app/agenda'
+      path: '/app/agenda'
+      fullPath: '/app/agenda'
+      preLoaderRoute: typeof AuthenticatedAppAgendaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/flows/': {
@@ -804,6 +883,7 @@ const AuthenticatedAppListsRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
+  AuthenticatedAppAgendaRoute: typeof AuthenticatedAppAgendaRoute
   AuthenticatedAppAntiBanRoute: typeof AuthenticatedAppAntiBanRoute
   AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
   AuthenticatedAppCancelarRoute: typeof AuthenticatedAppCancelarRoute
@@ -826,6 +906,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
+  AuthenticatedAppAgendaRoute: AuthenticatedAppAgendaRoute,
   AuthenticatedAppAntiBanRoute: AuthenticatedAppAntiBanRoute,
   AuthenticatedAppBillingRoute: AuthenticatedAppBillingRoute,
   AuthenticatedAppCancelarRoute: AuthenticatedAppCancelarRoute,
@@ -855,7 +936,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   TermosRoute: TermosRoute,
+  AgendaSlugRoute: AgendaSlugRoute,
   ConviteTokenRoute: ConviteTokenRoute,
+  AgendaConfirmarTokenRoute: AgendaConfirmarTokenRoute,
+  ApiPublicAgendaDispatchRoute: ApiPublicAgendaDispatchRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
   ApiPublicFlowTriggerTestRoute: ApiPublicFlowTriggerTestRoute,
   ApiPublicFlowWorkerRoute: ApiPublicFlowWorkerRoute,
