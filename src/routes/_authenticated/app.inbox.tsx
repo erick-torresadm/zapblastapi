@@ -762,7 +762,7 @@ function Inbox() {
                   {current.presence === "composing" ? <span className="text-success">digitando…</span>
                     : current.presence === "recording" ? <span className="text-success">gravando áudio…</span>
 
-                    : current.contact_phone}
+                    : fmtPhone(current.contact_phone)}
                 </div>
               </button>
 
