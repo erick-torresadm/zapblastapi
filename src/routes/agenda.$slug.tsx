@@ -35,8 +35,8 @@ type Pro = { id: string; name: string; color: string | null; avatar_url: string 
 function PublicAgenda() {
   const data = Route.useLoaderData();
   const biz = data.business!;
-  const services = data.services ?? [];
-  const pros = data.professionals ?? [];
+  const services: Service[] = data.services ?? [];
+  const pros: Pro[] = data.professionals ?? [];
 
   const [step, setStep] = useState<"service"|"pro"|"date"|"form"|"done">("service");
   const [svc, setSvc] = useState<Service | null>(null);
