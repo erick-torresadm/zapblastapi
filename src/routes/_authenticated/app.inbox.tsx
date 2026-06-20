@@ -859,7 +859,13 @@ function Inbox() {
                       <SelectTrigger className="h-9 w-[120px] text-xs"><SelectValue placeholder="Chip" /></SelectTrigger>
                       <SelectContent>
                         {instances.map((i) => (
-                          <SelectItem key={i.id} value={i.id}>{i.instance_name} {i.status === "connected" ? "🟢" : "⚪"}</SelectItem>
+                          <SelectItem key={i.id} value={i.id}>
+                            <span className="flex items-center gap-1.5">
+                              <span>{i.status === "connected" ? "🟢" : "⚪"}</span>
+                              <span className="font-medium">{i.instance_name}</span>
+                              <span className="text-muted-foreground text-xs">{formatPhone(i.phone_number)}</span>
+                            </span>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
