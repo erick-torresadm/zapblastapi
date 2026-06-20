@@ -741,18 +741,27 @@ function Inbox() {
               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 md:hidden" onClick={() => setSelectedId(null)} aria-label="Voltar">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              {current.contact_avatar_url ? (
-                <img src={current.contact_avatar_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-              ) : (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/70 to-primary-glow/70 text-xs font-bold text-primary-foreground">
-                  {(current.contact_name ?? current.contact_phone).slice(-2)}
-                </div>
-              )}
+              <Avatar
+                name={current.contact_name}
+                phone={current.contact_phone}
+                url={avatarUrlFor(current)}
+                size="md"
+              />
               <button className="min-w-0 flex-1 text-left" onClick={() => setShowContact((s) => !s)}>
-                <div className="truncate text-sm font-semibold">{current.contact_name ?? fmtPhone(current.contact_phone)}</div>
+                <div className="truncate text-sm font-semibold flex items-center gap-2">
+                  {current.is_resolved && isPhoneResolved(current.contact_phone)
+                    ? displayName(current.contact_name, current.contact_phone)
+                    : (current.contact_name ?? "Identificando contato…")}
+                  {!current.is_resolved && (
+                    <span className="text-[9px] rounded-full px-1.5 py-0.5 bg-warning/15 text-warning border border-warning/30 font-normal animate-pulse">
+                      sincronizando
+                    </span>
+                  )}
+                </div>
                 <div className="font-mono text-xs text-muted-foreground">
                   {current.presence === "composing" ? <span className="text-success">digitando…</span>
                     : current.presence === "recording" ? <span className="text-success">gravando áudio…</span>
+
                     : current.contact_phone}
                 </div>
               </button>
