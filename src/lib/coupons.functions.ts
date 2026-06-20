@@ -106,7 +106,7 @@ export const adminCreateCouponFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     await context.supabase.rpc("log_admin_action", {
       _actor: context.userId, _action: "coupon_create", _target_type: "coupon",
-      _target_id: row.id, _payload: payload, _ip: null, _user_agent: null,
+      _target_id: row.id, _payload: payload, _ip: "", _user_agent: "",
     });
     return row;
   });
@@ -126,7 +126,7 @@ export const adminUpdateCouponFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     await context.supabase.rpc("log_admin_action", {
       _actor: context.userId, _action: "coupon_update", _target_type: "coupon",
-      _target_id: data.id, _payload: patch, _ip: null, _user_agent: null,
+      _target_id: data.id, _payload: patch, _ip: "", _user_agent: "",
     });
     return row;
   });
@@ -140,7 +140,7 @@ export const adminDeleteCouponFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     await context.supabase.rpc("log_admin_action", {
       _actor: context.userId, _action: "coupon_delete", _target_type: "coupon",
-      _target_id: data.id, _payload: {}, _ip: null, _user_agent: null,
+      _target_id: data.id, _payload: {}, _ip: "", _user_agent: "",
     });
     return { ok: true };
   });
