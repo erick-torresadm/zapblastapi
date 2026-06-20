@@ -329,7 +329,9 @@ function KeywordsPage() {
           </Card>
         )}
       </div>
+        </TabsContent>
 
+        <TabsContent value="audit" className="space-y-3">
       {/* Diagnóstico em tempo real */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
