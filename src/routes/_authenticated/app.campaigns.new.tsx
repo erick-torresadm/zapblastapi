@@ -38,7 +38,7 @@ function NewCampaign() {
   });
   const { data: instances } = useQuery({
     queryKey: ["instances-connected"],
-    queryFn: async () => (await supabase.from("whatsapp_instances").select("id,instance_name,status").eq("active", true)).data ?? [],
+    queryFn: async () => (await supabase.from("whatsapp_instances").select("id,instance_name,phone_number,status").eq("active", true)).data ?? [],
   });
   const { data: flows } = useQuery({
     queryKey: ["flows-active"],
