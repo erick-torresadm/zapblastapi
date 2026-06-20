@@ -31,6 +31,23 @@ Deno.serve(async (req) => {
     const { data: plan, error } = await supabase.from("subscription_plans").select("*").eq("id", plan_id).single();
     if (error || !plan) throw new Error("Plano não encontrado");
 
+    // Se já existe assinatura recorrente na Efí, cancela antes de criar a nova.
+    // Política: sem reembolso — usuário continua com o plano antigo até o fim do
+    // período já pago; a NOVA assinatura passa a valer a partir da próxima cobrança.
+    const { data: currentSub } = await supabase
+      .from("subscriptions")
+      .select("efi_subscription_id, plan_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (currentSub?.efi_subscription_id && currentSub.plan_id !== plan_id) {
+      try {
+        await efiFetch(`/v1/subscription/${currentSub.efi_subscription_id}/cancel`, { method: "PUT" });
+      } catch (cancelErr) {
+        console.warn("Falha ao cancelar assinatura anterior na Efí (seguindo):", cancelErr);
+      }
+    }
+
     const env = efiEnv();
     const planCol = env === "prod" ? "efi_plan_id_prod" : "efi_plan_id_sandbox";
     let efiPlanId: number | null = plan[planCol] ?? null;
