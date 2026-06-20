@@ -74,39 +74,42 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           else if (jidDomain === "broadcast" || jidUser === "status") chatType = "broadcast";
 
           // Resolução robusta do telefone real do contato.
-          // Ordem (recomendada pelos PRs do Evolution v2.4+):
-          //  1) key.remoteJidAlt quando @s.whatsapp.net
-          //  2) key.senderPn / key.participantPn
-          //  3) data.senderPn / data.participantPn / data.pn
-          //  4) remoteJid quando já for @s.whatsapp.net
-          // Nunca use o campo `sender` de topo — esse é o próprio chip.
-          const tryPn = (v: unknown): string | null => {
-            if (!v) return null;
-            const s = String(v);
-            const u = s.includes("@") ? s.split("@")[0] : s;
-            const d = u.replace(/[^0-9]/g, "");
-            return d.length >= 8 && d.length <= 14 ? d : null;
-          };
-          const dataPn = (data as {
-            senderPn?: string; participantPn?: string; pn?: string;
-            key?: { remoteJidAlt?: string; senderPn?: string; participantPn?: string };
-          });
-          const altRaw = key?.remoteJidAlt ?? dataPn.key?.remoteJidAlt;
-          const altUser = altRaw && altRaw.endsWith("@s.whatsapp.net") ? altRaw.split("@")[0] : null;
+          // 1) Campos do próprio payload (remoteJid/remoteJidAlt em @s.whatsapp.net,
+          //    senderPn / participantPn / pn em key, data, contextInfo).
+          // 2) Histórico no banco: mesma @lid já apareceu junto com telefone real.
+          const { extractPhoneFromPayload, resolveLidFromHistory } = await import("@/lib/lid-resolver.server");
 
-          const realPhone =
-            tryPn(altUser)
-            ?? tryPn(key?.senderPn) ?? tryPn(key?.participantPn)
-            ?? tryPn(dataPn.senderPn) ?? tryPn(dataPn.participantPn) ?? tryPn(dataPn.pn)
-            ?? (chatType === "user" ? tryPn(jidUser) : null);
+          let realPhone = extractPhoneFromPayload(payload);
+          let lidResolutionSource: "payload" | "history" | null = realPhone ? "payload" : null;
+
+          // Garante o número quando remoteJid já é @s.whatsapp.net
+          if (!realPhone && chatType === "user") {
+            const d = jidUser.replace(/\D/g, "");
+            if (d.length >= 8 && d.length <= 14) realPhone = d;
+          }
 
           let resolvedJid = remoteJid;
           let isUnresolvedLid = false;
           if (chatType === "lid") {
+            if (!realPhone) {
+              // Tenta o histórico (mapeamento @lid → telefone visto antes)
+              const fromHistory = await resolveLidFromHistory(supabaseAdmin, {
+                user_id: server.user_id,
+                instance_id: instanceId,
+                lid_jid: remoteJid,
+              });
+              if (fromHistory) {
+                realPhone = fromHistory.phone;
+                lidResolutionSource = "history";
+                console.log("[webhook] LID resolvido via histórico", { remoteJid, phone: realPhone, src: fromHistory.source });
+              }
+            }
             if (realPhone) {
               chatType = "user";
               resolvedJid = `${realPhone}@s.whatsapp.net`;
-              console.log("[webhook] LID resolvido", { remoteJid, resolvedJid });
+              if (lidResolutionSource === "payload") {
+                console.log("[webhook] LID resolvido via payload", { remoteJid, resolvedJid });
+              }
             } else {
               // LID sem telefone — mantém como contato para o histórico de chat
               // mas marcamos para NÃO disparar fluxos (envio falharia 400).
