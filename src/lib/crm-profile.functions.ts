@@ -244,7 +244,7 @@ export const syncInstanceContactsFn = createServerFn({ method: "POST" })
       if ((prof as any).profile_pic_url) patch.contact_avatar_url = (prof as any).profile_pic_url;
       if (Object.keys(patch).length) {
         patch.profile_synced_at = new Date().toISOString();
-        await supabaseAdmin.from("crm_conversations").update(patch).eq("id", (conv as any).id);
+        await (supabaseAdmin.from("crm_conversations") as any).update(patch).eq("id", (conv as any).id);
         convsUpdated++;
       }
     }
