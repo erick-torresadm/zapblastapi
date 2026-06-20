@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          ip: string | null
+          payload: Json | null
+          target_id: string | null
+          target_type: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          payload?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          payload?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       campaign_messages: {
         Row: {
           attempts: number
@@ -1166,6 +1202,33 @@ export type Database = {
           },
         ]
       }
+      login_attempts: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          ip: string | null
+          success: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip?: string | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip?: string | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       maps_searches: {
         Row: {
           category: string | null
@@ -1271,6 +1334,39 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip: string | null
+          metadata: Json | null
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1817,6 +1913,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_login_lockout: {
+        Args: { _email: string; _ip: string }
+        Returns: Json
+      }
       credit_wallet: {
         Args: {
           _amount_cents: number
@@ -1847,11 +1947,32 @@ export type Database = {
         }
         Returns: boolean
       }
+      log_admin_action: {
+        Args: {
+          _action: string
+          _actor: string
+          _ip: string
+          _payload: Json
+          _target_id: string
+          _target_type: string
+          _user_agent: string
+        }
+        Returns: string
+      }
       lookup_lid_phone: {
         Args: { p_instance_id: string; p_lid_jid: string; p_user_id: string }
         Returns: string
       }
       normalize_email: { Args: { _email: string }; Returns: string }
+      record_login_attempt: {
+        Args: {
+          _email: string
+          _ip: string
+          _success: boolean
+          _user_agent: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user"
