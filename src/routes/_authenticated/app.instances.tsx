@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { createInstanceFn, getInstanceQrFn, deleteInstanceFn, listAvailableServersFn, listInstancesFn } from "@/lib/instances.functions";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { Link } from "@tanstack/react-router";
+import { formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/instances")({ component: InstancesPage });
 
