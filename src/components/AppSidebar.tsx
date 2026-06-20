@@ -142,6 +142,14 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={path.startsWith("/app/admin/security")} className="h-9 rounded-lg">
+                    <Link to="/app/admin/security">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>Segurança</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

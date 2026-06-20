@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useServerFn } from "@tanstack/react-start";
 import { preSignupCheckFn, recordSignupFn } from "@/lib/signup-guard.functions";
+import { checkLoginLockoutFn, recordLoginAttemptFn, validatePasswordStrength, STRONG_PASSWORD_MIN } from "@/lib/security.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,8 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const preCheck = useServerFn(preSignupCheckFn);
   const recordSignup = useServerFn(recordSignupFn);
+  const checkLockout = useServerFn(checkLoginLockoutFn);
+  const recordAttempt = useServerFn(recordLoginAttemptFn);
   const fpRef = useRef<string | null>(null);
 
   const nextPath = (() => {
@@ -38,7 +41,6 @@ function AuthPage() {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) window.location.replace(nextPath);
     });
-    // device fingerprint (silencioso) — usado para anti-abuso
     FingerprintJS.load().then((fp) => fp.get()).then((r) => { fpRef.current = r.visitorId; }).catch(() => {});
   }, [nav, nextPath]);
 
@@ -46,24 +48,45 @@ function AuthPage() {
   async function signIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const email = String(fd.get("email")).trim().toLowerCase();
+    const password = String(fd.get("password"));
+    if (!email || !password) return toast.error("Preencha e-mail e senha.");
+
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: String(fd.get("email")),
-      password: String(fd.get("password")),
-    });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Bem-vindo de volta!");
-    window.location.replace(nextPath);
+    try {
+      // 1) Verifica lockout antes de tentar
+      const lock = await checkLockout({ data: { email } });
+      if (!lock.allowed) {
+        setLoading(false);
+        const mins = Math.ceil((lock.retry_after_seconds ?? 60) / 60);
+        return toast.error(`Muitas tentativas. Tente novamente em ~${mins} min.`, {
+          description: "Por segurança, bloqueamos temporariamente o login após várias falhas.",
+        });
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      // 2) Registra resultado (não bloqueia a UX se falhar)
+      recordAttempt({ data: { email, success: !error } }).catch(() => {});
+
+      setLoading(false);
+      if (error) return toast.error("E-mail ou senha incorretos.");
+      toast.success("Bem-vindo de volta!");
+      window.location.replace(nextPath);
+    } catch (e) {
+      setLoading(false);
+      toast.error((e as Error).message);
+    }
   }
 
   async function signUp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const email = String(fd.get("email"));
+    const email = String(fd.get("email")).trim().toLowerCase();
     const password = String(fd.get("password"));
     const name = String(fd.get("name") ?? "");
-    if (password.length < 4) return toast.error("A senha precisa ter ao menos 4 caracteres.");
+
+    const strong = validatePasswordStrength(password);
+    if (!strong.ok) return toast.error(strong.reason ?? "Senha fraca.");
 
     setLoading(true);
     try {
@@ -76,7 +99,13 @@ function AuthPage() {
         email, password,
         options: { data: { full_name: name } },
       });
-      if (error) { setLoading(false); return toast.error(error.message); }
+      if (error) {
+        setLoading(false);
+        // Mensagens amigáveis para erros comuns
+        if (/leaked|pwned|compromised/i.test(error.message))
+          return toast.error("Esta senha já vazou em vazamentos de dados públicos. Escolha outra.");
+        return toast.error(error.message);
+      }
 
       // 3) Registra sinais do novo usuário
       try { await recordSignup({ data: { fingerprint: fpRef.current, email } }); }
@@ -177,8 +206,8 @@ function AuthPage() {
                     <div><Label htmlFor="su-email">E-mail</Label><Input id="su-email" name="email" type="email" required autoComplete="email" className="mt-1.5" /></div>
                     <div>
                       <Label htmlFor="su-pwd">Senha</Label>
-                      <Input id="su-pwd" name="password" type="password" required autoComplete="new-password" className="mt-1.5" />
-                      <p className="mt-1 text-[11px] text-muted-foreground">Mínimo 4 caracteres. Use o que for fácil de lembrar.</p>
+                      <Input id="su-pwd" name="password" type="password" required autoComplete="new-password" minLength={STRONG_PASSWORD_MIN} className="mt-1.5" />
+                      <p className="mt-1 text-[11px] text-muted-foreground">Mín. {STRONG_PASSWORD_MIN} caracteres com letras, números e símbolo.</p>
                     </div>
                     <Button type="submit" className="w-full bg-gradient-to-br from-primary to-primary-glow shadow-glow" disabled={loading}>Começar 7 dias grátis</Button>
                   </form>
