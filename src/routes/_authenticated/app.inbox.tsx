@@ -175,9 +175,9 @@ function Inbox() {
     enabled: !!workspace,
   });
 
-  const { data: instances = [] } = useQuery<Array<{ id: string; instance_name: string; status: string }>>({
+  const { data: instances = [] } = useQuery<Array<{ id: string; instance_name: string; phone_number: string | null; status: string }>>({
     queryKey: ["crm-instances", workspace],
-    queryFn: () => instFn({ data: { workspace_owner: workspace } }) as unknown as Promise<Array<{ id: string; instance_name: string; status: string }>>,
+    queryFn: () => instFn({ data: { workspace_owner: workspace } }) as unknown as Promise<Array<{ id: string; instance_name: string; phone_number: string | null; status: string }>>,
     enabled: !!workspace,
   });
 
