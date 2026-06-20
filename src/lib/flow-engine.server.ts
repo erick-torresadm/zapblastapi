@@ -1178,49 +1178,150 @@ export async function resumeFlowRunsForReply(
 }
 
 // Verifica triggers por keyword e dispara o fluxo.
+// Sempre escreve uma linha em `flow_keyword_audit` para diagnóstico.
 export async function triggerKeywordFlows(
   supabaseAdmin: any,
-  args: { user_id: string; instance_id: string | null; phone: string; text: string | null; from_me?: boolean },
+  args: {
+    user_id: string;
+    instance_id: string | null;
+    phone: string;
+    text: string | null;
+    from_me?: boolean;
+    remote_jid?: string;
+    unresolved_lid?: boolean;
+  },
 ): Promise<{ matched: number; runs: string[] }> {
   const text = (args.text ?? "").trim();
+  const textExcerpt = text.slice(0, 240);
+
+  async function writeAudit(opts: {
+    resolution_status: string;
+    triggers_evaluated: number;
+    triggers_matched: number;
+    matched_trigger_ids: string[];
+    matched_flow_ids: string[];
+    run_ids: string[];
+    note?: string;
+  }) {
+    try {
+      await supabaseAdmin.from("flow_keyword_audit").insert({
+        user_id: args.user_id,
+        instance_id: args.instance_id,
+        contact_phone: args.phone,
+        contact_jid: args.remote_jid ?? null,
+        remote_jid: args.remote_jid ?? null,
+        resolution_status: opts.resolution_status,
+        from_me: !!args.from_me,
+        text_excerpt: textExcerpt || null,
+        triggers_evaluated: opts.triggers_evaluated,
+        triggers_matched: opts.triggers_matched,
+        matched_trigger_ids: opts.matched_trigger_ids,
+        matched_flow_ids: opts.matched_flow_ids,
+        run_ids: opts.run_ids,
+        note: opts.note ?? null,
+      });
+    } catch (e) {
+      console.warn("[trigger] audit insert failed", (e as Error).message);
+    }
+  }
+
   console.log("[trigger] start", { user_id: args.user_id, phone: args.phone, from_me: !!args.from_me, text_len: text.length });
-  if (!text) return { matched: 0, runs: [] };
+  if (!text) {
+    await writeAudit({ resolution_status: "no_text", triggers_evaluated: 0, triggers_matched: 0, matched_trigger_ids: [], matched_flow_ids: [], run_ids: [], note: "Mensagem sem texto (ex: mídia/áudio)" });
+    return { matched: 0, runs: [] };
+  }
   const lower = normalizeKeywordText(text);
 
   const { data: triggers, error: tErr } = await supabaseAdmin.from("flow_keyword_triggers")
-    .select("id, flow_id, instance_id, keywords, match_mode, allow_from_me, delay_seconds, cooldown_seconds, last_triggered_at")
+    .select("id, flow_id, instance_id, keywords, match_mode, allow_from_me, delay_seconds, cooldown_seconds, per_contact_cooldown_seconds, last_triggered_at")
     .eq("user_id", args.user_id).eq("active", true);
-  if (tErr) { console.error("[trigger] load triggers error", tErr); return { matched: 0, runs: [] }; }
-  console.log("[trigger] active triggers", triggers?.length ?? 0);
-  if (!triggers?.length) return { matched: 0, runs: [] };
+  if (tErr) {
+    console.error("[trigger] load triggers error", tErr);
+    await writeAudit({ resolution_status: "error", triggers_evaluated: 0, triggers_matched: 0, matched_trigger_ids: [], matched_flow_ids: [], run_ids: [], note: `Erro carregando gatilhos: ${tErr.message}` });
+    return { matched: 0, runs: [] };
+  }
+  const triggersEval = triggers?.length ?? 0;
+  console.log("[trigger] active triggers", triggersEval);
+  if (!triggers?.length) {
+    await writeAudit({ resolution_status: "no_active_triggers", triggers_evaluated: 0, triggers_matched: 0, matched_trigger_ids: [], matched_flow_ids: [], run_ids: [] });
+    return { matched: 0, runs: [] };
+  }
 
   type TriggerRow = {
     id: string; flow_id: string; instance_id: string | null;
     keywords: string[]; match_mode: string;
     allow_from_me: boolean; delay_seconds: number;
-    cooldown_seconds: number; last_triggered_at: string | null;
+    cooldown_seconds: number; per_contact_cooldown_seconds: number;
+    last_triggered_at: string | null;
   };
 
   const now = Date.now();
-  const matched = (triggers as TriggerRow[]).filter((t) => {
-    if (args.from_me && !t.allow_from_me) { console.log("[trigger] skip (fromMe blocked)", t.id); return false; }
-    if (t.instance_id && args.instance_id && t.instance_id !== args.instance_id) { console.log("[trigger] skip (instance mismatch)", t.id); return false; }
+  function matchKeywords(t: TriggerRow): boolean {
+    const kws = (t.keywords ?? []).map((k) => k.trim()).filter(Boolean);
+    if (!kws.length) return false;
+    if (t.match_mode === "regex") {
+      for (const raw of kws) {
+        try {
+          const re = new RegExp(raw, "i");
+          if (re.test(text)) return true;
+        } catch { /* regex inválido — ignora */ }
+      }
+      return false;
+    }
+    const normKws = kws.map((k) => normalizeKeywordText(k));
+    if (t.match_mode === "exact") return normKws.includes(lower);
+    if (t.match_mode === "starts_with") return normKws.some((k) => lower.startsWith(k));
+    return normKws.some((k) => lower.includes(k));
+  }
+
+  const matched: TriggerRow[] = [];
+  for (const t of triggers as TriggerRow[]) {
+    if (args.from_me && !t.allow_from_me) { console.log("[trigger] skip (fromMe blocked)", t.id); continue; }
+    if (t.instance_id && args.instance_id && t.instance_id !== args.instance_id) { console.log("[trigger] skip (instance mismatch)", t.id); continue; }
     if (t.cooldown_seconds > 0 && t.last_triggered_at) {
       const elapsed = (now - new Date(t.last_triggered_at).getTime()) / 1000;
-      if (elapsed < t.cooldown_seconds) { console.log("[trigger] skip (cooldown)", t.id, elapsed); return false; }
+      if (elapsed < t.cooldown_seconds) { console.log("[trigger] skip (cooldown)", t.id, elapsed); continue; }
     }
-    const kws = (t.keywords ?? []).map((k) => normalizeKeywordText(k)).filter(Boolean);
-    if (!kws.length) return false;
-    let hit = false;
-    if (t.match_mode === "exact") hit = kws.includes(lower);
-    else if (t.match_mode === "starts_with") hit = kws.some((k) => lower.startsWith(k));
-    else hit = kws.some((k) => lower.includes(k));
-    console.log("[trigger] eval", t.id, { mode: t.match_mode, kws, hit });
-    return hit;
-  });
+    if (t.per_contact_cooldown_seconds > 0) {
+      const since = new Date(Date.now() - t.per_contact_cooldown_seconds * 1000).toISOString();
+      const { data: prev } = await supabaseAdmin.from("flow_runs")
+        .select("id")
+        .eq("flow_id", t.flow_id)
+        .eq("contact_phone", args.phone)
+        .gt("started_at", since)
+        .limit(1)
+        .maybeSingle();
+      if (prev) { console.log("[trigger] skip (per-contact cooldown)", t.id); continue; }
+    }
+    if (matchKeywords(t)) matched.push(t);
+  }
 
   console.log("[trigger] matched", matched.length);
-  if (!matched.length) return { matched: 0, runs: [] };
+  if (!matched.length) {
+    await writeAudit({
+      resolution_status: args.from_me ? "from_me" : "no_match",
+      triggers_evaluated: triggersEval,
+      triggers_matched: 0,
+      matched_trigger_ids: [], matched_flow_ids: [], run_ids: [],
+      note: args.from_me ? "Mensagem enviada pelo próprio chip" : "Nenhuma palavra-chave bateu",
+    });
+    return { matched: 0, runs: [] };
+  }
+
+  // Se o contato é LID não resolvido, registra o match mas NÃO cria run
+  // (envio para @lid falha com 400 e marca o run como failed).
+  if (args.unresolved_lid) {
+    await writeAudit({
+      resolution_status: "unresolved_lid",
+      triggers_evaluated: triggersEval,
+      triggers_matched: matched.length,
+      matched_trigger_ids: matched.map((m) => m.id),
+      matched_flow_ids: matched.map((m) => m.flow_id),
+      run_ids: [],
+      note: "Palavra-chave detectada, mas a Evolution entregou um identificador @lid sem telefone real. Atualize a Evolution para 2.4.0+ ou peça ao contato para iniciar a conversa.",
+    });
+    return { matched: matched.length, runs: [] };
+  }
 
   // resolve instance_id default (primeiro chip conectado do user)
   let instanceId = args.instance_id;
@@ -1231,6 +1332,15 @@ export async function triggerKeywordFlows(
   }
   if (!instanceId) {
     console.warn("[trigger] no connected instance available — aborting");
+    await writeAudit({
+      resolution_status: "no_instance",
+      triggers_evaluated: triggersEval,
+      triggers_matched: matched.length,
+      matched_trigger_ids: matched.map((m) => m.id),
+      matched_flow_ids: matched.map((m) => m.flow_id),
+      run_ids: [],
+      note: "Nenhum chip conectado para responder",
+    });
     return { matched: matched.length, runs: [] };
   }
 
@@ -1244,7 +1354,18 @@ export async function triggerKeywordFlows(
       .select("id").single();
     contactId = created?.id;
   }
-  if (!contactId) return { matched: matched.length, runs: [] };
+  if (!contactId) {
+    await writeAudit({
+      resolution_status: "error",
+      triggers_evaluated: triggersEval,
+      triggers_matched: matched.length,
+      matched_trigger_ids: matched.map((m) => m.id),
+      matched_flow_ids: matched.map((m) => m.flow_id),
+      run_ids: [],
+      note: "Falha ao criar contato",
+    });
+    return { matched: matched.length, runs: [] };
+  }
 
   const runs: string[] = [];
   for (const t of matched) {
@@ -1257,7 +1378,6 @@ export async function triggerKeywordFlows(
 
     if (runId) {
       runs.push(runId);
-      // Step "triggered" para aparecer na fila do painel imediatamente
       await supabaseAdmin.from("flow_run_steps").insert({
         run_id: runId, flow_id: t.flow_id, user_id: args.user_id,
         node_id: "__trigger__", node_type: "trigger", status: "ok",
@@ -1276,6 +1396,17 @@ export async function triggerKeywordFlows(
       .update({ last_triggered_at: new Date().toISOString() })
       .eq("id", t.id);
   }
+
+  await writeAudit({
+    resolution_status: "ok",
+    triggers_evaluated: triggersEval,
+    triggers_matched: matched.length,
+    matched_trigger_ids: matched.map((m) => m.id),
+    matched_flow_ids: matched.map((m) => m.flow_id),
+    run_ids: runs,
+  });
+
   return { matched: matched.length, runs };
 }
+
 
