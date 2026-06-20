@@ -38,7 +38,7 @@ import { DateSeparator } from "@/components/crm/DateSeparator";
 import { MediaPreviewDialog } from "@/components/crm/MediaPreviewDialog";
 import { ReplyPreview } from "@/components/crm/ReplyPreview";
 import { EmptyChatState } from "@/components/crm/EmptyChatState";
-import { formatInstanceLabel, formatPhone } from "@/lib/format-instance";
+import { formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/inbox")({ component: Inbox });
 
