@@ -585,7 +585,7 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
           const msg = (e as Error).message;
           console.error("[flow] sendMedia failed", msg);
           await logStep("error", msg);
-          await supabaseAdmin.from("flow_runs").update({ status: "failed", error: msg.slice(0, 500), finished_at: new Date().toISOString() }).eq("id", runId);
+          await goNext();
           return;
         }
       } else {
