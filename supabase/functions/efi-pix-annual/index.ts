@@ -73,11 +73,14 @@ Deno.serve(async (req) => {
         calendario: { expiracao: 3600 },
         valor: { original: valor },
         chave: pixKey,
-        solicitacaoPagador: `Plano ${plan.name} Anual`,
+        solicitacaoPagador: upgradeFrom
+          ? `Upgrade ${upgradeFrom.plan_name} → ${plan.name} (diferença anual)`
+          : `Plano ${plan.name} Anual`,
         infoAdicionais: [
           { nome: "user_id", valor: userId },
           { nome: "plan_id", valor: plan_id },
           { nome: "cycle", valor: "annual" },
+          { nome: "mode", valor: mode === "upgrade" ? "upgrade" : "new" },
         ],
       }),
     });
