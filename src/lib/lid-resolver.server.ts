@@ -58,80 +58,33 @@ export function extractPhoneFromPayload(payload: AnyRec): string | null {
 
 /**
  * Consulta o histórico para mapear um @lid → telefone real.
- *
- * Estratégias (em ordem):
- *   a) já existe uma mensagem onde remoteJidAlt == lidJid e remoteJid é
- *      @s.whatsapp.net (cenário: mesmo contato escreveu antes com nono
- *      dígito); usamos o telefone daquele remoteJid.
- *   b) já existe uma mensagem onde remoteJid == lidJid e from_phone é um
- *      telefone válido (foi resolvido por outro caminho na época).
- *   c) já existe um chat_messages com contact_jid @s.whatsapp.net cujo
- *      payload tem o mesmo @lid em qualquer campo conhecido.
+ * Usa a função SQL `public.lookup_lid_phone` que junta:
+ *   a) mensagens onde remoteJidAlt == lid e remoteJid é @s.whatsapp.net
+ *   b) mensagens com remoteJid == lid e from_phone já resolvido
+ *   c) chat_messages com contact_jid == lid e contact_phone real
  */
 export async function resolveLidFromHistory(
-  supabaseAdmin: { from: (t: string) => any },
+  supabaseAdmin: { rpc: (fn: string, args: AnyRec) => Promise<{ data: unknown; error: unknown }> },
   args: { user_id: string; instance_id: string | null; lid_jid: string },
-): Promise<{ phone: string; jid: string; source: "alt" | "from_phone" | "chat_jid" } | null> {
+): Promise<{ phone: string; jid: string } | null> {
   const lid = args.lid_jid;
   if (!lid || !lid.endsWith("@lid")) return null;
-
-  // (a) remoteJidAlt == lid → remoteJid traz o número real
   try {
-    const q = supabaseAdmin.from("incoming_messages")
-      .select("from_phone, raw_payload")
-      .eq("user_id", args.user_id)
-      .filter("raw_payload->data->key->>remoteJidAlt", "eq", lid)
-      .order("received_at", { ascending: false })
-      .limit(5);
-    if (args.instance_id) q.eq("instance_id", args.instance_id);
-    const { data } = await q;
-    for (const row of (data ?? []) as Array<{ from_phone: string | null; raw_payload: AnyRec }>) {
-      const remote = String(((row.raw_payload?.data as AnyRec | undefined)?.key as AnyRec | undefined)?.remoteJid ?? "");
-      if (remote.endsWith("@s.whatsapp.net")) {
-        const p = pickPhone(remote);
-        if (p) return { phone: p, jid: `${p}@s.whatsapp.net`, source: "alt" };
-      }
-      if (isRealPhone(row.from_phone)) {
-        const p = pickPhone(row.from_phone);
-        if (p) return { phone: p, jid: `${p}@s.whatsapp.net`, source: "from_phone" };
-      }
+    const { data, error } = await supabaseAdmin.rpc("lookup_lid_phone", {
+      p_user_id: args.user_id,
+      p_instance_id: args.instance_id,
+      p_lid_jid: lid,
+    });
+    if (error) {
+      console.warn("[lid] lookup_lid_phone error", error);
+      return null;
     }
-  } catch { /* ignore */ }
-
-  // (b) remoteJid == lid + from_phone real (foi resolvido antes via Pn)
-  try {
-    const q = supabaseAdmin.from("incoming_messages")
-      .select("from_phone")
-      .eq("user_id", args.user_id)
-      .filter("raw_payload->data->key->>remoteJid", "eq", lid)
-      .order("received_at", { ascending: false })
-      .limit(5);
-    if (args.instance_id) q.eq("instance_id", args.instance_id);
-    const { data } = await q;
-    for (const row of (data ?? []) as Array<{ from_phone: string | null }>) {
-      if (isRealPhone(row.from_phone)) {
-        const p = pickPhone(row.from_phone);
-        if (p) return { phone: p, jid: `${p}@s.whatsapp.net`, source: "from_phone" };
-      }
-    }
-  } catch { /* ignore */ }
-
-  // (c) chat_messages com mesmo @lid no JID e algum telefone associado
-  try {
-    const { data } = await supabaseAdmin.from("chat_messages")
-      .select("contact_jid, contact_phone")
-      .eq("user_id", args.user_id)
-      .eq("contact_jid", lid)
-      .not("contact_phone", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(5);
-    for (const row of (data ?? []) as Array<{ contact_phone: string | null }>) {
-      if (isRealPhone(row.contact_phone)) {
-        const p = pickPhone(row.contact_phone);
-        if (p) return { phone: p, jid: `${p}@s.whatsapp.net`, source: "chat_jid" };
-      }
-    }
-  } catch { /* ignore */ }
-
-  return null;
+    const phone = pickPhone(data);
+    if (!phone) return null;
+    return { phone, jid: `${phone}@s.whatsapp.net` };
+  } catch (e) {
+    console.warn("[lid] lookup_lid_phone exception", (e as Error).message);
+    return null;
+  }
 }
+
