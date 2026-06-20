@@ -53,7 +53,14 @@ function BillingPage() {
   const [cycle, setCycle] = useState<Cycle>(initialCycle);
 
   const [cardPlan, setCardPlan] = useState<{ id: string; name: string; price: number } | null>(null);
-  const [pixPlan, setPixPlan] = useState<{ id: string; name: string; annual: number } | null>(null);
+  const [pixPlan, setPixPlan] = useState<{ id: string; name: string; annual: number; upgrade?: boolean } | null>(null);
+  const [confirmChange, setConfirmChange] = useState<{
+    currentPlanName: string; newPlanName: string;
+    cycle: "monthly" | "annual"; changeType: "upgrade" | "downgrade";
+    currentPriceCents: number; newPriceCents: number; diffCents: number;
+    currentPeriodEnd?: string | null;
+    onConfirm: () => void;
+  } | null>(null);
   const sub = data?.subscription;
   const isActive = sub?.status === "active" || sub?.status === "trialing";
   const limits = usePlanLimits();
