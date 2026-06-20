@@ -61,7 +61,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           // 2) Histórico no banco: mesma @lid já apareceu junto com telefone real.
           const { extractPhoneFromPayload, resolveLidFromHistory } = await import("@/lib/lid-resolver.server");
 
-          let realPhone = extractPhoneFromPayload(payload);
+          let realPhone = extractPhoneFromPayload(rawPayload);
           let lidResolutionSource: "payload" | "history" | null = realPhone ? "payload" : null;
 
           // Garante o número quando remoteJid já é @s.whatsapp.net
