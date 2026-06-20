@@ -170,7 +170,7 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
           try {
             const { data: campaign } = await supabaseAdmin
               .from("group_campaigns")
-              .select("instance_id, member_limit")
+              .select("instance_id, member_limit, owner_user_id, auto_refill, auto_refill_template")
               .eq("id", link.campaign_id)
               .maybeSingle();
             if (!campaign?.instance_id) continue;
@@ -197,17 +197,63 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
               member_count: count,
               last_checked_at: new Date().toISOString(),
             };
-            if (count >= campaign.member_limit) {
+            const justFilled = count >= campaign.member_limit;
+            if (justFilled) {
               patch.status = "full";
               patch.filled_at = new Date().toISOString();
               out.rotated++;
             }
             await supabaseAdmin.from("group_campaign_links").update(patch).eq("id", link.id);
             out.monitored++;
+
+            // Auto-refill: if this group just filled and campaign has auto_refill on,
+            // and there are no other active/pending links left, enqueue a new group.
+            if (justFilled && campaign.auto_refill && campaign.auto_refill_template) {
+              const { count: queued } = await supabaseAdmin
+                .from("group_campaign_links")
+                .select("id", { count: "exact", head: true })
+                .eq("campaign_id", link.campaign_id)
+                .in("status", ["active", "pending"]);
+              const { count: pendingJobs } = await supabaseAdmin
+                .from("group_create_jobs")
+                .select("id", { count: "exact", head: true })
+                .eq("campaign_id", link.campaign_id)
+                .in("status", ["pending", "processing"]);
+              if ((queued ?? 0) === 0 && (pendingJobs ?? 0) === 0) {
+                // figure out the next sequence number
+                const { count: total } = await supabaseAdmin
+                  .from("group_campaign_links")
+                  .select("id", { count: "exact", head: true })
+                  .eq("campaign_id", link.campaign_id);
+                const n = (total ?? 0) + 1;
+                const subject = campaign.auto_refill_template.replace(/\{n\}/gi, String(n).padStart(2, "0"));
+                // Resolve initial participant: instance number or first extra
+                const { data: campExtras } = await supabaseAdmin
+                  .from("group_campaigns")
+                  .select("extra_participants")
+                  .eq("id", link.campaign_id)
+                  .maybeSingle();
+                let participantPhone = (await resolveInstancePhone(supabaseAdmin, campaign.instance_id)) ?? "";
+                if (participantPhone.length < 10) {
+                  const extras = normalizePhoneList(campExtras?.extra_participants as string[] | null);
+                  if (extras.length > 0) participantPhone = extras[0];
+                }
+                if (participantPhone.length >= 10) {
+                  await supabaseAdmin.from("group_create_jobs").insert({
+                    campaign_id: link.campaign_id,
+                    owner_user_id: campaign.owner_user_id,
+                    subject,
+                    participant_phone: participantPhone,
+                    next_attempt_at: new Date().toISOString(),
+                  } as never);
+                }
+              }
+            }
           } catch (e) {
             out.errors.push(`link ${link.id}: ${(e as Error).message}`);
           }
         }
+
 
         return Response.json(out);
       },
