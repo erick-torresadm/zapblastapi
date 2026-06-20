@@ -60,7 +60,10 @@ function AgendaPage() {
         </div>
       </div>
 
+      <HowItWorks />
+
       <Tabs defaultValue="calendar">
+
         <TabsList className="grid grid-cols-5 max-w-2xl">
           <TabsTrigger value="calendar"><Calendar className="h-4 w-4 mr-1" />Agenda</TabsTrigger>
           <TabsTrigger value="services"><Wrench className="h-4 w-4 mr-1" />Serviços</TabsTrigger>
