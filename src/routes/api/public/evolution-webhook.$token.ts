@@ -12,9 +12,12 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
         const { data: server } = await supabaseAdmin.from("evolution_servers").select("id, user_id").eq("webhook_token", token).maybeSingle();
         if (!server) return new Response("unknown token", { status: 401 });
 
-        const payload = await request.json().catch(() => ({})) as Record<string, unknown>;
-        const event = String(payload.event ?? payload.type ?? "");
-        const instanceName = String(payload.instance ?? (payload as { instanceName?: string }).instanceName ?? "");
+        const rawPayload = await request.json().catch(() => ({})) as Record<string, unknown>;
+        const { parseWebhookEnvelope, EVOLUTION_CONNECTION_STATE_MAP } = await import("@/lib/evolution-webhook.server");
+        const envelope = parseWebhookEnvelope(rawPayload);
+        const { event, kind, instanceName, data, key, remoteJid, jidUser } = envelope;
+        let { chatType } = envelope;
+        const fromMe = envelope.fromMe;
 
         // Localiza chip pelo nome
         let instanceId: string | null = null;
@@ -24,15 +27,9 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           instanceId = inst?.id ?? null;
         }
 
-        const data = (payload.data ?? payload) as Record<string, unknown>;
-        const ev = event.toLowerCase();
-
-        if (ev.includes("connection.update") || ev === "connection_update") {
+        if (kind === "connection.update") {
           const state = String((data as { state?: string }).state ?? "");
-          const statusMap: Record<string, "connected" | "disconnected" | "connecting"> = {
-            open: "connected", close: "disconnected", connecting: "connecting",
-          };
-          const newStatus = statusMap[state];
+          const newStatus = EVOLUTION_CONNECTION_STATE_MAP[state];
           if (newStatus && instanceId) {
             const patch: { status: typeof newStatus; last_qr_base64?: null; last_qr_error?: null } = { status: newStatus };
             if (newStatus === "connected") { patch.last_qr_base64 = null; patch.last_qr_error = null; }
@@ -40,10 +37,10 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           }
         }
 
-        if (ev.includes("qrcode.updated") || ev === "qrcode_updated") {
+        if (kind === "qrcode.updated") {
           if (instanceId) {
             const { normalizeQr } = await import("@/lib/evolution-qr.server");
-            const qrPayload = (payload as { qrcode?: unknown }).qrcode ?? data;
+            const qrPayload = (rawPayload as { qrcode?: unknown }).qrcode ?? data;
             const base64 = await normalizeQr(qrPayload);
             if (base64) {
               await supabaseAdmin.from("whatsapp_instances").update({
@@ -56,22 +53,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook/$token")({
           }
         }
 
-        if (event.includes("messages.upsert") || event === "MESSAGES_UPSERT") {
-          type WaKey = {
-            id?: string; remoteJid?: string; fromMe?: boolean; participant?: string;
-            senderPn?: string; participantPn?: string; remoteJidAlt?: string;
-          };
-          const key = (data as { key?: WaKey }).key;
-          const fromMe = !!key?.fromMe;
-          const remoteJid = key?.remoteJid ?? "";
-
-          const jidDomain = remoteJid.includes("@") ? remoteJid.split("@")[1] : "";
-          const jidUser = remoteJid.includes("@") ? remoteJid.split("@")[0] : remoteJid;
-          let chatType: "user" | "group" | "lid" | "broadcast" | "other" = "other";
-          if (jidDomain === "s.whatsapp.net" || jidDomain === "c.us") chatType = "user";
-          else if (jidDomain === "g.us") chatType = "group";
-          else if (jidDomain === "lid") chatType = "lid";
-          else if (jidDomain === "broadcast" || jidUser === "status") chatType = "broadcast";
+        if (kind === "messages.upsert") {
 
           // Resolução robusta do telefone real do contato.
           // 1) Campos do próprio payload (remoteJid/remoteJidAlt em @s.whatsapp.net,
