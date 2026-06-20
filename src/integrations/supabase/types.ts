@@ -1847,6 +1847,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      lookup_lid_phone: {
+        Args: { p_instance_id: string; p_lid_jid: string; p_user_id: string }
+        Returns: string
+      }
       normalize_email: { Args: { _email: string }; Returns: string }
     }
     Enums: {
