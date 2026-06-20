@@ -94,11 +94,21 @@ export function AppTopbar() {
           <Wallet className="h-3.5 w-3.5 text-primary" />
           <span className="tabular-nums">R$ {((wallet ?? 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
         </Link>
-        <Link to="/app/billing" className="hidden sm:block">
-          <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary hover:bg-primary/20">
-            <Sparkles className="mr-1 h-3 w-3" /> Upgrade
-          </Badge>
+        <Link
+          to="/app/billing"
+          className="hidden sm:flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+          title="Seu plano atual"
+        >
+          <Crown className="h-3.5 w-3.5" />
+          <span>Plano:&nbsp;<strong>{planInfo?.name ?? "…"}</strong></span>
+          {planInfo?.status === "trialing" && (
+            <Badge variant="outline" className="ml-1 border-warning/40 bg-warning/10 text-warning text-[10px] px-1.5 py-0">Teste</Badge>
+          )}
+          {(planInfo?.status === "none" || planInfo?.status === "past_due") && (
+            <Sparkles className="ml-0.5 h-3 w-3" />
+          )}
         </Link>
+
       </div>
     </header>
   );
