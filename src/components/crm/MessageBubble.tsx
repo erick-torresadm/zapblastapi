@@ -46,38 +46,8 @@ function fmtSize(b?: number | null) {
   return `${(b / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function AudioPlayer({ url, duration, ptt }: { url: string; duration?: number | null; ptt?: boolean }) {
-  const [playing, setPlaying] = useState(false);
-  const [audio] = useState(() => typeof Audio !== "undefined" ? new Audio(url) : null);
-  if (!audio) return null;
-  audio.onended = () => setPlaying(false);
-  return (
-    <div className="flex items-center gap-3 min-w-[200px]">
-      <button
-        type="button"
-        onClick={() => {
-          if (playing) { audio.pause(); setPlaying(false); }
-          else { audio.play().catch(() => {}); setPlaying(true); }
-        }}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90"
-      >
-        {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 translate-x-[1px]" />}
-      </button>
-      <div className="flex-1">
-        <div className="flex h-6 items-end gap-[2px]">
-          {Array.from({ length: 28 }).map((_, i) => (
-            <span key={i}
-              className={`w-[2px] rounded-full ${playing ? "bg-primary" : "bg-muted-foreground/50"}`}
-              style={{ height: `${20 + Math.sin(i * 0.7) * 60}%` }} />
-          ))}
-        </div>
-        <div className="mt-0.5 flex items-center gap-1 text-[10px] opacity-70">
-          {ptt && <span>🎤</span>} <span>{fmtDuration(duration)}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Player de áudio antigo removido — agora usamos <AudioMessage /> (WaveSurfer.js + audio nativo).
+
 
 function QuotedMessage({ quoted }: { quoted: Msg }) {
   const text = quoted.deleted_at
