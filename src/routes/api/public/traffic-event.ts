@@ -27,6 +27,7 @@ export const Route = createFileRoute("/api/public/traffic-event")({
         const ipHash = ip ? createHash("sha256").update(ip).digest("hex") : null;
 
         // grava o evento via RPC pública (anônima)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await supabaseAdmin.rpc("log_traffic_event", {
           _slug: slug,
           _event_name: event_name,
@@ -40,7 +41,8 @@ export const Route = createFileRoute("/api/public/traffic-event")({
           _page_url: (body.page_url as string) ?? null,
           _utm: (body.utm as Record<string, string>) ?? null,
           _payload: (body.payload as Record<string, unknown>) ?? {},
-        });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
 
         // Facebook CAPI (se configurado)
         const settings = (funnel.settings ?? {}) as { pixel_id?: string; capi_token?: string };
