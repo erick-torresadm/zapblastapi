@@ -67,6 +67,7 @@ export const EVOLUTION_ENDPOINTS = {
 
   // Groups
   inviteInfoGroup:    { method: "GET",  path: "/group/inviteInfo/{instance}" },
+  acceptInviteCode:   { method: "GET",  path: "/group/acceptInviteCode/{instance}" },
   findGroupInfos:     { method: "GET",  path: "/group/findGroupInfos/{instance}" },
   fetchAllGroups:     { method: "GET",  path: "/group/fetchAllGroups/{instance}" },
   createGroup:        { method: "POST", path: "/group/create/{instance}" },
