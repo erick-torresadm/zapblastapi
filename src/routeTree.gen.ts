@@ -14,11 +14,14 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FSlugRouteImport } from './routes/f.$slug'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as AgendaSlugRouteImport } from './routes/agenda.$slug'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as ApiPublicWarmupWorkerRouteImport } from './routes/api/public/warmup-worker'
+import { Route as ApiPublicTrafficLeadRouteImport } from './routes/api/public/traffic-lead'
+import { Route as ApiPublicTrafficEventRouteImport } from './routes/api/public/traffic-event'
 import { Route as ApiPublicFlowWorkerRouteImport } from './routes/api/public/flow-worker'
 import { Route as ApiPublicFlowTriggerTestRouteImport } from './routes/api/public/flow-trigger-test'
 import { Route as ApiPublicDispatchWorkerRouteImport } from './routes/api/public/dispatch-worker'
@@ -39,6 +42,7 @@ import { Route as AuthenticatedAppCancelarRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppAntiBanRouteImport } from './routes/_authenticated/app.anti-ban'
 import { Route as AuthenticatedAppAgendaRouteImport } from './routes/_authenticated/app.agenda'
+import { Route as AuthenticatedAppTrafficIndexRouteImport } from './routes/_authenticated/app.traffic.index'
 import { Route as AuthenticatedAppFlowsIndexRouteImport } from './routes/_authenticated/app.flows.index'
 import { Route as AuthenticatedAppCampaignsIndexRouteImport } from './routes/_authenticated/app.campaigns.index'
 import { Route as ApiPublicEvolutionWebhookTokenRouteImport } from './routes/api/public/evolution-webhook.$token'
@@ -46,6 +50,8 @@ import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppFlowsIdRouteImport } from './routes/_authenticated/app.flows.$id'
 import { Route as AuthenticatedAppCampaignsNewRouteImport } from './routes/_authenticated/app.campaigns.new'
 import { Route as AuthenticatedAppCampaignsIdRouteImport } from './routes/_authenticated/app.campaigns.$id'
+import { Route as AuthenticatedAppTrafficIdEditorRouteImport } from './routes/_authenticated/app.traffic.$id.editor'
+import { Route as AuthenticatedAppTrafficIdAnalyticsRouteImport } from './routes/_authenticated/app.traffic.$id.analytics'
 import { Route as AuthenticatedAdminAppAdminUsersRouteImport } from './routes/_authenticated/_admin.app.admin.users'
 import { Route as AuthenticatedAdminAppAdminSecurityRouteImport } from './routes/_authenticated/_admin.app.admin.security'
 import { Route as AuthenticatedAdminAppAdminCouponsRouteImport } from './routes/_authenticated/_admin.app.admin.coupons'
@@ -75,6 +81,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FSlugRoute = FSlugRouteImport.update({
+  id: '/f/$slug',
+  path: '/f/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConviteTokenRoute = ConviteTokenRouteImport.update({
   id: '/convite/$token',
   path: '/convite/$token',
@@ -97,6 +108,16 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
 const ApiPublicWarmupWorkerRoute = ApiPublicWarmupWorkerRouteImport.update({
   id: '/api/public/warmup-worker',
   path: '/api/public/warmup-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTrafficLeadRoute = ApiPublicTrafficLeadRouteImport.update({
+  id: '/api/public/traffic-lead',
+  path: '/api/public/traffic-lead',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTrafficEventRoute = ApiPublicTrafficEventRouteImport.update({
+  id: '/api/public/traffic-event',
+  path: '/api/public/traffic-event',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicFlowWorkerRoute = ApiPublicFlowWorkerRouteImport.update({
@@ -204,6 +225,12 @@ const AuthenticatedAppAgendaRoute = AuthenticatedAppAgendaRouteImport.update({
   path: '/app/agenda',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppTrafficIndexRoute =
+  AuthenticatedAppTrafficIndexRouteImport.update({
+    id: '/app/traffic/',
+    path: '/app/traffic/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppFlowsIndexRoute =
   AuthenticatedAppFlowsIndexRouteImport.update({
     id: '/',
@@ -244,6 +271,18 @@ const AuthenticatedAppCampaignsIdRoute =
     path: '/app/campaigns/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppTrafficIdEditorRoute =
+  AuthenticatedAppTrafficIdEditorRouteImport.update({
+    id: '/app/traffic/$id/editor',
+    path: '/app/traffic/$id/editor',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppTrafficIdAnalyticsRoute =
+  AuthenticatedAppTrafficIdAnalyticsRouteImport.update({
+    id: '/app/traffic/$id/analytics',
+    path: '/app/traffic/$id/analytics',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminAppAdminUsersRoute =
   AuthenticatedAdminAppAdminUsersRouteImport.update({
     id: '/app/admin/users',
@@ -276,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/f/$slug': typeof FSlugRoute
   '/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -296,6 +336,8 @@ export interface FileRoutesByFullPath {
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
+  '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
+  '/api/public/traffic-lead': typeof ApiPublicTrafficLeadRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
@@ -305,10 +347,13 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
+  '/app/traffic/': typeof AuthenticatedAppTrafficIndexRoute
   '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
   '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
   '/app/admin/users': typeof AuthenticatedAdminAppAdminUsersRoute
+  '/app/traffic/$id/analytics': typeof AuthenticatedAppTrafficIdAnalyticsRoute
+  '/app/traffic/$id/editor': typeof AuthenticatedAppTrafficIdEditorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -317,6 +362,7 @@ export interface FileRoutesByTo {
   '/termos': typeof TermosRoute
   '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/f/$slug': typeof FSlugRoute
   '/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -336,6 +382,8 @@ export interface FileRoutesByTo {
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
+  '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
+  '/api/public/traffic-lead': typeof ApiPublicTrafficLeadRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
@@ -345,10 +393,13 @@ export interface FileRoutesByTo {
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/app/campaigns': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows': typeof AuthenticatedAppFlowsIndexRoute
+  '/app/traffic': typeof AuthenticatedAppTrafficIndexRoute
   '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
   '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
   '/app/admin/users': typeof AuthenticatedAdminAppAdminUsersRoute
+  '/app/traffic/$id/analytics': typeof AuthenticatedAppTrafficIdAnalyticsRoute
+  '/app/traffic/$id/editor': typeof AuthenticatedAppTrafficIdEditorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -360,6 +411,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/f/$slug': typeof FSlugRoute
   '/_authenticated/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/_authenticated/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
@@ -380,6 +432,8 @@ export interface FileRoutesById {
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
+  '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
+  '/api/public/traffic-lead': typeof ApiPublicTrafficLeadRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
@@ -389,10 +443,13 @@ export interface FileRoutesById {
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/_authenticated/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/_authenticated/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
+  '/_authenticated/app/traffic/': typeof AuthenticatedAppTrafficIndexRoute
   '/_authenticated/_admin/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/_authenticated/_admin/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
   '/_authenticated/_admin/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
   '/_authenticated/_admin/app/admin/users': typeof AuthenticatedAdminAppAdminUsersRoute
+  '/_authenticated/app/traffic/$id/analytics': typeof AuthenticatedAppTrafficIdAnalyticsRoute
+  '/_authenticated/app/traffic/$id/editor': typeof AuthenticatedAppTrafficIdEditorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -403,6 +460,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/agenda/$slug'
     | '/convite/$token'
+    | '/f/$slug'
     | '/app/agenda'
     | '/app/anti-ban'
     | '/app/billing'
@@ -423,6 +481,8 @@ export interface FileRouteTypes {
     | '/api/public/dispatch-worker'
     | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
+    | '/api/public/traffic-event'
+    | '/api/public/traffic-lead'
     | '/api/public/warmup-worker'
     | '/app/'
     | '/app/campaigns/$id'
@@ -432,10 +492,13 @@ export interface FileRouteTypes {
     | '/api/public/evolution-webhook/$token'
     | '/app/campaigns/'
     | '/app/flows/'
+    | '/app/traffic/'
     | '/app/admin/catalog'
     | '/app/admin/coupons'
     | '/app/admin/security'
     | '/app/admin/users'
+    | '/app/traffic/$id/analytics'
+    | '/app/traffic/$id/editor'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -444,6 +507,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/agenda/$slug'
     | '/convite/$token'
+    | '/f/$slug'
     | '/app/agenda'
     | '/app/anti-ban'
     | '/app/billing'
@@ -463,6 +527,8 @@ export interface FileRouteTypes {
     | '/api/public/dispatch-worker'
     | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
+    | '/api/public/traffic-event'
+    | '/api/public/traffic-lead'
     | '/api/public/warmup-worker'
     | '/app'
     | '/app/campaigns/$id'
@@ -472,10 +538,13 @@ export interface FileRouteTypes {
     | '/api/public/evolution-webhook/$token'
     | '/app/campaigns'
     | '/app/flows'
+    | '/app/traffic'
     | '/app/admin/catalog'
     | '/app/admin/coupons'
     | '/app/admin/security'
     | '/app/admin/users'
+    | '/app/traffic/$id/analytics'
+    | '/app/traffic/$id/editor'
   id:
     | '__root__'
     | '/'
@@ -486,6 +555,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin'
     | '/agenda/$slug'
     | '/convite/$token'
+    | '/f/$slug'
     | '/_authenticated/app/agenda'
     | '/_authenticated/app/anti-ban'
     | '/_authenticated/app/billing'
@@ -506,6 +576,8 @@ export interface FileRouteTypes {
     | '/api/public/dispatch-worker'
     | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
+    | '/api/public/traffic-event'
+    | '/api/public/traffic-lead'
     | '/api/public/warmup-worker'
     | '/_authenticated/app/'
     | '/_authenticated/app/campaigns/$id'
@@ -515,10 +587,13 @@ export interface FileRouteTypes {
     | '/api/public/evolution-webhook/$token'
     | '/_authenticated/app/campaigns/'
     | '/_authenticated/app/flows/'
+    | '/_authenticated/app/traffic/'
     | '/_authenticated/_admin/app/admin/catalog'
     | '/_authenticated/_admin/app/admin/coupons'
     | '/_authenticated/_admin/app/admin/security'
     | '/_authenticated/_admin/app/admin/users'
+    | '/_authenticated/app/traffic/$id/analytics'
+    | '/_authenticated/app/traffic/$id/editor'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -529,11 +604,14 @@ export interface RootRouteChildren {
   TermosRoute: typeof TermosRoute
   AgendaSlugRoute: typeof AgendaSlugRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
+  FSlugRoute: typeof FSlugRoute
   AgendaConfirmarTokenRoute: typeof AgendaConfirmarTokenRoute
   ApiPublicAgendaDispatchRoute: typeof ApiPublicAgendaDispatchRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
   ApiPublicFlowTriggerTestRoute: typeof ApiPublicFlowTriggerTestRoute
   ApiPublicFlowWorkerRoute: typeof ApiPublicFlowWorkerRoute
+  ApiPublicTrafficEventRoute: typeof ApiPublicTrafficEventRoute
+  ApiPublicTrafficLeadRoute: typeof ApiPublicTrafficLeadRoute
   ApiPublicWarmupWorkerRoute: typeof ApiPublicWarmupWorkerRoute
   ApiPublicEvolutionWebhookTokenRoute: typeof ApiPublicEvolutionWebhookTokenRoute
 }
@@ -575,6 +653,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/f/$slug': {
+      id: '/f/$slug'
+      path: '/f/$slug'
+      fullPath: '/f/$slug'
+      preLoaderRoute: typeof FSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/convite/$token': {
       id: '/convite/$token'
       path: '/convite/$token'
@@ -608,6 +693,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/warmup-worker'
       fullPath: '/api/public/warmup-worker'
       preLoaderRoute: typeof ApiPublicWarmupWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/traffic-lead': {
+      id: '/api/public/traffic-lead'
+      path: '/api/public/traffic-lead'
+      fullPath: '/api/public/traffic-lead'
+      preLoaderRoute: typeof ApiPublicTrafficLeadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/traffic-event': {
+      id: '/api/public/traffic-event'
+      path: '/api/public/traffic-event'
+      fullPath: '/api/public/traffic-event'
+      preLoaderRoute: typeof ApiPublicTrafficEventRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/flow-worker': {
@@ -750,6 +849,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAgendaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/traffic/': {
+      id: '/_authenticated/app/traffic/'
+      path: '/app/traffic'
+      fullPath: '/app/traffic/'
+      preLoaderRoute: typeof AuthenticatedAppTrafficIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/flows/': {
       id: '/_authenticated/app/flows/'
       path: '/'
@@ -797,6 +903,20 @@ declare module '@tanstack/react-router' {
       path: '/app/campaigns/$id'
       fullPath: '/app/campaigns/$id'
       preLoaderRoute: typeof AuthenticatedAppCampaignsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/traffic/$id/editor': {
+      id: '/_authenticated/app/traffic/$id/editor'
+      path: '/app/traffic/$id/editor'
+      fullPath: '/app/traffic/$id/editor'
+      preLoaderRoute: typeof AuthenticatedAppTrafficIdEditorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/traffic/$id/analytics': {
+      id: '/_authenticated/app/traffic/$id/analytics'
+      path: '/app/traffic/$id/analytics'
+      fullPath: '/app/traffic/$id/analytics'
+      preLoaderRoute: typeof AuthenticatedAppTrafficIdAnalyticsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/_admin/app/admin/users': {
@@ -902,6 +1022,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppCampaignsIdRoute: typeof AuthenticatedAppCampaignsIdRoute
   AuthenticatedAppCampaignsNewRoute: typeof AuthenticatedAppCampaignsNewRoute
   AuthenticatedAppCampaignsIndexRoute: typeof AuthenticatedAppCampaignsIndexRoute
+  AuthenticatedAppTrafficIndexRoute: typeof AuthenticatedAppTrafficIndexRoute
+  AuthenticatedAppTrafficIdAnalyticsRoute: typeof AuthenticatedAppTrafficIdAnalyticsRoute
+  AuthenticatedAppTrafficIdEditorRoute: typeof AuthenticatedAppTrafficIdEditorRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -925,6 +1048,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppCampaignsIdRoute: AuthenticatedAppCampaignsIdRoute,
   AuthenticatedAppCampaignsNewRoute: AuthenticatedAppCampaignsNewRoute,
   AuthenticatedAppCampaignsIndexRoute: AuthenticatedAppCampaignsIndexRoute,
+  AuthenticatedAppTrafficIndexRoute: AuthenticatedAppTrafficIndexRoute,
+  AuthenticatedAppTrafficIdAnalyticsRoute:
+    AuthenticatedAppTrafficIdAnalyticsRoute,
+  AuthenticatedAppTrafficIdEditorRoute: AuthenticatedAppTrafficIdEditorRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -938,11 +1065,14 @@ const rootRouteChildren: RootRouteChildren = {
   TermosRoute: TermosRoute,
   AgendaSlugRoute: AgendaSlugRoute,
   ConviteTokenRoute: ConviteTokenRoute,
+  FSlugRoute: FSlugRoute,
   AgendaConfirmarTokenRoute: AgendaConfirmarTokenRoute,
   ApiPublicAgendaDispatchRoute: ApiPublicAgendaDispatchRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
   ApiPublicFlowTriggerTestRoute: ApiPublicFlowTriggerTestRoute,
   ApiPublicFlowWorkerRoute: ApiPublicFlowWorkerRoute,
+  ApiPublicTrafficEventRoute: ApiPublicTrafficEventRoute,
+  ApiPublicTrafficLeadRoute: ApiPublicTrafficLeadRoute,
   ApiPublicWarmupWorkerRoute: ApiPublicWarmupWorkerRoute,
   ApiPublicEvolutionWebhookTokenRoute: ApiPublicEvolutionWebhookTokenRoute,
 }

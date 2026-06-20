@@ -2326,6 +2326,248 @@ export type Database = {
           },
         ]
       }
+      traffic_blocks: {
+        Row: {
+          created_at: string
+          funnel_id: string
+          id: string
+          position: number
+          props: Json
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          funnel_id: string
+          id?: string
+          position?: number
+          props?: Json
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          funnel_id?: string
+          id?: string
+          position?: number
+          props?: Json
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traffic_blocks_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_funnels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traffic_custom_domains: {
+        Row: {
+          created_at: string
+          dns_ok: boolean
+          funnel_id: string
+          host: string
+          id: string
+          last_checked_at: string | null
+          ssl_ok: boolean
+          verify_token: string
+        }
+        Insert: {
+          created_at?: string
+          dns_ok?: boolean
+          funnel_id: string
+          host: string
+          id?: string
+          last_checked_at?: string | null
+          ssl_ok?: boolean
+          verify_token?: string
+        }
+        Update: {
+          created_at?: string
+          dns_ok?: boolean
+          funnel_id?: string
+          host?: string
+          id?: string
+          last_checked_at?: string | null
+          ssl_ok?: boolean
+          verify_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traffic_custom_domains_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_funnels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traffic_events: {
+        Row: {
+          anonymous_id: string | null
+          capi_status: string | null
+          created_at: string
+          event_id: string | null
+          event_name: string
+          fbc: string | null
+          fbp: string | null
+          funnel_id: string
+          id: string
+          ip_hash: string | null
+          page_url: string | null
+          payload: Json
+          referrer: string | null
+          ua: string | null
+          utm: Json | null
+        }
+        Insert: {
+          anonymous_id?: string | null
+          capi_status?: string | null
+          created_at?: string
+          event_id?: string | null
+          event_name: string
+          fbc?: string | null
+          fbp?: string | null
+          funnel_id: string
+          id?: string
+          ip_hash?: string | null
+          page_url?: string | null
+          payload?: Json
+          referrer?: string | null
+          ua?: string | null
+          utm?: Json | null
+        }
+        Update: {
+          anonymous_id?: string | null
+          capi_status?: string | null
+          created_at?: string
+          event_id?: string | null
+          event_name?: string
+          fbc?: string | null
+          fbp?: string | null
+          funnel_id?: string
+          id?: string
+          ip_hash?: string | null
+          page_url?: string | null
+          payload?: Json
+          referrer?: string | null
+          ua?: string | null
+          utm?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traffic_events_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_funnels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traffic_funnels: {
+        Row: {
+          created_at: string
+          custom_domain: string | null
+          default_list_id: string | null
+          font_family: string
+          id: string
+          og_image_url: string | null
+          owner_user_id: string
+          primary_color: string
+          seo_description: string | null
+          seo_title: string | null
+          settings: Json
+          slug: string
+          status: string
+          template: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_domain?: string | null
+          default_list_id?: string | null
+          font_family?: string
+          id?: string
+          og_image_url?: string | null
+          owner_user_id: string
+          primary_color?: string
+          seo_description?: string | null
+          seo_title?: string | null
+          settings?: Json
+          slug: string
+          status?: string
+          template?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_domain?: string | null
+          default_list_id?: string | null
+          font_family?: string
+          id?: string
+          og_image_url?: string | null
+          owner_user_id?: string
+          primary_color?: string
+          seo_description?: string | null
+          seo_title?: string | null
+          settings?: Json
+          slug?: string
+          status?: string
+          template?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      traffic_leads: {
+        Row: {
+          created_at: string
+          email: string | null
+          extra: Json
+          funnel_id: string
+          id: string
+          name: string | null
+          phone: string | null
+          pushed_to_list_id: string | null
+          utm: Json | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          extra?: Json
+          funnel_id: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          pushed_to_list_id?: string | null
+          utm?: Json | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          extra?: Json
+          funnel_id?: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          pushed_to_list_id?: string | null
+          utm?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traffic_leads_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_funnels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trial_abuse_blocklist: {
         Row: {
           created_at: string
@@ -2714,6 +2956,8 @@ export type Database = {
         Returns: number
       }
       expire_trials: { Args: never; Returns: number }
+      get_published_funnel_by_host: { Args: { _host: string }; Returns: Json }
+      get_published_funnel_by_slug: { Args: { _slug: string }; Returns: Json }
       get_tool_credits_balance: { Args: { _tool?: string }; Returns: Json }
       get_user_plan_limits: { Args: { _user_id: string }; Returns: Json }
       grant_manual_plan: {
@@ -2746,9 +2990,30 @@ export type Database = {
         }
         Returns: string
       }
+      log_traffic_event: {
+        Args: {
+          _anonymous_id: string
+          _event_id: string
+          _event_name: string
+          _fbc: string
+          _fbp: string
+          _ip_hash: string
+          _page_url: string
+          _payload: Json
+          _referrer: string
+          _slug: string
+          _ua: string
+          _utm: Json
+        }
+        Returns: string
+      }
       lookup_lid_phone: {
         Args: { p_instance_id: string; p_lid_jid: string; p_user_id: string }
         Returns: string
+      }
+      mark_traffic_domain_verified: {
+        Args: { _host: string; _token: string }
+        Returns: boolean
       }
       normalize_email: { Args: { _email: string }; Returns: string }
       preview_invite_link: { Args: { _token: string }; Returns: Json }
@@ -2774,6 +3039,17 @@ export type Database = {
       refund_tool_credit: {
         Args: { _tool: string; _user_id: string }
         Returns: undefined
+      }
+      submit_traffic_lead: {
+        Args: {
+          _email: string
+          _extra: Json
+          _name: string
+          _phone: string
+          _slug: string
+          _utm: Json
+        }
+        Returns: string
       }
       validate_coupon: {
         Args: { _code: string; _plan_id?: string }

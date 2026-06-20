@@ -1,90 +1,98 @@
 
-# Módulo Agenda (Booking + Confirmações + Reengajamento)
+# Módulo Tráfego & Funis
 
-Novo módulo dentro do ZapBlast. Cada workspace (tenant = `owner_user_id`) pode publicar uma página pública de agendamento, gerenciar serviços e profissionais, e disparar confirmações/reengajamento via WhatsApp usando as instâncias já existentes.
+Novo módulo **isolado** (prefixo `traffic_*` no banco, rotas próprias). Nada do core (CRM, campanhas, agenda) é alterado. Se algo der errado aqui, o resto continua funcionando.
 
-## 1. Banco de dados (1 migration)
+## 1. O que o usuário ganha
 
-Tabelas em `public` (todas com RLS por `owner_user_id`, GRANT pra `authenticated` + `service_role`; `agenda_businesses`, `agenda_services`, `agenda_professionals`, `agenda_availability`, `agenda_appointments` ganham GRANT SELECT pra `anon` somente nas colunas seguras via policies específicas):
+- **Builder de funil simples** (estilo inLead): blocos drag-and-drop — Headline, Texto, Imagem, Vídeo (YouTube/Vimeo), Botão WhatsApp, Botão Agenda, Formulário (nome+telefone+email), Depoimento, Countdown, FAQ.
+- **Link-in-bio** (página única com botões), usando o mesmo motor de renderização do builder mas com um template pronto.
+- **Domínio próprio do cliente via CNAME** (`funil.dominiodele.com`) — protege nosso domínio raiz dos Ads.
+- **Tracking nativo por funil/página**: Facebook Pixel + CAPI server-side, GA4 e GTM. Eventos automáticos: `PageView`, `ViewContent`, `Lead` (form submit), `Contact` (clique WhatsApp), `Schedule` (clique agenda).
+- **Leads capturados** caem direto em uma lista do CRM (lista escolhida na config do funil) — reaproveita tabela `contact_lists` existente, sem alterar nada.
 
-- **agenda_businesses** — `owner_user_id`, `slug` (único, usado em `/agenda/{slug}`), `name`, `timezone` (default `America/Sao_Paulo`), `default_instance_id` (FK `whatsapp_instances`), `confirm_offsets_minutes int[]` (ex: `{1440,120}`), `active`.
-- **agenda_professionals** — `business_id`, `name`, `phone` (recebe confirmação dele mesmo), `color`, `active`.
-- **agenda_services** — `business_id`, `name`, `duration_min`, `price_cents`, `description`, `active`.
-- **agenda_service_professionals** — N×N serviço↔profissional.
-- **agenda_availability** — `professional_id`, `weekday` (0–6), `start_time`, `end_time`, `slot_step_min` (default = duração do serviço).
-- **agenda_blocks** — `professional_id`, `starts_at`, `ends_at`, `reason` (férias, almoço pontual, bloqueio manual).
-- **agenda_appointments** — `business_id`, `professional_id`, `service_id`, `customer_name`, `customer_phone`, `customer_notes`, `starts_at`, `ends_at`, `status` (`pending`|`confirmed_customer`|`confirmed_pro`|`cancelled`|`no_show`|`done`), `confirm_token` (uuid, usado no link público de confirmar/cancelar), `created_via` (`public`|`manual`).
-- **agenda_notifications** — log: `appointment_id`, `kind` (`booking_created`|`reminder`|`reengagement`), `target` (`customer`|`professional`), `phone`, `instance_id`, `scheduled_at`, `sent_at`, `status` (`queued`|`sent`|`failed`|`replied_yes`|`replied_no`), `wa_message_id`, `error`.
-- **agenda_reengagement_campaigns** — `business_id`, `name`, `message_template` (com `{nome}`, `{cupom}`, `{link}`), `coupon_code` (opcional, reaproveita tabela `coupons`), `target_filter` (jsonb: `{ inactive_days: 30, service_ids: [], ... }`), `cron` (`every_30_days`|`every_15_days`|`weekly`), `active`, `last_run_at`.
+## 2. Arquitetura — máxima simplicidade
 
-RPCs SECURITY DEFINER:
-- `agenda_public_get_business(_slug text)` → dados públicos (nome, serviços, profissionais ativos).
-- `agenda_public_get_slots(_business_id, _service_id, _professional_id, _date)` → calcula slots livres a partir de availability − blocks − appointments existentes.
-- `agenda_public_book(...)` → cria appointment (status `pending`), valida conflito por `EXCLUDE USING gist` ou re-check no commit, enfileira `booking_created` + `reminder` rows em `agenda_notifications` baseado em `confirm_offsets_minutes`.
-- `agenda_confirm(_token, _by)` / `agenda_cancel(_token)` → muda status e loga.
+```text
+src/routes/
+  _authenticated/
+    app.traffic.tsx               → dashboard do módulo (lista funis, criar novo)
+    app.traffic.$id.editor.tsx    → editor visual do funil
+    app.traffic.$id.analytics.tsx → views, cliques, leads, eventos enviados
+  f.$slug.tsx                     → render público (subdomínio nosso: funil.zapblastapi…)
+  api/public/
+    traffic-render.$slug.ts       → SSR do funil quando vem de domínio próprio (Host header)
+    traffic-event.ts              → endpoint CAPI (recebe evento do client e reenvia server-side pro Facebook)
+    traffic-lead.ts               → recebe submissão de formulário, grava lead + dispara Lead event
+    traffic-domain-verify.$token.ts → verificação de domínio (TXT) e checagem CNAME
+```
 
-## 2. Server functions (`src/lib/agenda.functions.ts` + `agenda-public.functions.ts`)
+### Tabelas novas (todas prefixo `traffic_`)
 
-Protegidas (`requireSupabaseAuth`):
-- CRUD de business, serviços, profissionais, availability, blocks.
-- Lista/edita appointments do calendário.
-- CRUD de reengagement_campaigns.
+- `traffic_funnels` — id, owner_user_id, slug, title, status (draft/published), template (funnel/linkbio), settings (jsonb: pixel_id, capi_token, ga4_id, gtm_id, default_list_id), custom_domain, custom_domain_status, created_at.
+- `traffic_blocks` — id, funnel_id, position, type, props (jsonb). Cada bloco é renderizado por um componente React puro.
+- `traffic_events` — id, funnel_id, event_name, anonymous_id, fbp, fbc, ip_hash, ua, payload (jsonb), created_at. Particionado por data ou com índice por funnel_id+created_at.
+- `traffic_leads` — id, funnel_id, name, phone, email, utm (jsonb), pushed_to_list_id, created_at.
+- `traffic_custom_domains` — id, funnel_id, host, verify_token, dns_ok, ssl_ok, last_checked_at.
 
-Públicas (sem auth, usam server publishable client + RPCs SECURITY DEFINER):
-- `getPublicBusinessFn(slug)`, `getPublicSlotsFn(...)`, `bookAppointmentFn(...)`, `confirmAppointmentFn(token, by)`, `cancelAppointmentFn(token)`.
+Todas com RLS escopada por `owner_user_id` (segue padrão do projeto). Endpoints públicos usam SECURITY DEFINER ou service_role só pro que é estritamente necessário (renderização e inserts de event/lead).
 
-## 3. Rotas
+## 3. Pixel + CAPI (server-side, sem mexer no core)
 
-Privadas (sob `_authenticated/`):
-- `/app/agenda` — calendário (semana/dia) com appointments, drag pra reagendar (fase 2 — MVP só lista).
-- `/app/agenda/configurar` — dados do negócio, slug, instância WhatsApp default, offsets de lembrete.
-- `/app/agenda/servicos` — CRUD serviços.
-- `/app/agenda/profissionais` — CRUD profissionais + availability + blocks.
-- `/app/agenda/reengajamento` — CRUD campanhas.
+- Client dispara evento → POST em `/api/public/traffic-event` com `funnel_slug`, `event_name`, `event_id` (dedupe), `fbp`, `fbc`.
+- Handler busca `pixel_id` + `capi_token` do funil e faz POST pro Graph API do Facebook (`https://graph.facebook.com/v20.0/{pixel_id}/events`). Hasheia IP/email/telefone com SHA-256.
+- Mesmo `event_id` é usado no client (`fbq('track', ..., {eventID})`) e no server → Facebook deduplica.
+- Erros logam em `traffic_events.payload.error` mas nunca quebram o render do funil.
 
-Públicas:
-- `/agenda/$slug` — landing com serviços, escolha profissional → data → slot → form (nome + telefone) → confirma.
-- `/agenda/confirmar/$token` — página com botões "Confirmar presença" / "Cancelar". Funciona tanto pro cliente quanto pro profissional.
+GA4/GTM: injetados via `<script>` no SSR quando configurados. Sem CAPI server-side pro GA (overkill pra MVP).
 
-## 4. Disparo automático (cron + worker)
+## 4. Domínio próprio via CNAME (passo a passo pro cliente)
 
-- Server route `src/routes/api/public/hooks/agenda-dispatch.ts` (auth via `apikey` anon header). Lê `agenda_notifications` com `scheduled_at <= now()` e `status='queued'`, monta texto a partir do template, e envia via a função WhatsApp interna já usada pelas campanhas (`sendMessageFn` ou equivalente). Atualiza `sent_at`/`status`.
-- pg_cron `*/1 * * * *` chamando esse endpoint.
-- Mesmo endpoint roda um passo de reengajamento: pra cada `agenda_reengagement_campaigns.active=true` cuja cadência venceu, busca clientes elegíveis (telefones do CRM/appointments antigos) e enfileira notifications `kind='reengagement'`, gerando cupom dinâmico se configurado.
+Fluxo no painel:
+1. Cliente adiciona `funil.dominiodele.com` na config do funil.
+2. Geramos um `verify_token`. Mostramos 2 registros DNS pra ele colar no registrador:
+   - `CNAME funil → cname.zapblastapi.lovable.app` (ou subdomínio dedicado nosso)
+   - `TXT _zapblast-verify.funil → <verify_token>`
+3. Botão **Verificar agora** chama `/api/public/traffic-domain-verify/$token` que faz resolução DNS e marca `dns_ok=true`.
+4. Para SSL automático, usamos **Cloudflare for SaaS** (Custom Hostnames API) — única dependência externa nova. Alternativa mais barata: orientar cliente a colocar Cloudflare grátis dele na frente e proxiar pra nós (perde menos infra nossa). **Recomendação MVP**: começar com instrução "use Cloudflare grátis do seu lado, modo proxy"; adicionar Cloudflare for SaaS depois se virar gargalo.
+5. Quando uma request chega no nosso edge com `Host: funil.dominiodele.com`, o middleware mapeia host → `funnel_id` e renderiza.
 
-Mensagens padrão (editáveis depois):
-- Cliente lembrete: "Oi {nome}, sua {servico} com {profissional} é {data} às {hora}. Confirma? {link}"
-- Profissional lembrete: "Você tem {servico} com {cliente} em {data} {hora}. Confirma? {link}"
-- Reengajamento: "Faz {dias} dias que você não passa aqui! Use o cupom {cupom} e marque: {link}"
+> Importante: nada disso usa nosso domínio raiz como destino dos Ads. Se o cliente queimar o domínio dele, problema dele.
 
-## 5. Confirmação inbound (fase 2 — não nesta rodada)
-Detectar resposta "sim/não" via webhook do WhatsApp e atualizar `agenda_notifications.status` + `appointment.status`. **MVP**: confirmação só pelo link clicável.
+## 5. Editor (mínimo viável)
 
-## 6. Integração com o resto do sistema
+- Lista de blocos à esquerda, preview ao centro, painel de propriedades à direita.
+- Drag-and-drop com `@dnd-kit/sortable` (já popular, sem dependências pesadas).
+- Salva no banco a cada mudança com debounce de 800ms.
+- **Sem versionamento, sem A/B test, sem templates de mercado no MVP** — apenas 2 templates iniciais (funil de captura, link-in-bio).
+- Tema: input de cor primária + fonte (4 opções). Nada mais customizável no MVP.
 
-- Sidebar (`AppSidebar.tsx`): novo grupo "Agenda" com os itens acima.
-- Plano: adicionar feature flag `has_agenda boolean` em `subscription_plans`; bloquear acesso se `false`.
-- Cupons: campanha de reengajamento reaproveita `coupons` (tipo `percent`/`fixed`/`tool_credits`); admin já gerencia em `/app/admin/coupons`.
+## 6. O que NÃO entra agora (pra ficar simples)
 
-## Out of scope desta rodada
-- Pagamento de sinal via Pix (deixar gancho — campo `requires_deposit` no service desligado).
-- Auto-detectar confirmação por texto do WhatsApp.
-- Multi-unidade (uma `agenda_business` por workspace por enquanto; modelo já permite expandir).
-- Sincronização Google Calendar / iCal.
-- Drag-and-drop no calendário (MVP: criar/editar via modal).
+- Pagamentos/checkout no funil
+- A/B test
+- E-mail automation
+- Templates de marketplace
+- Cloudflare for SaaS automatizado (cliente usa Cloudflare dele no MVP)
+- Editor mobile-first separado (responsivo automático básico já basta)
 
-## Detalhes técnicos
-- Slot calc no Postgres pra evitar round-trip; usa `tstzrange` + `EXCLUDE USING gist` em `agenda_appointments` (`professional_id`, `tstzrange(starts_at, ends_at)`) pra impedir overbooking concorrente.
-- Página pública: `ssr: true` (não está sob `_authenticated/`), loader chama `getPublicBusinessFn` (server publishable client, policy `TO anon` em colunas seguras de `agenda_businesses`/`agenda_services`/`agenda_professionals`).
-- Confirmação: token UUID v4 em `agenda_appointments.confirm_token`; rota pública valida e chama RPC `agenda_confirm` que faz lookup por token sem expor `auth.uid()`.
+## 7. Detalhes técnicos
 
-## Arquivos a criar/editar
-- `supabase/migrations/<ts>_agenda.sql`
-- `src/lib/agenda.functions.ts`, `src/lib/agenda-public.functions.ts`
-- `src/routes/_authenticated/app.agenda.tsx` (+ `.configurar`, `.servicos`, `.profissionais`, `.reengajamento`)
-- `src/routes/agenda.$slug.tsx`, `src/routes/agenda.confirmar.$token.tsx`
-- `src/routes/api/public/hooks/agenda-dispatch.ts`
-- `src/components/agenda/*` (CalendarView, ServiceForm, ProfessionalForm, AvailabilityEditor, PublicBookingFlow, ReengagementForm)
-- `src/components/AppSidebar.tsx` (grupo Agenda)
-- pg_cron schedule (via `supabase--insert`)
-- Atualizar `mem://index.md` + criar `mem://features/agenda`
+- **Renderização pública** é SSR puro via TanStack server route. Sem auth, sem RLS-as-user — usa `supabaseAdmin` apenas pra SELECT no funil pelo slug/host (projeta só colunas seguras).
+- **Resolução de host customizado**: middleware lê `request.headers.get('host')`, consulta `traffic_custom_domains` (cache em memória do worker por 60s), resolve `funnel_id`.
+- **CAPI**: token do Facebook fica em `traffic_funnels.settings` (criptografado com pgsodium se possível, ou no mínimo só acessível via RPC). Considerar mover pra `vault` se sensível.
+- **Eventos**: tabela `traffic_events` pode crescer muito; criar índice `(funnel_id, created_at DESC)` e job mensal de archive (futuro).
+- **Sidebar**: nova entrada "Tráfego & Funis" abaixo de "Agenda".
+- **Memória do projeto**: criar `mem://features/traffic.md` documentando tabelas, fluxo CAPI, fluxo de domínio custom.
+
+## 8. Ordem de implementação
+
+1. Migração: tabelas `traffic_*` + RLS + GRANTs.
+2. Editor + render público no subdomínio nosso (`/f/$slug`) + 2 templates.
+3. Pixel client-side + GA4/GTM.
+4. CAPI server-side (`/api/public/traffic-event`).
+5. Captura de leads → `contact_lists`.
+6. Domínio customizado via CNAME + verificação DNS (cliente coloca Cloudflare na frente).
+7. Tela de analytics simples (totais + últimos eventos + leads).
+
+Pronto pra implementar? Quando aprovar eu começo pela migração e pelo motor de renderização.
