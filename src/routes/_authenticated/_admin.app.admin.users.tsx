@@ -41,11 +41,16 @@ function UsersAdminPage() {
       <Card>
         <CardHeader>
           <CardTitle>Buscar usuário</CardTitle>
-          <CardDescription>Digite o nome (mínimo 2 caracteres)</CardDescription>
+          <CardDescription>Digite o nome ou e-mail (mínimo 2 caracteres)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nome do usuário" onKeyDown={(e) => e.key === "Enter" && setSearched(q.trim())} />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Nome ou e-mail do usuário"
+              onKeyDown={(e) => e.key === "Enter" && setSearched(q.trim())}
+            />
             <Button onClick={() => setSearched(q.trim())}><Search className="h-4 w-4 mr-2" /> Buscar</Button>
           </div>
 
@@ -70,10 +75,13 @@ function UserCard({ user }: { user: any }) {
     queryFn: () => getSub({ data: { user_id: user.id } }),
   });
 
+  const label = user.full_name || user.email || user.id;
+
   return (
     <div className="flex items-center justify-between rounded-lg border p-4">
       <div>
-        <div className="font-medium">{user.full_name}</div>
+        <div className="font-medium">{user.full_name ?? <span className="text-muted-foreground italic">sem nome</span>}</div>
+        {user.email && <div className="text-sm text-foreground/80">{user.email}</div>}
         <div className="text-xs text-muted-foreground font-mono">{user.id}</div>
         {subQ.data && (
           <div className="mt-1 flex items-center gap-2 text-sm">
@@ -88,7 +96,7 @@ function UserCard({ user }: { user: any }) {
           </div>
         )}
       </div>
-      <GrantPlanDialog userId={user.id} userName={user.full_name} />
+      <GrantPlanDialog userId={user.id} userName={label} />
     </div>
   );
 }
