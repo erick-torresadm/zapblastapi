@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, RefreshCw, QrCode, Shield } from "lucide-react";
 import { toast } from "sonner";
-import { createInstanceFn, getInstanceQrFn, deleteInstanceFn, listAvailableServersFn, listInstancesFn } from "@/lib/instances.functions";
+import { createInstanceFn, getInstanceQrFn, deleteInstanceFn, listAvailableServersFn, listInstancesFn, refreshInstancePhoneFn } from "@/lib/instances.functions";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { Link } from "@tanstack/react-router";
 import { formatPhone } from "@/lib/format-instance";
