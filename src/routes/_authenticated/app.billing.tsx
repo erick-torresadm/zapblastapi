@@ -100,26 +100,43 @@ function BillingPage() {
       )}
 
       {sub && (
-        <Card className={cn(isActive && "border-primary/60 bg-primary/5")}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 flex-wrap">
-              <Crown className="h-5 w-5 text-primary" />
-              Seu plano: {sub.subscription_plans?.name ?? "Sem plano"}
-              <Badge variant={isActive ? "default" : "destructive"}>
-                {limits.isPastDue ? "Expirado" : sub.status === "active" ? "Ativo" : sub.status === "trialing" ? `Teste grátis — ${limits.trialDaysLeft ?? "?"} dias restantes` : sub.status}
-              </Badge>
-              {sub.payment_method && (
-                <Badge variant="outline" className="capitalize">
-                  {sub.payment_method === "card" ? "Cartão" : sub.payment_method.toUpperCase()}
-                </Badge>
-              )}
-            </CardTitle>
-            <CardDescription>
-              {sub.current_period_end && `Renova em ${new Date(sub.current_period_end).toLocaleDateString("pt-BR")}`}
-            </CardDescription>
+        <Card className={cn("border-2", isActive ? "border-primary bg-gradient-to-br from-primary/10 via-primary/5 to-transparent" : "border-destructive/40")}>
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-primary text-primary-foreground uppercase tracking-wider text-[10px] font-bold px-2 py-0.5">
+                    Plano atual
+                  </Badge>
+                  <Badge variant={isActive ? "outline" : "destructive"} className={cn(isActive && "border-success/40 bg-success/10 text-success")}>
+                    {limits.isPastDue ? "Expirado" :
+                     sub.status === "active" ? "Ativo" :
+                     sub.status === "trialing" ? `Teste grátis · ${limits.trialDaysLeft ?? "?"}d` :
+                     sub.status}
+                  </Badge>
+                  {sub.payment_method && (
+                    <Badge variant="outline" className="capitalize">
+                      {sub.payment_method === "card" ? "💳 Cartão" : sub.payment_method.toUpperCase()}
+                    </Badge>
+                  )}
+                </div>
+                <CardTitle className="text-3xl flex items-center gap-2">
+                  <Crown className="h-7 w-7 text-primary" />
+                  {sub.subscription_plans?.name ?? "Sem plano"}
+                </CardTitle>
+                <CardDescription>
+                  {sub.current_period_end && (
+                    <>Renovação em <strong>{new Date(sub.current_period_end).toLocaleDateString("pt-BR")}</strong></>
+                  )}
+                  {sub.subscription_plans?.price_cents != null && (
+                    <> · {brl(sub.subscription_plans.price_cents)}/mês</>
+                  )}
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           {lim && use && (
-            <CardContent className="grid gap-4 md:grid-cols-3">
+            <CardContent className="grid gap-4 md:grid-cols-3 pt-0">
               <div className="space-y-1.5">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Chips conectados</span>
