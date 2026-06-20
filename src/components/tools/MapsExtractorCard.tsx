@@ -188,10 +188,39 @@ export function MapsExtractorCard({
               Busque negócios reais no Google Maps. Devolve nome, telefone, endereço e site — pronto pra atacar.
             </CardDescription>
           </div>
-          <Badge variant="secondary" className="shrink-0">{brl(flatPrice)} / busca</Badge>
+          {hasFree ? (
+            <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+              <Gift className="mr-1 h-3 w-3" /> {freeMaps} grátis
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="shrink-0">{brl(flatPrice)} / busca</Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Coupon redeem */}
+        <div className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3">
+          <div className="flex-1 min-w-[180px] space-y-1">
+            <Label className="flex items-center gap-1.5 text-xs">
+              <Ticket className="h-3.5 w-3.5" /> Cupom de buscas grátis
+            </Label>
+            <Input
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              placeholder="Ex: YOUTUBE5"
+              className="h-9"
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!couponCode.trim() || redeem.isPending}
+            onClick={() => redeem.mutate()}
+          >
+            {redeem.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Gift className="mr-2 h-4 w-4" />}
+            Resgatar
+          </Button>
+        </div>
         <Tabs value={mode} onValueChange={(v) => setMode(v as any)}>
           <TabsList>
             <TabsTrigger value="text">Busca rápida</TabsTrigger>
@@ -281,8 +310,17 @@ export function MapsExtractorCard({
 
         <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
           <div>
-            <strong className="text-foreground">{brl(flatPrice)} fixo por busca</strong>
-            <p className="text-xs text-muted-foreground">Até {maxLeads} leads • Reembolso automático se vier 0</p>
+            {hasFree ? (
+              <>
+                <strong className="text-emerald-700 dark:text-emerald-400">{freeMaps} busca(s) grátis disponível(is)</strong>
+                <p className="text-xs text-muted-foreground">Buscas grátis liberam só o envio direto pra campanha — CSV é exclusivo de busca paga.</p>
+              </>
+            ) : (
+              <>
+                <strong className="text-foreground">{brl(flatPrice)} fixo por busca</strong>
+                <p className="text-xs text-muted-foreground">Até {maxLeads} leads • Reembolso automático se vier 0 • Inclui download CSV</p>
+              </>
+            )}
           </div>
           <span className={insufficient ? "font-semibold text-destructive" : "text-muted-foreground"}>
             Saldo: {brl(balance)}
