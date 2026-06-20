@@ -18,6 +18,7 @@ import { listInstancesFn } from "@/lib/instances.functions";
 import { getWalletFn } from "@/lib/wallet.functions";
 import { MapsExtractorCard } from "@/components/tools/MapsExtractorCard";
 import { UnsavedContactsCard } from "@/components/tools/UnsavedContactsCard";
+import { formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/tools")({ component: ToolsPage });
 
@@ -215,7 +216,12 @@ function ValidatorCard({
               <SelectTrigger><SelectValue placeholder="Escolha um chip conectado" /></SelectTrigger>
               <SelectContent>
                 {instances.map((i: any) => (
-                  <SelectItem key={i.id} value={i.id}>{i.instance_name}</SelectItem>
+                  <SelectItem key={i.id} value={i.id}>
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-medium">{i.instance_name}</span>
+                      <span className="text-muted-foreground text-xs">{formatPhone(i.phone_number)}</span>
+                    </span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -339,7 +345,12 @@ function GroupExtractCard({
               <SelectTrigger><SelectValue placeholder="Escolha um chip conectado" /></SelectTrigger>
               <SelectContent>
                 {instances.map((i: any) => (
-                  <SelectItem key={i.id} value={i.id}>{i.instance_name}</SelectItem>
+                  <SelectItem key={i.id} value={i.id}>
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-medium">{i.instance_name}</span>
+                      <span className="text-muted-foreground text-xs">{formatPhone(i.phone_number)}</span>
+                    </span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

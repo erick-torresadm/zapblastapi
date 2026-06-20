@@ -45,7 +45,7 @@ export const listKeywordTriggersFn = createServerFn({ method: "GET" })
         ? supabase.from("flows" as any).select("id,name").in("id", flowIds).then((r: any) => r.data ?? [])
         : Promise.resolve([]),
       instIds.length
-        ? supabase.from("whatsapp_instances" as any).select("id,instance_name,status").in("id", instIds).then((r: any) => r.data ?? [])
+        ? supabase.from("whatsapp_instances" as any).select("id,instance_name,phone_number,status").in("id", instIds).then((r: any) => r.data ?? [])
         : Promise.resolve([]),
     ]);
 
@@ -140,7 +140,7 @@ export const listFlowsForKeywordsFn = createServerFn({ method: "GET" })
     const admin = await isAdmin(supabase, userId);
     const flowsQ = supabase.from("flows" as any).select("id,name,user_id").order("name");
     const { data: flows } = admin ? await flowsQ : await flowsQ.eq("user_id", userId);
-    const instQ = supabase.from("whatsapp_instances" as any).select("id,instance_name,status,user_id").order("instance_name");
+    const instQ = supabase.from("whatsapp_instances" as any).select("id,instance_name,phone_number,status,user_id").order("instance_name");
     const { data: instances } = admin ? await instQ : await instQ.eq("user_id", userId);
     let users: Array<{ id: string; email: string }> = [];
     if (admin) {
@@ -170,11 +170,11 @@ export const listRecentFlowRunsFn = createServerFn({ method: "GET" })
         ? supabase.from("flows" as any).select("id,name").in("id", flowIds).then((r: any) => r.data ?? [])
         : Promise.resolve([]),
       instIds.length
-        ? supabase.from("whatsapp_instances" as any).select("id,instance_name").in("id", instIds).then((r: any) => r.data ?? [])
+        ? supabase.from("whatsapp_instances" as any).select("id,instance_name,phone_number").in("id", instIds).then((r: any) => r.data ?? [])
         : Promise.resolve([]),
     ]);
     const flowMap = Object.fromEntries((flows as any[]).map((f) => [f.id, f.name]));
-    const instMap = Object.fromEntries((instances as any[]).map((i) => [i.id, i.instance_name]));
+    const instMap = Object.fromEntries((instances as any[]).map((i) => [i.id, i]));
 
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const todayCount = (runs ?? []).filter((r: any) => r.started_at && new Date(r.started_at) >= today).length;
@@ -184,7 +184,8 @@ export const listRecentFlowRunsFn = createServerFn({ method: "GET" })
       items: (runs ?? []).map((r: any) => ({
         id: r.id,
         flow_name: flowMap[r.flow_id] ?? "—",
-        instance_name: r.instance_id ? instMap[r.instance_id] ?? "—" : "—",
+        instance_name: r.instance_id ? instMap[r.instance_id]?.instance_name ?? "—" : "—",
+        instance_phone: r.instance_id ? instMap[r.instance_id]?.phone_number ?? null : null,
         contact_phone: r.contact_phone,
         status: r.status,
         error: r.error,

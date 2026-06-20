@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { verifyContactsWhatsappFn } from "@/lib/contacts.functions";
+import { formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/lists/$id")({ component: ListDetail });
 
@@ -35,7 +36,7 @@ function ListDetail() {
   const { data: chips } = useQuery({
     queryKey: ["instances-connected-for-verify"],
     queryFn: async () =>
-      (await supabase.from("whatsapp_instances").select("id, instance_name, status").eq("status", "connected")).data ?? [],
+      (await supabase.from("whatsapp_instances").select("id, instance_name, phone_number, status").eq("status", "connected")).data ?? [],
   });
 
   const runVerify = useMutation({
@@ -74,7 +75,12 @@ function ListDetail() {
                 <SelectTrigger><SelectValue placeholder="Selecione um chip conectado" /></SelectTrigger>
                 <SelectContent>
                   {chips?.length ? chips.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.instance_name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>
+                      <span className="flex items-center gap-1.5">
+                        <span className="font-medium">{c.instance_name}</span>
+                        <span className="text-muted-foreground text-xs">{formatPhone(c.phone_number)}</span>
+                      </span>
+                    </SelectItem>
                   )) : <div className="px-2 py-2 text-xs text-muted-foreground">Nenhum chip conectado</div>}
                 </SelectContent>
               </Select>

@@ -38,6 +38,7 @@ import { DateSeparator } from "@/components/crm/DateSeparator";
 import { MediaPreviewDialog } from "@/components/crm/MediaPreviewDialog";
 import { ReplyPreview } from "@/components/crm/ReplyPreview";
 import { EmptyChatState } from "@/components/crm/EmptyChatState";
+import { formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/inbox")({ component: Inbox });
 
@@ -175,9 +176,9 @@ function Inbox() {
     enabled: !!workspace,
   });
 
-  const { data: instances = [] } = useQuery<Array<{ id: string; instance_name: string; status: string }>>({
+  const { data: instances = [] } = useQuery<Array<{ id: string; instance_name: string; phone_number: string | null; status: string }>>({
     queryKey: ["crm-instances", workspace],
-    queryFn: () => instFn({ data: { workspace_owner: workspace } }) as unknown as Promise<Array<{ id: string; instance_name: string; status: string }>>,
+    queryFn: () => instFn({ data: { workspace_owner: workspace } }) as unknown as Promise<Array<{ id: string; instance_name: string; phone_number: string | null; status: string }>>,
     enabled: !!workspace,
   });
 
@@ -855,10 +856,16 @@ function Inbox() {
                   )}
                   <form onSubmit={(e) => { e.preventDefault(); if (draft.trim() && selectedId) sendMut.mutate(); }} className="flex items-end gap-2">
                     <Select value={instanceId} onValueChange={setInstanceId}>
-                      <SelectTrigger className="h-9 w-[120px] text-xs"><SelectValue placeholder="Chip" /></SelectTrigger>
+                      <SelectTrigger className="h-9 w-[220px] text-xs"><SelectValue placeholder="Chip" /></SelectTrigger>
                       <SelectContent>
                         {instances.map((i) => (
-                          <SelectItem key={i.id} value={i.id}>{i.instance_name} {i.status === "connected" ? "🟢" : "⚪"}</SelectItem>
+                          <SelectItem key={i.id} value={i.id}>
+                            <span className="flex items-center gap-1.5">
+                              <span>{i.status === "connected" ? "🟢" : "⚪"}</span>
+                              <span className="font-medium">{i.instance_name}</span>
+                              <span className="text-muted-foreground text-xs">{formatPhone(i.phone_number)}</span>
+                            </span>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

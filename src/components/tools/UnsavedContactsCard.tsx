@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { UserPlus, Download, Loader2, AlertTriangle, Lock, Crown, FileDown, ScanSearch } from "lucide-react";
 import { toast } from "sonner";
 import { listUnsavedContactsFn, exportUnsavedAsVcardFn } from "@/lib/unsaved-contacts.functions";
+import { formatPhone } from "@/lib/format-instance";
 
 function downloadCsv(filename: string, rows: string[][]) {
   const csv = rows.map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -98,7 +99,12 @@ export function UnsavedContactsCard({ instances }: { instances: any[] }) {
               <SelectTrigger><SelectValue placeholder="Escolha um chip conectado" /></SelectTrigger>
               <SelectContent>
                 {instances.map((i: any) => (
-                  <SelectItem key={i.id} value={i.id}>{i.instance_name}</SelectItem>
+                  <SelectItem key={i.id} value={i.id}>
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-medium">{i.instance_name}</span>
+                      <span className="text-muted-foreground text-xs">{formatPhone(i.phone_number)}</span>
+                    </span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

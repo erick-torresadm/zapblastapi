@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Flame, RotateCcw, Activity, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { toggleWarmupFn, resetWarmupFn } from "@/lib/warmup.functions";
+import { formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/warmup")({ component: WarmupPage });
 
@@ -100,7 +101,7 @@ function WarmupPage() {
                     <Badge variant={i.status === "connected" ? "default" : "secondary"}>{i.status}</Badge>
                     {i.warmup_enabled && <Badge className="bg-orange-500 hover:bg-orange-600">🔥 Aquecendo</Badge>}
                   </CardTitle>
-                  <CardDescription>{i.phone_number ?? "Sem número"} · Saúde: {i.health_score}%</CardDescription>
+                  <CardDescription>{formatPhone(i.phone_number)} · Saúde: {i.health_score}%</CardDescription>
                 </div>
                 <Switch
                   checked={i.warmup_enabled}

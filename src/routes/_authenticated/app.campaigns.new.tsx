@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { previewSpintax } from "@/lib/spintax";
+import { formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/campaigns/new")({ component: NewCampaign });
 
@@ -37,7 +38,7 @@ function NewCampaign() {
   });
   const { data: instances } = useQuery({
     queryKey: ["instances-connected"],
-    queryFn: async () => (await supabase.from("whatsapp_instances").select("id,instance_name,status").eq("active", true)).data ?? [],
+    queryFn: async () => (await supabase.from("whatsapp_instances").select("id,instance_name,phone_number,status").eq("active", true)).data ?? [],
   });
   const { data: flows } = useQuery({
     queryKey: ["flows-active"],
@@ -192,7 +193,8 @@ function NewCampaign() {
                       instance_ids: c ? [...f.instance_ids, i.id] : f.instance_ids.filter((x) => x !== i.id),
                     }))}
                   />
-                  <span>{i.instance_name}</span>
+                  <span className="font-medium">{i.instance_name}</span>
+                  <span className="text-xs text-muted-foreground">{formatPhone((i as any).phone_number)}</span>
                   <span className="ml-auto text-xs text-muted-foreground">{i.status}</span>
                 </label>
               )) : <p className="text-sm text-muted-foreground">Nenhum chip cadastrado.</p>}

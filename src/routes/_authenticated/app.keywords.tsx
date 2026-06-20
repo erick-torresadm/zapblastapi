@@ -19,6 +19,7 @@ import {
   deleteKeywordTriggerFn, listFlowsForKeywordsFn, listRecentFlowRunsFn, testKeywordTriggerFn,
   cancelFlowRunFn, cancelAllFlowRunsFn,
 } from "@/lib/keywords.functions";
+import { formatInstanceLabel, formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/keywords")({
   component: KeywordsPage,
@@ -29,7 +30,7 @@ type Trigger = {
   keywords: string[]; match_mode: "exact" | "contains" | "starts_with"; active: boolean;
   created_by_admin: boolean; flow_name: string;
   allow_from_me: boolean; delay_seconds: number; cooldown_seconds: number;
-  instance: { id: string; instance_name: string; status: string } | null;
+  instance: { id: string; instance_name: string; phone_number: string | null; status: string } | null;
 };
 
 const matchLabel: Record<string, string> = {
@@ -185,7 +186,7 @@ function KeywordsPage() {
                   <span className="font-medium">{t.flow_name}</span>
                   <Badge variant="outline">{matchLabel[t.match_mode]}</Badge>
                   {t.instance ? (
-                    <Badge variant="secondary">Chip: {t.instance.instance_name}</Badge>
+                    <Badge variant="secondary">Chip: {formatInstanceLabel(t.instance.instance_name, t.instance.phone_number)}</Badge>
                   ) : (
                     <Badge variant="secondary">Qualquer chip</Badge>
                   )}
@@ -279,7 +280,7 @@ function KeywordsPage() {
                     <span className="font-medium truncate">{r.flow_name}</span>
                     <span className="text-muted-foreground">→ {r.contact_phone}</span>
                     {r.keyword && <Badge variant="outline" className="font-mono text-xs">{r.keyword}</Badge>}
-                    <Badge variant="outline" className="text-xs">{r.instance_name}</Badge>
+                    <Badge variant="outline" className="text-xs">{formatInstanceLabel(r.instance_name, (r as any).instance_phone)}</Badge>
                   </div>
                   {r.error && <div className="text-xs text-destructive mt-1 truncate">{r.error}</div>}
                 </div>
@@ -395,7 +396,11 @@ function KeywordsPage() {
                     .filter((i: any) => !form.user_id || i.user_id === form.user_id)
                     .map((i: any) => (
                       <SelectItem key={i.id} value={i.id}>
-                        {i.instance_name} {i.status === "connected" ? "🟢" : "⚪"}
+                        <span className="flex items-center gap-1.5">
+                          <span>{i.status === "connected" ? "🟢" : "⚪"}</span>
+                          <span className="font-medium">{i.instance_name}</span>
+                          <span className="text-muted-foreground text-xs">{formatPhone(i.phone_number)}</span>
+                        </span>
                       </SelectItem>
                     ))}
                 </SelectContent>

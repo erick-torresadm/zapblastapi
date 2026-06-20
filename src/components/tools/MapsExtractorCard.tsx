@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MapPin, Search, Loader2, Download, Star, ExternalLink, Phone, Globe, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { searchMapsLeadsFn } from "@/lib/maps.functions";
+import { formatPhone } from "@/lib/format-instance";
 
 declare global {
   interface Window { google: any; initMapsTool?: () => void }
@@ -218,7 +219,12 @@ export function MapsExtractorCard({
                 <SelectTrigger className="h-9"><SelectValue placeholder="Escolha um chip conectado" /></SelectTrigger>
                 <SelectContent>
                   {instances.map((i: any) => (
-                    <SelectItem key={i.id} value={i.id}>{i.instance_name}</SelectItem>
+                    <SelectItem key={i.id} value={i.id}>
+                      <span className="flex items-center gap-1.5">
+                        <span className="font-medium">{i.instance_name}</span>
+                        <span className="text-muted-foreground text-xs">{formatPhone(i.phone_number)}</span>
+                      </span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
