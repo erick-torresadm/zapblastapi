@@ -36,7 +36,7 @@ function ListDetail() {
   const { data: chips } = useQuery({
     queryKey: ["instances-connected-for-verify"],
     queryFn: async () =>
-      (await supabase.from("whatsapp_instances").select("id, instance_name, status").eq("status", "connected")).data ?? [],
+      (await supabase.from("whatsapp_instances").select("id, instance_name, phone_number, status").eq("status", "connected")).data ?? [],
   });
 
   const runVerify = useMutation({
