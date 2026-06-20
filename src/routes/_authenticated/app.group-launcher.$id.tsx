@@ -235,11 +235,10 @@ function BulkCreateCard({ campaignId }: { campaignId: string }) {
   const enqueueFn = useServerFn(enqueueBulkCreateFn);
   const [count, setCount] = useState(10);
   const [template, setTemplate] = useState("Lançamento #{n}");
-  const [participantPhone, setParticipantPhone] = useState("");
   const [description, setDescription] = useState("");
 
   const mut = useMutation({
-    mutationFn: () => enqueueFn({ data: { campaign_id: campaignId, count, subject_template: template, participant_phone: participantPhone, description: description || undefined } }),
+    mutationFn: () => enqueueFn({ data: { campaign_id: campaignId, count, subject_template: template, description: description || undefined } }),
     onSuccess: (r) => {
       toast.success(`${r.enqueued} grupo(s) na fila — serão criados em ~${Math.ceil(r.enqueued * 2.5 / 60)} min`);
       qc.invalidateQueries({ queryKey: ["group-campaign", campaignId] });
@@ -251,7 +250,7 @@ function BulkCreateCard({ campaignId }: { campaignId: string }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Criar em lote</CardTitle>
-        <CardDescription>O chip da campanha cria os grupos automaticamente. Throttle de ~2,5s entre cada um para evitar ban.</CardDescription>
+        <CardDescription>O próprio número do chip é adicionado como participante inicial (exigência do WhatsApp). Throttle de ~2,5s entre cada grupo para evitar ban.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
@@ -266,15 +265,10 @@ function BulkCreateCard({ campaignId }: { campaignId: string }) {
           <p className="mt-1 text-xs text-muted-foreground">Use <code>{"{n}"}</code> para numerar. Ex: <code>"VIP #01"</code>, <code>"VIP #02"</code>…</p>
         </div>
         <div>
-          <Label>Participante inicial</Label>
-          <Input value={participantPhone} onChange={(e) => setParticipantPhone(e.target.value)} placeholder="5511999999999" inputMode="tel" />
-          <p className="mt-1 text-xs text-muted-foreground">A Evolution/WhatsApp exige adicionar pelo menos 1 número para criar o grupo.</p>
-        </div>
-        <div>
           <Label>Descrição (opcional)</Label>
           <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
         </div>
-        <Button onClick={() => mut.mutate()} disabled={mut.isPending || !template || participantPhone.replace(/\D/g, "").length < 10 || count < 1} className="w-full">
+        <Button onClick={() => mut.mutate()} disabled={mut.isPending || !template || count < 1} className="w-full">
           {mut.isPending ? "Enfileirando…" : `Criar ${count} grupo(s)`}
         </Button>
       </CardContent>
