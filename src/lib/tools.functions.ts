@@ -270,42 +270,51 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       }
     }
 
-    // 3b) For still-unresolved @lid, ask Evolution for chat mappings and populate cache
-    const stillUnresolved = pending.filter((c) => c.isLid && !c.phone).map((c) => c.jid);
+    // 3b) For still-unresolved @lid, ask Evolution for every local mapping it knows
+    // (chats, contacts and full group payloads can carry remoteJidAlt/senderPn/participantPn).
+    let stillUnresolved = pending.filter((c) => c.isLid && !c.phone).map((c) => c.jid);
     if (stillUnresolved.length > 0) {
       try {
-        const chats = await evo.findChats(server, instance.instance_name);
+        const [chats, contacts, groups] = await Promise.allSettled([
+          evo.findChats(server, instance.instance_name),
+          evo.findContacts(server, instance.instance_name),
+          evo.fetchAllGroups(server, instance.instance_name, true),
+        ]);
         const liveMap = new Map<string, string>();
-        for (const chat of chats) {
-          const rj = String((chat as { remoteJid?: string; id?: string }).remoteJid ?? (chat as { id?: string }).id ?? "");
-          const alt = String((chat as { remoteJidAlt?: string | null }).remoteJidAlt ?? "");
-          const realA = rj.match(/^(\d{8,15})@(s\.whatsapp\.net|c\.us)$/);
-          const lidA = alt.match(/^\d+@lid$/);
-          if (realA && lidA) liveMap.set(alt, realA[1]);
-          const lidB = rj.match(/^\d+@lid$/);
-          const realB = alt.match(/^(\d{8,15})@(s\.whatsapp\.net|c\.us)$/);
-          if (lidB && realB) liveMap.set(rj, realB[1]);
-        }
-        const newRows: Array<{ owner_user_id: string; instance_id: string; lid_jid: string; phone: string }> = [];
+        if (chats.status === "fulfilled") collectLidMappings(chats.value, liveMap);
+        if (contacts.status === "fulfilled") collectLidMappings(contacts.value, liveMap);
+        if (groups.status === "fulfilled") collectLidMappings(groups.value, liveMap);
+        if (info) collectLidMappings(info, liveMap);
+
         for (const c of pending) {
           if (c.isLid && !c.phone && liveMap.has(c.jid)) {
             c.phone = liveMap.get(c.jid)!;
-            newRows.push({
-              owner_user_id: userId,
-              instance_id: data.instance_id,
-              lid_jid: c.jid,
-              phone: c.phone,
-            });
           }
         }
-        if (newRows.length > 0) {
-          await supabaseAdmin
-            .from("crm_lid_map")
-            .upsert(newRows, { onConflict: "owner_user_id,lid_jid" });
-        }
+        await persistLidMappings(supabaseAdmin, { userId, instanceId: data.instance_id, mappings: liveMap });
       } catch (e) {
-        console.warn("[extractGroupFn] findChats lookup failed:", (e as Error).message);
+        console.warn("[extractGroupFn] live lid lookup failed:", (e as Error).message);
       }
+    }
+
+    // 3c) Last local fallback: use DB history/RPC that reads past webhook payloads.
+    stillUnresolved = pending.filter((c) => c.isLid && !c.phone).map((c) => c.jid);
+    if (stillUnresolved.length > 0) {
+      const dbMap = new Map<string, string>();
+      for (const lid of stillUnresolved) {
+        const { data: phone } = await supabaseAdmin.rpc("lookup_lid_phone" as never, {
+          p_user_id: userId,
+          p_instance_id: data.instance_id,
+          p_lid_jid: lid,
+        } as never);
+        if (typeof phone === "string" && phone.replace(/\D/g, "").length >= 8) {
+          dbMap.set(lid, phone.replace(/\D/g, ""));
+        }
+      }
+      for (const c of pending) {
+        if (c.isLid && !c.phone && dbMap.has(c.jid)) c.phone = dbMap.get(c.jid)!;
+      }
+      await persistLidMappings(supabaseAdmin, { userId, instanceId: data.instance_id, mappings: dbMap });
     }
 
     // Step 4: charge ONLY for participants where we extracted a real phone.
