@@ -22,7 +22,7 @@ type PublicFunnel = {
 
 const getPublicFunnelFn = createServerFn({ method: "GET" })
   .inputValidator((i: { slug: string }) => ({ slug: String(i.slug).toLowerCase() }))
-  .handler(async ({ data }): Promise<PublicFunnel | null> => {
+  .handler(async ({ data }) => {
     const sb = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_PUBLISHABLE_KEY!,
@@ -30,7 +30,7 @@ const getPublicFunnelFn = createServerFn({ method: "GET" })
     );
     const { data: result, error } = await sb.rpc("get_published_funnel_by_slug", { _slug: data.slug });
     if (error) throw new Error(error.message);
-    return (result as PublicFunnel | null) ?? null;
+    return (result as unknown as PublicFunnel | null) ?? null;
   });
 
 export const Route = createFileRoute("/f/$slug")({

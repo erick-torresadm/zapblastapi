@@ -14,6 +14,7 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FSlugRouteImport } from './routes/f.$slug'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as AgendaSlugRouteImport } from './routes/agenda.$slug'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
@@ -73,6 +74,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FSlugRoute = FSlugRouteImport.update({
+  id: '/f/$slug',
+  path: '/f/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConviteTokenRoute = ConviteTokenRouteImport.update({
@@ -276,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/f/$slug': typeof FSlugRoute
   '/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -317,6 +324,7 @@ export interface FileRoutesByTo {
   '/termos': typeof TermosRoute
   '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/f/$slug': typeof FSlugRoute
   '/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -360,6 +368,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/agenda/$slug': typeof AgendaSlugRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/f/$slug': typeof FSlugRoute
   '/_authenticated/app/agenda': typeof AuthenticatedAppAgendaRoute
   '/_authenticated/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
@@ -403,6 +412,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/agenda/$slug'
     | '/convite/$token'
+    | '/f/$slug'
     | '/app/agenda'
     | '/app/anti-ban'
     | '/app/billing'
@@ -444,6 +454,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/agenda/$slug'
     | '/convite/$token'
+    | '/f/$slug'
     | '/app/agenda'
     | '/app/anti-ban'
     | '/app/billing'
@@ -486,6 +497,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin'
     | '/agenda/$slug'
     | '/convite/$token'
+    | '/f/$slug'
     | '/_authenticated/app/agenda'
     | '/_authenticated/app/anti-ban'
     | '/_authenticated/app/billing'
@@ -529,6 +541,7 @@ export interface RootRouteChildren {
   TermosRoute: typeof TermosRoute
   AgendaSlugRoute: typeof AgendaSlugRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
+  FSlugRoute: typeof FSlugRoute
   AgendaConfirmarTokenRoute: typeof AgendaConfirmarTokenRoute
   ApiPublicAgendaDispatchRoute: typeof ApiPublicAgendaDispatchRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
@@ -573,6 +586,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/f/$slug': {
+      id: '/f/$slug'
+      path: '/f/$slug'
+      fullPath: '/f/$slug'
+      preLoaderRoute: typeof FSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/convite/$token': {
@@ -938,6 +958,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosRoute: TermosRoute,
   AgendaSlugRoute: AgendaSlugRoute,
   ConviteTokenRoute: ConviteTokenRoute,
+  FSlugRoute: FSlugRoute,
   AgendaConfirmarTokenRoute: AgendaConfirmarTokenRoute,
   ApiPublicAgendaDispatchRoute: ApiPublicAgendaDispatchRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
