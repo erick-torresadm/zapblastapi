@@ -18,6 +18,7 @@ import { listInstancesFn } from "@/lib/instances.functions";
 import { getWalletFn } from "@/lib/wallet.functions";
 import { MapsExtractorCard } from "@/components/tools/MapsExtractorCard";
 import { UnsavedContactsCard } from "@/components/tools/UnsavedContactsCard";
+import { formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/tools")({ component: ToolsPage });
 
