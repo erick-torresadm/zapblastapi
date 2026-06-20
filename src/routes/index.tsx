@@ -6,6 +6,7 @@ import {
   ArrowRight, Check, Sparkles, Workflow, Inbox, Bot, Users,
   TrendingDown, Clock, PhoneOff, AlertTriangle, DollarSign,
   MapPin, UserSearch, ListChecks, UsersRound, Wallet, Star,
+  Rocket, MousePointerClick, CalendarClock, Layers, Link2, Repeat,
 } from "lucide-react";
 import { Meteors } from "@/components/magicui/meteors";
 import { GridPattern } from "@/components/magicui/grid-pattern";
@@ -93,8 +94,8 @@ function Landing() {
 
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
             <a href="#features" className="transition-colors hover:text-foreground">{t("nav.features")}</a>
+            <a href="#plataforma" className="transition-colors hover:text-foreground">Plataforma</a>
             <a href="#tools" className="transition-colors hover:text-foreground">Ferramentas</a>
-            <a href="#how" className="transition-colors hover:text-foreground">{t("nav.how")}</a>
             <a href="#anti-ban" className="transition-colors hover:text-foreground">{t("nav.antiban")}</a>
             <a href="#pricing" className="transition-colors hover:text-foreground">{t("nav.pricing")}</a>
             <a href="#faq" className="transition-colors hover:text-foreground">{t("nav.faq")}</a>
@@ -415,6 +416,100 @@ function Landing() {
             <Button asChild size="sm" className="bg-gradient-to-br from-primary to-primary-glow shadow-glow">
               <Link to="/auth">Começar com R$ 5 grátis <ArrowRight className="ml-2 h-3.5 w-3.5" /></Link>
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* PLATAFORMA COMPLETA — novas frentes */}
+      <section id="plataforma" className="container mx-auto px-4 py-24">
+        <div className="mx-auto max-w-2xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+            <Layers className="h-3.5 w-3.5" /> Plataforma completa
+          </div>
+          <h2 className="mt-4 font-display text-4xl font-bold tracking-tight md:text-5xl">
+            Muito além do disparo. <span className="text-aurora">Tudo pra capturar, converter e atender.</span>
+          </h2>
+          <p className="mt-4 text-lg text-muted-foreground">
+            Funis interativos, lançamentos meteóricos em grupo e agenda online. Um ecossistema que substitui 5 ferramentas por uma.
+          </p>
+        </div>
+
+        <div className="mx-auto mt-14 grid max-w-6xl gap-4 md:grid-cols-3">
+          {/* Funis Interativos */}
+          <div className="group relative overflow-hidden rounded-3xl border border-border/60 bg-card/60 p-7 backdrop-blur transition-all hover:border-primary/40 hover:shadow-glow">
+            <BorderBeam size={220} duration={12} />
+            <div className="flex items-start justify-between">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                <MousePointerClick className="h-5 w-5" />
+              </div>
+              <span className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">Novo</span>
+            </div>
+            <h3 className="mt-4 font-display text-xl font-semibold">Funis interativos multi-step</h3>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Builder drag-and-drop com perguntas, quizzes, vídeo, depoimentos e captura. <strong className="text-foreground">3x mais conversão</strong> que landing page tradicional — lead já chega qualificado no zap.
+            </p>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Múltiplas páginas com lógica condicional</li>
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Blocos: quiz, vídeo, depoimento, CTA, captura</li>
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> URL pública <code className="rounded bg-muted px-1 text-xs">/f/seu-slug</code></li>
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Lead cai direto no CRM e dispara fluxo</li>
+            </ul>
+          </div>
+
+          {/* Group Launcher */}
+          <div className="group relative overflow-hidden rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/10 to-background/70 p-7 backdrop-blur transition-all hover:shadow-glow">
+            <div className="flex items-start justify-between">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                <Rocket className="h-5 w-5" />
+              </div>
+              <span className="rounded-full bg-gradient-to-r from-primary to-primary-glow px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-glow">Lançamento</span>
+            </div>
+            <h3 className="mt-4 font-display text-xl font-semibold">Lançamento meteórico em grupos</h3>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Crie <strong className="text-foreground">50 grupos de uma vez</strong>, compartilhe <strong className="text-foreground">um único link rotativo</strong>. Quando um grupo lota (950 membros), o sistema redireciona pro próximo — automático, 24/7.
+            </p>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Criação em lote com numeração <code className="rounded bg-muted px-1 text-xs">{"{n}"}</code></li>
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Monitor de capacidade em tempo real</li>
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> 1 link público <code className="rounded bg-muted px-1 text-xs">/g/slug</code> pra todo o lançamento</li>
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Cole grupos existentes ou crie do zero</li>
+            </ul>
+          </div>
+
+          {/* Agenda Online */}
+          <div className="group relative overflow-hidden rounded-3xl border border-border/60 bg-card/60 p-7 backdrop-blur transition-all hover:border-primary/40 hover:shadow-glow">
+            <div className="flex items-start justify-between">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                <CalendarClock className="h-5 w-5" />
+              </div>
+              <span className="rounded-full border border-success/40 bg-success/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-success">Incluído</span>
+            </div>
+            <h3 className="mt-4 font-display text-xl font-semibold">Agenda online com confirmação</h3>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Página pública <code className="rounded bg-muted px-1 text-xs">/agenda/slug</code> pro cliente marcar sozinho. Confirmação e lembrete no WhatsApp — <strong className="text-foreground">corta no-show em 70%</strong>.
+            </p>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Múltiplos profissionais e serviços</li>
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Anti-overbooking automático</li>
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Confirma/cancela por link no zap</li>
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Reengajamento de clientes sumidos</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Tiras de bonus */}
+        <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-3">
+          <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/40 p-4 backdrop-blur">
+            <Link2 className="h-5 w-5 shrink-0 text-primary" />
+            <div className="text-sm"><strong>Convite por link</strong><div className="text-xs text-muted-foreground">Adicione atendentes ao CRM com 1 URL</div></div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/40 p-4 backdrop-blur">
+            <Repeat className="h-5 w-5 shrink-0 text-primary" />
+            <div className="text-sm"><strong>Cupons & créditos</strong><div className="text-xs text-muted-foreground">% / R$ fixo / grátis / créditos de ferramenta</div></div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/40 p-4 backdrop-blur">
+            <ShieldCheck className="h-5 w-5 shrink-0 text-primary" />
+            <div className="text-sm"><strong>Multi-tenant seguro</strong><div className="text-xs text-muted-foreground">RLS, lockout progressivo, HIBP e auditoria</div></div>
           </div>
         </div>
       </section>
