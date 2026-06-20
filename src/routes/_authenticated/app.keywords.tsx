@@ -19,6 +19,7 @@ import {
   deleteKeywordTriggerFn, listFlowsForKeywordsFn, listRecentFlowRunsFn, testKeywordTriggerFn,
   cancelFlowRunFn, cancelAllFlowRunsFn,
 } from "@/lib/keywords.functions";
+import { formatInstanceLabel, formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/keywords")({
   component: KeywordsPage,
