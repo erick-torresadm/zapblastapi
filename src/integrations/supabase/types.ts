@@ -807,6 +807,51 @@ export type Database = {
           },
         ]
       }
+      crm_invite_links: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          display_name: string | null
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          owner_user_id: string
+          role: string
+          token: string
+          updated_at: string
+          uses: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          owner_user_id: string
+          role?: string
+          token: string
+          updated_at?: string
+          uses?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          owner_user_id?: string
+          role?: string
+          token?: string
+          updated_at?: string
+          uses?: number
+        }
+        Relationships: []
+      }
       crm_notes: {
         Row: {
           author_user_id: string
@@ -2083,6 +2128,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invite_link: { Args: { _token: string }; Returns: Json }
       apply_free_coupon: {
         Args: { _code: string; _plan_id: string }
         Returns: Json
@@ -2149,6 +2195,7 @@ export type Database = {
         Returns: string
       }
       normalize_email: { Args: { _email: string }; Returns: string }
+      preview_invite_link: { Args: { _token: string }; Returns: Json }
       record_login_attempt: {
         Args: {
           _email: string
