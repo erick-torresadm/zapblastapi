@@ -127,7 +127,7 @@ export const listChatInstancesFn = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const owner = data.workspace_owner ?? context.userId;
     const { data: rows } = await context.supabase.from("whatsapp_instances" as any)
-      .select("id,instance_name,status,user_id").eq("user_id", owner)
+      .select("id,instance_name,phone_number,status,user_id").eq("user_id", owner)
       .order("instance_name");
     return rows ?? [];
   });
