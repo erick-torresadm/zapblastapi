@@ -77,7 +77,7 @@ export type EvolutionEndpointKey = keyof typeof EVOLUTION_ENDPOINTS;
 
 /** Builds a path from EVOLUTION_ENDPOINTS, injecting {instance} and an optional query string. */
 function ep(key: EvolutionEndpointKey, vars?: { instance?: string; query?: Record<string, string | number | boolean | undefined> }): string {
-  let path = EVOLUTION_ENDPOINTS[key].path;
+  let path: string = EVOLUTION_ENDPOINTS[key].path;
   if (vars?.instance != null) path = path.replace("{instance}", encodeURIComponent(vars.instance));
   if (vars?.query) {
     const qs = Object.entries(vars.query)
