@@ -376,7 +376,9 @@ function KeywordsPage() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
+        <TabsContent value="queue" className="space-y-3">
       {/* Fila de disparos recentes */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
