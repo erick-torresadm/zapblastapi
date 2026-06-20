@@ -1182,6 +1182,7 @@ export type Database = {
           assigned_agent_id: string | null
           chat_type: string
           contact_about: string | null
+          contact_avatar_path: string | null
           contact_avatar_url: string | null
           contact_company: string | null
           contact_email: string | null
@@ -1192,17 +1193,22 @@ export type Database = {
           custom_fields: Json
           id: string
           instance_id: string | null
+          is_resolved: boolean
+          label_ids: string[]
           last_message_at: string
           last_message_direction: string | null
           last_message_text: string | null
           last_message_type: string | null
           last_seen_at: string | null
           muted_until: string | null
+          next_resolve_at: string | null
           owner_user_id: string
           pinned_at: string | null
           presence: string | null
           presence_at: string | null
           profile_synced_at: string | null
+          resolve_attempts: number
+          snoozed_until: string | null
           status: string
           tags: Json
           unread_count: number
@@ -1213,6 +1219,7 @@ export type Database = {
           assigned_agent_id?: string | null
           chat_type?: string
           contact_about?: string | null
+          contact_avatar_path?: string | null
           contact_avatar_url?: string | null
           contact_company?: string | null
           contact_email?: string | null
@@ -1223,17 +1230,22 @@ export type Database = {
           custom_fields?: Json
           id?: string
           instance_id?: string | null
+          is_resolved?: boolean
+          label_ids?: string[]
           last_message_at?: string
           last_message_direction?: string | null
           last_message_text?: string | null
           last_message_type?: string | null
           last_seen_at?: string | null
           muted_until?: string | null
+          next_resolve_at?: string | null
           owner_user_id: string
           pinned_at?: string | null
           presence?: string | null
           presence_at?: string | null
           profile_synced_at?: string | null
+          resolve_attempts?: number
+          snoozed_until?: string | null
           status?: string
           tags?: Json
           unread_count?: number
@@ -1244,6 +1256,7 @@ export type Database = {
           assigned_agent_id?: string | null
           chat_type?: string
           contact_about?: string | null
+          contact_avatar_path?: string | null
           contact_avatar_url?: string | null
           contact_company?: string | null
           contact_email?: string | null
@@ -1254,17 +1267,22 @@ export type Database = {
           custom_fields?: Json
           id?: string
           instance_id?: string | null
+          is_resolved?: boolean
+          label_ids?: string[]
           last_message_at?: string
           last_message_direction?: string | null
           last_message_text?: string | null
           last_message_type?: string | null
           last_seen_at?: string | null
           muted_until?: string | null
+          next_resolve_at?: string | null
           owner_user_id?: string
           pinned_at?: string | null
           presence?: string | null
           presence_at?: string | null
           profile_synced_at?: string | null
+          resolve_attempts?: number
+          snoozed_until?: string | null
           status?: string
           tags?: Json
           unread_count?: number
@@ -1322,6 +1340,36 @@ export type Database = {
           token?: string
           updated_at?: string
           uses?: number
+        }
+        Relationships: []
+      }
+      crm_labels: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          owner_user_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          owner_user_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          owner_user_id?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2947,6 +2995,10 @@ export type Database = {
       }
       crm_is_workspace_admin: { Args: { _owner: string }; Returns: boolean }
       crm_is_workspace_member: { Args: { _owner: string }; Returns: boolean }
+      crm_merge_conversations: {
+        Args: { _dst_id: string; _src_id: string }
+        Returns: Json
+      }
       debit_wallet: {
         Args: {
           _amount_cents: number

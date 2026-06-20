@@ -28,7 +28,7 @@ import {
   reactToMessageFn, starMessageFn, deleteMessageFn,
 } from "@/lib/crm.functions";
 import {
-  sendChatMediaFn, signMediaUrlsFn, sendPresenceFn,
+  sendChatMediaFn, signMediaUrlsFn, signAvatarsFn, sendPresenceFn,
   listQuickRepliesFn, saveQuickReplyFn, deleteQuickReplyFn,
 } from "@/lib/crm-media.functions";
 import { MessageBubble, type Msg } from "@/components/crm/MessageBubble";
@@ -38,7 +38,11 @@ import { DateSeparator } from "@/components/crm/DateSeparator";
 import { MediaPreviewDialog } from "@/components/crm/MediaPreviewDialog";
 import { ReplyPreview } from "@/components/crm/ReplyPreview";
 import { EmptyChatState } from "@/components/crm/EmptyChatState";
-import { formatPhone } from "@/lib/format-instance";
+import { Avatar } from "@/components/crm/Avatar";
+import { formatPhone as fmtInstancePhone } from "@/lib/format-instance";
+import { formatPhone, displayName, isPhoneResolved } from "@/lib/crm-phone";
+
+
 
 export const Route = createFileRoute("/_authenticated/app/inbox")({ component: Inbox });
 
@@ -56,6 +60,11 @@ type Conv = ContactConv & {
   archived_at: string | null;
   muted_until: string | null;
   last_seen_at: string | null;
+  is_resolved: boolean;
+  contact_avatar_path: string | null;
+  snoozed_until: string | null;
+  label_ids: string[];
+  chat_type: string | null;
 };
 type Agent = { id: string; agent_user_id: string; role: string; display_name: string | null; active: boolean };
 type Workspace = { owner_user_id: string; role: string; display_name: string | null };
@@ -67,9 +76,9 @@ const EMOJIS = ["😀","😅","😂","🙂","😉","😍","🥰","😘","🤔","
 type FilterKind = "all" | "unread" | "mine" | "queue" | "favorites" | "archived";
 
 function fmtPhone(p: string) {
-  const m = p.match(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/);
-  return m ? `+${m[1]} (${m[2]}) ${m[3]}-${m[4]}` : p;
+  return formatPhone(p);
 }
+
 function fmtTime(iso: string) {
   const d = new Date(iso);
   const today = new Date(); today.setHours(0,0,0,0);
@@ -115,6 +124,7 @@ function Inbox() {
   const addNoteSf = useServerFn(addNoteFn);
   const sendMediaSf = useServerFn(sendChatMediaFn);
   const signFn = useServerFn(signMediaUrlsFn);
+  const signAvatarsSf = useServerFn(signAvatarsFn);
   const presFn = useServerFn(sendPresenceFn);
   const listQrFn = useServerFn(listQuickRepliesFn);
   const saveQrFn = useServerFn(saveQuickReplyFn);
@@ -125,6 +135,7 @@ function Inbox() {
   const reactFn = useServerFn(reactToMessageFn);
   const starFn = useServerFn(starMessageFn);
   const delMsgFn = useServerFn(deleteMessageFn);
+
 
   const [filter, setFilter] = useState<FilterKind>("all");
   const [statusFilter, setStatusFilter] = useState<"open" | "pending" | "resolved" | "any">("any");
@@ -142,6 +153,8 @@ function Inbox() {
   const [showConvSearch, setShowConvSearch] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [signedMap, setSignedMap] = useState<Record<string, string>>({});
+  const [avatarMap, setAvatarMap] = useState<Record<string, string>>({});
+
   const [replyTo, setReplyTo] = useState<Msg | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -248,8 +261,20 @@ function Inbox() {
       .filter((m) => m.media_url && !m.media_url.startsWith("http") && !signedMap[m.media_url])
       .map((m) => m.media_url!) as string[];
     if (!paths.length) return;
-    signFn({ data: { paths } }).then((map) => setSignedMap((prev) => ({ ...prev, ...map }))).catch(() => {});
+    signFn({ data: { paths, bucket: "crm-media" } }).then((map) => setSignedMap((prev) => ({ ...prev, ...map }))).catch(() => {});
   }, [messages, signFn, signedMap]);
+
+  // Assina avatares (bucket crm-avatars) das conversas visíveis
+  useEffect(() => {
+    const paths = convs
+      .map((c) => c.contact_avatar_path)
+      .filter((p): p is string => !!p && !avatarMap[p]);
+    if (!paths.length) return;
+    signAvatarsSf({ data: { paths } })
+      .then((map) => setAvatarMap((prev) => ({ ...prev, ...map })))
+      .catch(() => {});
+  }, [convs, signAvatarsSf, avatarMap]);
+
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -498,10 +523,17 @@ function Inbox() {
     { id: "archived", label: "Arquivadas", icon: <Archive className="h-3 w-3" /> },
   ];
 
+  function avatarUrlFor(c: Conv): string | null {
+    if (c.contact_avatar_path && avatarMap[c.contact_avatar_path]) return avatarMap[c.contact_avatar_path];
+    if (c.contact_avatar_url) return c.contact_avatar_url;
+    return null;
+  }
+
   function renderConvRow(c: Conv) {
     const active = selectedId === c.id;
     const assignedName = c.assigned_agent_id ? agentMap[c.assigned_agent_id] ?? "—" : null;
     const muted = isMuted(c);
+    const resolved = c.is_resolved && isPhoneResolved(c.contact_phone);
     return (
       <div key={c.id} className="group relative">
         <button
@@ -509,20 +541,17 @@ function Inbox() {
           className={`flex w-full items-start gap-3 border-b px-3 py-3 text-left transition hover:bg-muted/50 ${active ? "bg-muted" : ""}`}
         >
           {active && <span className="absolute left-0 top-0 h-full w-1 bg-primary" />}
-          {c.contact_avatar_url ? (
-            <img src={c.contact_avatar_url} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
-          ) : (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/70 to-primary-glow/70 text-sm font-bold text-primary-foreground">
-              {(c.contact_name ?? c.contact_phone).slice(-2)}
-            </div>
-          )}
+          <Avatar name={c.contact_name} phone={c.contact_phone} url={avatarUrlFor(c)} size="lg" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="truncate text-sm font-semibold">{c.contact_name ?? fmtPhone(c.contact_phone)}</span>
+              <span className="truncate text-sm font-semibold">
+                {resolved ? displayName(c.contact_name, c.contact_phone) : (c.contact_name ?? "Identificando…")}
+              </span>
               <span className={`shrink-0 text-[10px] ${c.unread_count > 0 ? "font-semibold text-primary" : "text-muted-foreground"}`}>
                 {fmtTime(c.last_message_at)}
               </span>
             </div>
+
             <div className="flex items-center justify-between gap-2">
               <p className="truncate text-xs text-muted-foreground">
                 {c.last_message_direction === "out" ? "↗ " : "↙ "}{lastPreview(c)}
@@ -535,16 +564,22 @@ function Inbox() {
                 )}
               </div>
             </div>
-            <div className="mt-1 flex items-center gap-1">
+            <div className="mt-1 flex items-center gap-1 flex-wrap">
               <span className={`rounded-full border px-1.5 py-0 text-[9px] font-medium ${statusColor[c.status]}`}>
                 {statusLabel[c.status]}
               </span>
+              {!resolved && (
+                <span className="rounded-full border border-warning/40 bg-warning/15 text-warning px-1.5 py-0 text-[9px] font-medium animate-pulse">
+                  identificando…
+                </span>
+              )}
               {assignedName ? (
                 <span className="truncate text-[10px] text-muted-foreground">👤 {assignedName}</span>
               ) : (
                 <span className="text-[10px] font-medium text-warning">📥 fila</span>
               )}
             </div>
+
           </div>
         </button>
         <DropdownMenu>
@@ -706,19 +741,28 @@ function Inbox() {
               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 md:hidden" onClick={() => setSelectedId(null)} aria-label="Voltar">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              {current.contact_avatar_url ? (
-                <img src={current.contact_avatar_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-              ) : (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/70 to-primary-glow/70 text-xs font-bold text-primary-foreground">
-                  {(current.contact_name ?? current.contact_phone).slice(-2)}
-                </div>
-              )}
+              <Avatar
+                name={current.contact_name}
+                phone={current.contact_phone}
+                url={avatarUrlFor(current)}
+                size="md"
+              />
               <button className="min-w-0 flex-1 text-left" onClick={() => setShowContact((s) => !s)}>
-                <div className="truncate text-sm font-semibold">{current.contact_name ?? fmtPhone(current.contact_phone)}</div>
+                <div className="truncate text-sm font-semibold flex items-center gap-2">
+                  {current.is_resolved && isPhoneResolved(current.contact_phone)
+                    ? displayName(current.contact_name, current.contact_phone)
+                    : (current.contact_name ?? "Identificando contato…")}
+                  {!current.is_resolved && (
+                    <span className="text-[9px] rounded-full px-1.5 py-0.5 bg-warning/15 text-warning border border-warning/30 font-normal animate-pulse">
+                      sincronizando
+                    </span>
+                  )}
+                </div>
                 <div className="font-mono text-xs text-muted-foreground">
                   {current.presence === "composing" ? <span className="text-success">digitando…</span>
                     : current.presence === "recording" ? <span className="text-success">gravando áudio…</span>
-                    : current.contact_phone}
+
+                    : fmtPhone(current.contact_phone)}
                 </div>
               </button>
 
@@ -863,7 +907,7 @@ function Inbox() {
                             <span className="flex items-center gap-1.5">
                               <span>{i.status === "connected" ? "🟢" : "⚪"}</span>
                               <span className="font-medium">{i.instance_name}</span>
-                              <span className="text-muted-foreground text-xs">{formatPhone(i.phone_number)}</span>
+                              <span className="text-muted-foreground text-xs">{fmtInstancePhone(i.phone_number)}</span>
                             </span>
                           </SelectItem>
                         ))}

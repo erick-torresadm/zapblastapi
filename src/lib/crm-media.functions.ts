@@ -114,18 +114,38 @@ export const sendChatMediaFn = createServerFn({ method: "POST" })
 // ---------- Resolve URLs assinadas para uma lista de mensagens ----------
 export const signMediaUrlsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    paths: z.array(z.string()).max(200),
+    bucket: z.enum(["crm-media", "crm-avatars"]).default("crm-media"),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const out: Record<string, string> = {};
+    for (const p of data.paths) {
+      if (!p) continue;
+      if (p.startsWith("http")) { out[p] = p; continue; }
+      const { data: s } = await context.supabase.storage.from(data.bucket)
+        .createSignedUrl(p, 60 * 60 * 24);
+      if (s?.signedUrl) out[p] = s.signedUrl;
+    }
+    return out;
+  });
+
+// Assina avatares (bucket crm-avatars) em lote
+export const signAvatarsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ paths: z.array(z.string()).max(200) }).parse(d))
   .handler(async ({ data, context }) => {
     const out: Record<string, string> = {};
     for (const p of data.paths) {
       if (!p) continue;
       if (p.startsWith("http")) { out[p] = p; continue; }
-      const { data: s } = await context.supabase.storage.from("crm-media")
+      const { data: s } = await context.supabase.storage.from("crm-avatars")
         .createSignedUrl(p, 60 * 60 * 24);
       if (s?.signedUrl) out[p] = s.signedUrl;
     }
     return out;
   });
+
 
 // ---------- Perfil do contato ----------
 export const fetchContactProfileFn = createServerFn({ method: "POST" })

@@ -1,98 +1,179 @@
+## Reconstrução do CRM — Perseidas Inbox
 
-# Módulo Tráfego & Funis
+Refazendo o CRM do zero (UX + backend) num padrão profissional estilo Chatwoot, mantendo as features existentes (notas, quick replies, reações, mídia) e resolvendo os 4 bugs estruturais com um worker de background pra resolver `@lid` automaticamente.
 
-Novo módulo **isolado** (prefixo `traffic_*` no banco, rotas próprias). Nada do core (CRM, campanhas, agenda) é alterado. Se algo der errado aqui, o resto continua funcionando.
+---
 
-## 1. O que o usuário ganha
+### Bugs raiz (e como cada um é resolvido)
 
-- **Builder de funil simples** (estilo inLead): blocos drag-and-drop — Headline, Texto, Imagem, Vídeo (YouTube/Vimeo), Botão WhatsApp, Botão Agenda, Formulário (nome+telefone+email), Depoimento, Countdown, FAQ.
-- **Link-in-bio** (página única com botões), usando o mesmo motor de renderização do builder mas com um template pronto.
-- **Domínio próprio do cliente via CNAME** (`funil.dominiodele.com`) — protege nosso domínio raiz dos Ads.
-- **Tracking nativo por funil/página**: Facebook Pixel + CAPI server-side, GA4 e GTM. Eventos automáticos: `PageView`, `ViewContent`, `Lead` (form submit), `Contact` (clique WhatsApp), `Schedule` (clique agenda).
-- **Leads capturados** caem direto em uma lista do CRM (lista escolhida na config do funil) — reaproveita tabela `contact_lists` existente, sem alterar nada.
+| Bug | Causa | Correção |
+|---|---|---|
+| Áudio não toca | `new Audio()` JS + falta de transcoding `.ogg/opus` (Safari/iOS não tocam) | `<audio controls>` nativo com `<source>` múltiplo + transcoding server-side opcional + waveform real via WaveSurfer.js |
+| Foto não aparece | Avatar só busca quando clica "Sincronizar"; URL da Evolution expira | Worker baixa foto, salva em storage `crm-avatars/{owner}/{phone}.jpg` na 1ª mensagem; refresh a cada 7 dias |
+| Número desordenado | Chega `@lid` (LinkedID criptografado), trigger falha silenciosa, vira "telefone" de 15+ dígitos | Coluna `is_resolved` boolean + worker que tenta resolver via `fetchProfile` na Evolution; UI mostra "Resolvendo…" enquanto pendente |
+| Conversas erradas/duplicadas | Mesmo contato em 2 linhas (uma `@lid`, outra real); falta filtro de grupo/broadcast | Job de merge quando @lid resolve para número que já existe (merge mensagens + apaga duplicata); filtro fixo `chat_type='user'` na inbox |
 
-## 2. Arquitetura — máxima simplicidade
+---
+
+### Nova arquitetura visual (3 painéis, layout fluido)
 
 ```text
-src/routes/
-  _authenticated/
-    app.traffic.tsx               → dashboard do módulo (lista funis, criar novo)
-    app.traffic.$id.editor.tsx    → editor visual do funil
-    app.traffic.$id.analytics.tsx → views, cliques, leads, eventos enviados
-  f.$slug.tsx                     → render público (subdomínio nosso: funil.zapblastapi…)
-  api/public/
-    traffic-render.$slug.ts       → SSR do funil quando vem de domínio próprio (Host header)
-    traffic-event.ts              → endpoint CAPI (recebe evento do client e reenvia server-side pro Facebook)
-    traffic-lead.ts               → recebe submissão de formulário, grava lead + dispara Lead event
-    traffic-domain-verify.$token.ts → verificação de domínio (TXT) e checagem CNAME
+┌─────────┬───────────────────────────────┬─────────────┐
+│ Sidebar │ Inbox (conversas)             │ Conversa    │
+│ filtros │ ┌───────────────────────────┐ │ ┌─────────┐ │
+│         │ │ Search + filtros chip     │ │ │ Header  │ │
+│ • Tudo  │ ├───────────────────────────┤ │ │ contato │ │
+│ • Mine  │ │ [avatar] Nome    12:34 ✓✓ │ │ ├─────────┤ │
+│ • Fila  │ │ Última mensagem...    (3) │ │ │         │ │
+│ • Não   │ │ #vendas #lead             │ │ │  Chat   │ │
+│   lidas │ ├───────────────────────────┤ │ │         │ │
+│ • Snooze│ │ ...                       │ │ ├─────────┤ │
+│ • Arq.  │ │                           │ │ │ Compose │ │
+│         │ │                           │ │ └─────────┘ │
+│ Labels  │ │                           │ │             │
+│ • Lead  │ │                           │ │ [Aba: Info  │
+│ • VIP   │ │                           │ │  Notas      │
+│         │ │                           │ │  Histórico] │
+└─────────┴───────────────────────────────┴─────────────┘
 ```
 
-### Tabelas novas (todas prefixo `traffic_`)
+- **Sidebar esquerda fixa** (200px): filtros + labels personalizados (multi-select)
+- **Lista de conversas** (340px): item denso com avatar real, nome, preview, badge unread, timestamp relativo, ícones de status (pin, mute, archived, snoozed), tags como chips
+- **Chat central** (flex): header com avatar grande + presença real, mensagens com bubble redesenhada, compose com toolbar fixa
+- **Painel direito retrátil** (320px): abas **Info | Notas | Histórico | Pedidos**
 
-- `traffic_funnels` — id, owner_user_id, slug, title, status (draft/published), template (funnel/linkbio), settings (jsonb: pixel_id, capi_token, ga4_id, gtm_id, default_list_id), custom_domain, custom_domain_status, created_at.
-- `traffic_blocks` — id, funnel_id, position, type, props (jsonb). Cada bloco é renderizado por um componente React puro.
-- `traffic_events` — id, funnel_id, event_name, anonymous_id, fbp, fbc, ip_hash, ua, payload (jsonb), created_at. Particionado por data ou com índice por funnel_id+created_at.
-- `traffic_leads` — id, funnel_id, name, phone, email, utm (jsonb), pushed_to_list_id, created_at.
-- `traffic_custom_domains` — id, funnel_id, host, verify_token, dns_ok, ssl_ok, last_checked_at.
+Design system: usa tokens existentes (`bubble-in`, `bubble-out`, `chat-quoted-border`). Acentos verdes (success), badge vermelho (unread), avatar com ring colorido pelo status.
 
-Todas com RLS escopada por `owner_user_id` (segue padrão do projeto). Endpoints públicos usam SECURITY DEFINER ou service_role só pro que é estritamente necessário (renderização e inserts de event/lead).
+---
 
-## 3. Pixel + CAPI (server-side, sem mexer no core)
+### Mudanças de backend (DB)
 
-- Client dispara evento → POST em `/api/public/traffic-event` com `funnel_slug`, `event_name`, `event_id` (dedupe), `fbp`, `fbc`.
-- Handler busca `pixel_id` + `capi_token` do funil e faz POST pro Graph API do Facebook (`https://graph.facebook.com/v20.0/{pixel_id}/events`). Hasheia IP/email/telefone com SHA-256.
-- Mesmo `event_id` é usado no client (`fbq('track', ..., {eventID})`) e no server → Facebook deduplica.
-- Erros logam em `traffic_events.payload.error` mas nunca quebram o render do funil.
+**Migration única** com:
 
-GA4/GTM: injetados via `<script>` no SSR quando configurados. Sem CAPI server-side pro GA (overkill pra MVP).
+1. **`crm_conversations`**:
+   - `is_resolved boolean DEFAULT false` — false enquanto @lid pendente
+   - `resolve_attempts int DEFAULT 0` — backoff exponencial
+   - `next_resolve_at timestamptz` — próximo agendamento
+   - `snoozed_until timestamptz` — snooze (esconder até data)
+   - `label_ids uuid[] DEFAULT '{}'` — labels custom
+   - índice parcial `WHERE NOT is_resolved` pro worker
 
-## 4. Domínio próprio via CNAME (passo a passo pro cliente)
+2. **`crm_labels`** (nova tabela):
+   - `id, owner_user_id, name, color, created_at`
+   - RLS owner-scoped, GRANTs corretos
 
-Fluxo no painel:
-1. Cliente adiciona `funil.dominiodele.com` na config do funil.
-2. Geramos um `verify_token`. Mostramos 2 registros DNS pra ele colar no registrador:
-   - `CNAME funil → cname.zapblastapi.lovable.app` (ou subdomínio dedicado nosso)
-   - `TXT _zapblast-verify.funil → <verify_token>`
-3. Botão **Verificar agora** chama `/api/public/traffic-domain-verify/$token` que faz resolução DNS e marca `dns_ok=true`.
-4. Para SSL automático, usamos **Cloudflare for SaaS** (Custom Hostnames API) — única dependência externa nova. Alternativa mais barata: orientar cliente a colocar Cloudflare grátis dele na frente e proxiar pra nós (perde menos infra nossa). **Recomendação MVP**: começar com instrução "use Cloudflare grátis do seu lado, modo proxy"; adicionar Cloudflare for SaaS depois se virar gargalo.
-5. Quando uma request chega no nosso edge com `Host: funil.dominiodele.com`, o middleware mapeia host → `funnel_id` e renderiza.
+3. **`crm_avatars` (bucket de storage)**:
+   - bucket privado; foto baixada pelo worker; URL via signed URL 24h cacheada client-side
 
-> Importante: nada disso usa nosso domínio raiz como destino dos Ads. Se o cliente queimar o domínio dele, problema dele.
+4. **RPC `crm_merge_conversations(src_id, dst_id)`**:
+   - move mensagens, notas, atualiza referências, apaga src
+   - SECURITY DEFINER; só chama quando worker confirma que src.phone == dst.phone após resolve
 
-## 5. Editor (mínimo viável)
+5. **Trigger `chat_messages_after_insert`** (refatorada):
+   - dispara `pg_notify('crm_resolve', conv_id)` quando insere com @lid pendente
+   - mantém upsert de conversa, mas marca `is_resolved=false` quando phone bate regex `^[0-9]{15,}$` ou JID termina em `@lid`
 
-- Lista de blocos à esquerda, preview ao centro, painel de propriedades à direita.
-- Drag-and-drop com `@dnd-kit/sortable` (já popular, sem dependências pesadas).
-- Salva no banco a cada mudança com debounce de 800ms.
-- **Sem versionamento, sem A/B test, sem templates de mercado no MVP** — apenas 2 templates iniciais (funil de captura, link-in-bio).
-- Tema: input de cor primária + fonte (4 opções). Nada mais customizável no MVP.
+---
 
-## 6. O que NÃO entra agora (pra ficar simples)
+### Worker de resolução em background
 
-- Pagamentos/checkout no funil
-- A/B test
-- E-mail automation
-- Templates de marketplace
-- Cloudflare for SaaS automatizado (cliente usa Cloudflare dele no MVP)
-- Editor mobile-first separado (responsivo automático básico já basta)
+**TanStack server route público** (`/api/public/crm/resolve-pending`) chamado por pg_cron a cada **1 minuto**:
 
-## 7. Detalhes técnicos
+```sql
+SELECT cron.schedule('crm-resolve-pending', '* * * * *', $$
+  SELECT net.http_post(
+    url := 'https://zapblastapi.lovable.app/api/public/crm/resolve-pending',
+    headers := jsonb_build_object('Content-Type','application/json','apikey','<anon>'),
+    body := '{}'::jsonb
+  );
+$$);
+```
 
-- **Renderização pública** é SSR puro via TanStack server route. Sem auth, sem RLS-as-user — usa `supabaseAdmin` apenas pra SELECT no funil pelo slug/host (projeta só colunas seguras).
-- **Resolução de host customizado**: middleware lê `request.headers.get('host')`, consulta `traffic_custom_domains` (cache em memória do worker por 60s), resolve `funnel_id`.
-- **CAPI**: token do Facebook fica em `traffic_funnels.settings` (criptografado com pgsodium se possível, ou no mínimo só acessível via RPC). Considerar mover pra `vault` se sensível.
-- **Eventos**: tabela `traffic_events` pode crescer muito; criar índice `(funnel_id, created_at DESC)` e job mensal de archive (futuro).
-- **Sidebar**: nova entrada "Tráfego & Funis" abaixo de "Agenda".
-- **Memória do projeto**: criar `mem://features/traffic.md` documentando tabelas, fluxo CAPI, fluxo de domínio custom.
+Handler:
+1. SELECT até 50 conversas com `is_resolved=false AND next_resolve_at <= now()`
+2. Para cada uma: `fetchProfile` + `fetchProfilePictureUrl` na Evolution
+3. Se resolveu número → baixa avatar, salva em `crm-avatars/`, faz upsert; se já existe conversa com mesmo número, chama `crm_merge_conversations`
+4. Se falhou: `resolve_attempts++`, `next_resolve_at = now() + interval '5 min' * 2^attempts` (máx 24h, cap em 10 tentativas)
 
-## 8. Ordem de implementação
+Autenticado via `apikey` header (padrão pg_cron Lovable).
 
-1. Migração: tabelas `traffic_*` + RLS + GRANTs.
-2. Editor + render público no subdomínio nosso (`/f/$slug`) + 2 templates.
-3. Pixel client-side + GA4/GTM.
-4. CAPI server-side (`/api/public/traffic-event`).
-5. Captura de leads → `contact_lists`.
-6. Domínio customizado via CNAME + verificação DNS (cliente coloca Cloudflare na frente).
-7. Tela de analytics simples (totais + últimos eventos + leads).
+---
 
-Pronto pra implementar? Quando aprovar eu começo pela migração e pelo motor de renderização.
+### Player de áudio (resolve "não toca")
+
+Componente `<AudioMessage>`:
+- `<audio>` nativo com `preload="metadata"`, `crossOrigin="anonymous"`
+- WaveSurfer.js (`bun add wavesurfer.js`) renderiza waveform real, sincroniza com `<audio>`
+- Detecta MIME → se for `audio/ogg; codecs=opus` e Safari, usa fallback via `<source>` apontando para `transcoded_url` (lazy transcoding com `@ffmpeg/ffmpeg` WASM client-side, gerando MP3 sob demanda quando dá erro)
+- Velocidade (1x/1.5x/2x), barra de progresso clicável
+
+---
+
+### Avatar com cache real
+
+- Server fn `getContactAvatarFn(conversation_id)` retorna signed URL do `crm-avatars/`
+- Se não existir storage path, dispara `fetchProfilePictureUrl` síncrono e cacheia
+- Worker mantém atualizado a cada 7 dias
+
+---
+
+### Estrutura de arquivos (limpeza)
+
+Remover/renomear (arquitetura plana atual):
+- `src/lib/chat.functions.ts` → fundir em `src/lib/crm/messages.functions.ts`
+- `src/lib/crm.functions.ts` → quebrar em `src/lib/crm/{conversations,agents,notes,labels}.functions.ts`
+- `src/lib/crm-media.functions.ts` → `src/lib/crm/media.functions.ts`
+- `src/lib/crm-profile.functions.ts` → `src/lib/crm/profile.functions.ts`
+
+Novos:
+- `src/routes/api/public/crm.resolve-pending.ts` — worker
+- `src/lib/crm/labels.functions.ts` — CRUD de labels
+- `src/lib/crm/resolve.server.ts` — lógica de resolução (server-only)
+
+Componentes novos em `src/components/crm/`:
+- `Inbox.tsx`, `InboxSidebar.tsx`, `ConversationList.tsx`, `ConversationItem.tsx`
+- `ChatHeader.tsx`, `ChatThread.tsx`, `Composer.tsx`
+- `ContactPanel.tsx` (refatorado, com abas), `LabelPicker.tsx`
+- `AudioMessage.tsx` (substitui `AudioPlayer`)
+- `Avatar.tsx` (componente único, usa cache)
+
+Mantidos: `MessageBubble.tsx`, `DateSeparator.tsx`, `MediaPreviewDialog.tsx`, `ReplyPreview.tsx`, `EmptyChatState.tsx` (ajustes pontuais)
+
+Rota: `app.inbox.tsx` vira fino, só monta `<Inbox />`.
+
+---
+
+### Ordem de implementação
+
+1. **Migration DB** (worker fields, labels, RPC merge, trigger refactor, pg_cron)
+2. **`bun add wavesurfer.js`**
+3. **Worker route** `/api/public/crm/resolve-pending` + server helpers
+4. **Avatar cache** (server fn + storage upload via worker)
+5. **Novos componentes** (Inbox, Sidebar, ConversationItem, ChatHeader, Composer, ContactPanel com abas, AudioMessage, Avatar)
+6. **Refactor de `src/lib/crm/*`** (split em módulos)
+7. **`app.inbox.tsx`** vira shell de `<Inbox />`
+8. **Validação**: Playwright + screenshots da inbox carregando, áudio tocando, avatar real, número formatado
+
+---
+
+### Detalhes técnicos importantes
+
+- **RLS** mantida em todas as novas tabelas; `crm_labels` scoped por `owner_user_id`
+- **GRANTs** completos (authenticated + service_role)
+- **Realtime** continua via canal `crm-{workspace}` mas agora também escuta `crm_labels`
+- **Worker é idempotente**: se conversa já resolveu entre o SELECT e o UPDATE, ignora
+- **Sem quebra de dados**: conversas existentes ganham `is_resolved=true` quando `contact_phone` bate `^[0-9]{10,14}$`, senão `false` (worker pega na próxima rodada)
+- **Frontend não conhece o worker**: query da inbox tem `refetchInterval: 15s`, então conversas resolvidas aparecem sozinhas; opcional realtime trigger via `pg_notify` (fase 2)
+- **Performance**: índice parcial `crm_conversations(next_resolve_at) WHERE NOT is_resolved` mantém worker rápido mesmo com 100k conversas
+
+---
+
+### Fora do escopo (próxima rodada se você pedir)
+
+- Pipeline kanban arrastável (deals/oportunidades)
+- Atribuição automática por regras (round-robin, por label)
+- SLA + métricas (tempo de primeira resposta, tempo de resolução)
+- Integração com pedidos/produtos do e-commerce
+- Bot/IA respondendo automaticamente
+
+Quero deixar essa fundação 100% sólida antes de empilhar mais features.
