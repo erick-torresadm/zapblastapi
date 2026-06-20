@@ -163,6 +163,20 @@ function BillingPage() {
         </Card>
       )}
 
+      {!sub && (
+        <Card className="border-2 border-dashed border-muted-foreground/30 bg-muted/20">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="uppercase tracking-wider text-[10px] font-bold">Plano atual</Badge>
+              <Badge variant="destructive">Sem plano ativo</Badge>
+            </div>
+            <CardTitle className="text-2xl">Você ainda não assinou nenhum plano</CardTitle>
+            <CardDescription>Escolha um plano abaixo para liberar disparos, chips e CRM completos.</CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+
 
 
 
