@@ -6,7 +6,7 @@ import { z } from "zod";
 export const getToolCreditsFn = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.rpc("get_tool_credits_balance", { _tool: null });
+    const { data, error } = await context.supabase.rpc("get_tool_credits_balance", {});
     if (error) throw new Error(error.message);
     return (data ?? {}) as Record<string, number>;
   });
