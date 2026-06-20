@@ -30,7 +30,7 @@ type Trigger = {
   keywords: string[]; match_mode: "exact" | "contains" | "starts_with"; active: boolean;
   created_by_admin: boolean; flow_name: string;
   allow_from_me: boolean; delay_seconds: number; cooldown_seconds: number;
-  instance: { id: string; instance_name: string; status: string } | null;
+  instance: { id: string; instance_name: string; phone_number: string | null; status: string } | null;
 };
 
 const matchLabel: Record<string, string> = {
