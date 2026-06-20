@@ -161,12 +161,13 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     }
 
     // Step 2: ensure we have participants — try findGroupInfos if instance is member
-    let participants: Array<{ id: string }> = (info?.participants as Array<{ id: string }>) || [];
+    let participants: Array<{ id: string; admin?: string | null }> =
+      (info?.participants as Array<{ id: string; admin?: string | null }>) || [];
     if (participants.length === 0 && groupJid) {
       try {
         const full = await evo.findGroupInfos(server, instance.instance_name, groupJid);
         info = full;
-        participants = (full?.participants as Array<{ id: string }>) || [];
+        participants = (full?.participants as Array<{ id: string; admin?: string | null }>) || [];
       } catch {
         // ignored
       }
@@ -176,31 +177,114 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       throw new Error("Não foi possível listar os membros. O chip precisa estar dentro do grupo para extrair os contatos.");
     }
 
-    // Step 3: price + debit
-    const baseCost = participants.length * TOOL_PRICES.group_extract_per_contact_cents;
+    // Step 3: separate participants by JID type and try to resolve @lid → real phone
+    type Pending = { jid: string; admin: boolean; phone: string | null; isLid: boolean };
+    const pending: Pending[] = participants.map((p) => {
+      const jid = String(p.id);
+      const isLid = jid.endsWith("@lid");
+      const phone = isLid ? null : (jid.split("@")[0] || "").replace(/\D/g, "") || null;
+      return { jid, admin: !!p.admin, phone, isLid };
+    });
+
+    const lidJids = pending.filter((c) => c.isLid && !c.phone).map((c) => c.jid);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 3a) Try cache (crm_lid_map) for known mappings
+    if (lidJids.length > 0) {
+      const { data: cached } = await supabaseAdmin
+        .from("crm_lid_map")
+        .select("lid_jid, phone")
+        .eq("owner_user_id", userId)
+        .in("lid_jid", lidJids);
+      const cacheMap = new Map<string, string>(
+        ((cached ?? []) as Array<{ lid_jid: string; phone: string }>).map((r) => [r.lid_jid, r.phone]),
+      );
+      for (const c of pending) {
+        if (c.isLid && !c.phone && cacheMap.has(c.jid)) c.phone = cacheMap.get(c.jid)!;
+      }
+    }
+
+    // 3b) For still-unresolved @lid, ask Evolution for chat mappings and populate cache
+    const stillUnresolved = pending.filter((c) => c.isLid && !c.phone).map((c) => c.jid);
+    if (stillUnresolved.length > 0) {
+      try {
+        const chats = await evo.findChats(server, instance.instance_name);
+        const liveMap = new Map<string, string>();
+        for (const chat of chats) {
+          const rj = String((chat as { remoteJid?: string; id?: string }).remoteJid ?? (chat as { id?: string }).id ?? "");
+          const alt = String((chat as { remoteJidAlt?: string | null }).remoteJidAlt ?? "");
+          const realA = rj.match(/^(\d{8,15})@(s\.whatsapp\.net|c\.us)$/);
+          const lidA = alt.match(/^\d+@lid$/);
+          if (realA && lidA) liveMap.set(alt, realA[1]);
+          const lidB = rj.match(/^\d+@lid$/);
+          const realB = alt.match(/^(\d{8,15})@(s\.whatsapp\.net|c\.us)$/);
+          if (lidB && realB) liveMap.set(rj, realB[1]);
+        }
+        const newRows: Array<{ owner_user_id: string; instance_id: string; lid_jid: string; phone: string }> = [];
+        for (const c of pending) {
+          if (c.isLid && !c.phone && liveMap.has(c.jid)) {
+            c.phone = liveMap.get(c.jid)!;
+            newRows.push({
+              owner_user_id: userId,
+              instance_id: data.instance_id,
+              lid_jid: c.jid,
+              phone: c.phone,
+            });
+          }
+        }
+        if (newRows.length > 0) {
+          await supabaseAdmin
+            .from("crm_lid_map")
+            .upsert(newRows, { onConflict: "owner_user_id,lid_jid" });
+        }
+      } catch (e) {
+        console.warn("[extractGroupFn] findChats lookup failed:", (e as Error).message);
+      }
+    }
+
+    // Step 4: charge ONLY for participants where we extracted a real phone.
+    const resolved = pending.filter((c) => !!c.phone);
+    const unresolved = pending.filter((c) => !c.phone);
+
+    if (resolved.length === 0) {
+      throw new Error(
+        `Nenhum telefone foi extraído. O grupo tem ${participants.length} membro(s), ` +
+        `mas todos estão com privacidade ativada (identificadores @lid). ` +
+        `Para liberar os números: abra algumas conversas do grupo neste chip e aguarde o WhatsApp sincronizar, ` +
+        `ou use um chip que já tenha histórico com esses membros. Nenhum valor foi cobrado.`,
+      );
+    }
+
+    const baseCost = resolved.length * TOOL_PRICES.group_extract_per_contact_cents;
     const cost = Math.max(baseCost, TOOL_PRICES.group_extract_min_charge_cents);
     const balance = await getBalance(supabase, userId);
     if (balance < cost) {
-      throw new Error(`Grupo tem ${participants.length} membros. Custo: R$ ${(cost / 100).toFixed(2)}. Saldo: R$ ${(balance / 100).toFixed(2)}. Adicione saldo na Carteira.`);
+      throw new Error(
+        `Conseguimos extrair ${resolved.length} telefone(s). Custo: R$ ${(cost / 100).toFixed(2)}. ` +
+        `Saldo: R$ ${(balance / 100).toFixed(2)}. Adicione saldo na Carteira para concluir.`,
+      );
     }
     const { error: debitErr } = await supabase.rpc("debit_wallet" as never, {
       _amount_cents: cost,
-      _description: `Extrator de grupo: ${participants.length} contato(s) — ${info?.subject ?? groupJid}`,
+      _description: `Extrator de grupo: ${resolved.length} contato(s) — ${info?.subject ?? groupJid}`,
     } as never);
     if (debitErr) throw new Error(`Falha ao debitar saldo: ${debitErr.message}`);
 
-    // Step 4: shape output (skip @lid privacy identifiers — no real phone)
-    const contacts = participants.map((p) => {
-      const jid = String(p.id);
-      const isLid = jid.endsWith("@lid");
-      const phone = isLid ? null : jid.split("@")[0].replace(/\D/g, "");
-      return {
-        jid,
-        phone,
-        is_admin: (p as { admin?: string | null }).admin ? true : false,
-        is_privacy_hidden: isLid,
-      };
-    });
+    // Step 5: shape output — resolved first, unresolved kept for transparency.
+    const contacts = [
+      ...resolved.map((c) => ({
+        jid: c.jid,
+        phone: c.phone,
+        is_admin: c.admin,
+        is_privacy_hidden: c.isLid,
+      })),
+      ...unresolved.map((c) => ({
+        jid: c.jid,
+        phone: null,
+        is_admin: c.admin,
+        is_privacy_hidden: true,
+      })),
+    ];
 
     return {
       group: {
@@ -210,6 +294,8 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       },
       cost_cents: cost,
       total: contacts.length,
+      resolved_count: resolved.length,
+      unresolved_count: unresolved.length,
       contacts,
     };
   });
