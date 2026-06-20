@@ -127,7 +127,8 @@ export const saveBlocksFn = createServerFn({ method: "POST" })
     await context.supabase.from("traffic_blocks").delete().eq("funnel_id", data.funnel_id);
     if (data.blocks.length > 0) {
       const { error } = await context.supabase.from("traffic_blocks").insert(
-        data.blocks.map((b, i) => ({ funnel_id: data.funnel_id, type: b.type, position: i, props: b.props }))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data.blocks.map((b, i) => ({ funnel_id: data.funnel_id, type: b.type, position: i, props: b.props })) as any
       );
       if (error) throw new Error(error.message);
     }
