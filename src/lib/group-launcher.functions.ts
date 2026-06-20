@@ -227,17 +227,24 @@ export const enqueueBulkCreateFn = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: campaign } = await supabase
       .from("group_campaigns")
-      .select("id, instance_id")
+      .select("id, instance_id, extra_participants")
       .eq("id", data.campaign_id)
       .maybeSingle();
     if (!campaign) throw new Error("Campanha não encontrada");
     if (!campaign.instance_id) throw new Error("Selecione uma instância (chip) na campanha antes de criar grupos.");
 
-    // Initial participant = instance's own connected number (resolves via Evolution API if needed).
+    // Initial participant: try the instance's own connected number first.
+    // If that fails, fall back to the first "convidado" configured on the campaign.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const participantPhone = await resolveInstancePhone(supabaseAdmin, campaign.instance_id);
+    let participantPhone = await resolveInstancePhone(supabaseAdmin, campaign.instance_id);
     if (!participantPhone) {
-      throw new Error("Não consegui descobrir o número conectado neste chip. Reconecte o WhatsApp (escaneie o QR novamente) e tente de novo.");
+      const extras = normalizePhoneList(campaign.extra_participants as string[] | null);
+      if (extras.length > 0) participantPhone = extras[0];
+    }
+    if (!participantPhone) {
+      throw new Error(
+        "Não foi possível identificar um participante inicial. Adicione pelo menos um número na aba Configurações → Convidados, ou reconecte o WhatsApp do chip.",
+      );
     }
 
     const { data: maxRow } = await supabase
@@ -266,6 +273,7 @@ export const enqueueBulkCreateFn = createServerFn({ method: "POST" })
     if (error) throw error;
     return { enqueued: rows.length, start_position: startPos };
   });
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Paste invite links
