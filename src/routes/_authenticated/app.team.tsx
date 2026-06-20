@@ -109,6 +109,8 @@ function TeamPage() {
         </CardContent>
       </Card>
 
+      <InviteLinksCard />
+
       <Card>
         <CardHeader><CardTitle className="text-base">Atendentes ({members.length})</CardTitle></CardHeader>
         <CardContent className="space-y-2">
