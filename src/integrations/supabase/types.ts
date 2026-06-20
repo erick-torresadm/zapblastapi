@@ -1962,6 +1962,8 @@ export type Database = {
       group_campaigns: {
         Row: {
           admin_participants: string[]
+          auto_refill: boolean
+          auto_refill_template: string | null
           click_count: number
           created_at: string
           default_description: string | null
@@ -1978,6 +1980,8 @@ export type Database = {
         }
         Insert: {
           admin_participants?: string[]
+          auto_refill?: boolean
+          auto_refill_template?: string | null
           click_count?: number
           created_at?: string
           default_description?: string | null
@@ -1994,6 +1998,8 @@ export type Database = {
         }
         Update: {
           admin_participants?: string[]
+          auto_refill?: boolean
+          auto_refill_template?: string | null
           click_count?: number
           created_at?: string
           default_description?: string | null

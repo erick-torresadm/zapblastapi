@@ -171,7 +171,7 @@ export const createGroupCampaignFn = createServerFn({ method: "POST" })
 
 export const updateGroupCampaignFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: { id: string; name?: string; member_limit?: number; instance_id?: string | null; default_description?: string | null; default_image_url?: string | null; is_active?: boolean; slug?: string; extra_participants?: string[]; admin_participants?: string[] }) =>
+  .inputValidator((i: { id: string; name?: string; member_limit?: number; instance_id?: string | null; default_description?: string | null; default_image_url?: string | null; is_active?: boolean; slug?: string; extra_participants?: string[]; admin_participants?: string[]; auto_refill?: boolean; auto_refill_template?: string | null }) =>
     z.object({
       id: z.string().uuid(),
       name: z.string().min(2).max(80).optional(),
@@ -183,6 +183,8 @@ export const updateGroupCampaignFn = createServerFn({ method: "POST" })
       slug: z.string().regex(/^[a-z0-9-]{2,40}$/).optional(),
       extra_participants: z.array(z.string()).max(200).optional(),
       admin_participants: z.array(z.string()).max(200).optional(),
+      auto_refill: z.boolean().optional(),
+      auto_refill_template: z.string().min(2).max(120).nullable().optional(),
     }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
@@ -199,6 +201,7 @@ export const updateGroupCampaignFn = createServerFn({ method: "POST" })
     if (error) throw error;
     return row;
   });
+
 
 export const deleteGroupCampaignFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
