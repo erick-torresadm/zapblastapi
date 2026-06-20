@@ -141,6 +141,8 @@ function BillingPage() {
 
 
 
+      <CouponGlobalSection plans={data?.plans ?? []} />
+
       {/* Toggle Mensal / Anual */}
       <div className="flex justify-center">
         <div role="tablist" aria-label="Ciclo de cobrança" className="inline-flex items-center gap-1 rounded-full border bg-muted/40 p-1">
