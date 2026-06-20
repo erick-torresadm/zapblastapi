@@ -216,7 +216,12 @@ function ValidatorCard({
               <SelectTrigger><SelectValue placeholder="Escolha um chip conectado" /></SelectTrigger>
               <SelectContent>
                 {instances.map((i: any) => (
-                  <SelectItem key={i.id} value={i.id}>{i.instance_name}</SelectItem>
+                  <SelectItem key={i.id} value={i.id}>
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-medium">{i.instance_name}</span>
+                      <span className="text-muted-foreground text-xs">{formatPhone(i.phone_number)}</span>
+                    </span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
