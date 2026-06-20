@@ -76,8 +76,9 @@ function uniq(values: Array<string | null | undefined>): string[] {
 }
 
 function toEvolutionTarget(value: string): string {
+  if (value.endsWith("@lid")) return value.split("@")[0] ?? value;
   if (value.includes("@")) return value;
-  return isLidIdentifier(value) ? `${value}@lid` : value;
+  return value;
 }
 
 function renderTemplate(tpl: string, vars: Record<string, string>): string {
@@ -416,7 +417,10 @@ export async function advanceFlowRun(supabaseAdmin: any, runId: string): Promise
     }
 
     // Último recurso: tenta o remoteJid LID (chips com migração LID).
-    if (remoteJid.endsWith("@lid")) targets.push(remoteJid);
+    if (remoteJid.endsWith("@lid")) {
+      const lidUser = remoteJid.split("@")[0];
+      targets.push(lidUser, remoteJid);
+    }
 
     if (targets.length === 0) {
       const fallback = extractRealPhone(run.contact_phone);
