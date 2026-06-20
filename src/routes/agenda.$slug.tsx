@@ -8,9 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, ArrowLeft, CheckCircle2, MessageCircle, Sparkles } from "lucide-react";
 import { getPublicBusinessFn, getPublicSlotsFn, bookAppointmentFn } from "@/lib/agenda-public.functions";
 import { toast } from "sonner";
+
+function maskBRPhone(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+function phoneDigits(v: string) { return v.replace(/\D/g, ""); }
 
 export const Route = createFileRoute("/agenda/$slug")({
   loader: async ({ params }) => {
