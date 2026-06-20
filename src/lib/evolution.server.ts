@@ -680,7 +680,7 @@ export async function fetchAllGroups(
     ep("fetchAllGroups", { instance: instanceName, query: { getParticipants } }),
     { method: epMethod("fetchAllGroups") },
   );
-  return (Array.isArray(r) ? r : []) as GroupInfo[];
+  return evoArray<GroupInfo>(r, ["groups"]);
 }
 
 // ============================================================================
@@ -708,7 +708,7 @@ export async function findContacts(
     ep("findContacts", { instance: instanceName }),
     { method: epMethod("findContacts"), body: JSON.stringify({ where: {} }) },
   );
-  return (Array.isArray(r) ? r : []) as EvolutionContact[];
+  return evoArray<EvolutionContact>(r, ["contacts"]);
 }
 
 export type EvolutionChat = {
@@ -731,7 +731,7 @@ export async function findChats(
     ep("findChats", { instance: instanceName }),
     { method: epMethod("findChats"), body: JSON.stringify({}) },
   );
-  return (Array.isArray(r) ? r : []) as EvolutionChat[];
+  return evoArray<EvolutionChat>(r, ["chats"]);
 }
 
 
