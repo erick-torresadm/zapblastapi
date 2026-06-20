@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Flame, RotateCcw, Activity, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { toggleWarmupFn, resetWarmupFn } from "@/lib/warmup.functions";
+import { formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/warmup")({ component: WarmupPage });
 
