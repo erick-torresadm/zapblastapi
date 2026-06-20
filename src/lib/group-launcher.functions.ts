@@ -157,11 +157,12 @@ export const deleteGroupCampaignFn = createServerFn({ method: "POST" })
 
 export const enqueueBulkCreateFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: { campaign_id: string; count: number; subject_template: string; description?: string; image_url?: string }) =>
+  .inputValidator((i: { campaign_id: string; count: number; subject_template: string; participant_phone: string; description?: string; image_url?: string }) =>
     z.object({
       campaign_id: z.string().uuid(),
       count: z.number().int().min(1).max(100),
       subject_template: z.string().min(2).max(120),
+      participant_phone: z.string().min(10).max(20),
       description: z.string().max(2000).optional(),
       image_url: z.string().url().optional(),
     }).parse(i))
@@ -174,6 +175,10 @@ export const enqueueBulkCreateFn = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!campaign) throw new Error("Campanha não encontrada");
     if (!campaign.instance_id) throw new Error("Selecione uma instância (chip) na campanha antes de criar grupos.");
+    const participantPhone = data.participant_phone.replace(/\D/g, "");
+    if (participantPhone.length < 10 || participantPhone.length > 15) {
+      throw new Error("Informe um telefone inicial válido com DDI/DDD. Ex: 5511999999999");
+    }
 
     // figure out starting position
     const { data: maxRow } = await supabase
@@ -192,12 +197,13 @@ export const enqueueBulkCreateFn = createServerFn({ method: "POST" })
         campaign_id: data.campaign_id,
         owner_user_id: userId,
         subject,
+        participant_phone: participantPhone,
         description: data.description ?? null,
         image_url: data.image_url ?? null,
         next_attempt_at: new Date(Date.now() + idx * 2500).toISOString(),
       };
     });
-    const { error } = await supabase.from("group_create_jobs").insert(rows);
+    const { error } = await supabase.from("group_create_jobs").insert(rows as never);
     if (error) throw error;
     return { enqueued: rows.length, start_position: startPos };
   });

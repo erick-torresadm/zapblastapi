@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Copy, ExternalLink, Trash2, RefreshCw, Loader2, ChevronRight } from "lucide-react";
+import { ArrowLeft, Copy, ExternalLink, Trash2, RefreshCw, Loader2, ChevronRight, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   getGroupCampaignFn, enqueueBulkCreateFn, pasteGroupLinksFn,
@@ -38,6 +38,7 @@ function Page() {
   const { campaign, links, jobs } = data;
   const publicUrl = typeof window !== "undefined" ? `${window.location.origin}/g/${campaign.slug}` : `/g/${campaign.slug}`;
   const pendingJobs = jobs.filter((j) => j.status === "pending" || j.status === "processing").length;
+  const failedJobs = jobs.filter((j) => j.status === "failed");
 
   return (
     <div className="space-y-6">
@@ -81,6 +82,15 @@ function Page() {
             <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm">
               <Loader2 className="h-4 w-4 animate-spin" />
               Criando {pendingJobs} grupo(s) em background…
+            </div>
+          )}
+          {failedJobs.length > 0 && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <div>{failedJobs.length} grupo(s) falharam na última criação.</div>
+                <div className="text-xs opacity-90">{failedJobs[0].last_error}</div>
+              </div>
             </div>
           )}
         </CardContent>
@@ -225,10 +235,11 @@ function BulkCreateCard({ campaignId }: { campaignId: string }) {
   const enqueueFn = useServerFn(enqueueBulkCreateFn);
   const [count, setCount] = useState(10);
   const [template, setTemplate] = useState("Lançamento #{n}");
+  const [participantPhone, setParticipantPhone] = useState("");
   const [description, setDescription] = useState("");
 
   const mut = useMutation({
-    mutationFn: () => enqueueFn({ data: { campaign_id: campaignId, count, subject_template: template, description: description || undefined } }),
+    mutationFn: () => enqueueFn({ data: { campaign_id: campaignId, count, subject_template: template, participant_phone: participantPhone, description: description || undefined } }),
     onSuccess: (r) => {
       toast.success(`${r.enqueued} grupo(s) na fila — serão criados em ~${Math.ceil(r.enqueued * 2.5 / 60)} min`);
       qc.invalidateQueries({ queryKey: ["group-campaign", campaignId] });
@@ -255,10 +266,15 @@ function BulkCreateCard({ campaignId }: { campaignId: string }) {
           <p className="mt-1 text-xs text-muted-foreground">Use <code>{"{n}"}</code> para numerar. Ex: <code>"VIP #01"</code>, <code>"VIP #02"</code>…</p>
         </div>
         <div>
+          <Label>Participante inicial</Label>
+          <Input value={participantPhone} onChange={(e) => setParticipantPhone(e.target.value)} placeholder="5511999999999" inputMode="tel" />
+          <p className="mt-1 text-xs text-muted-foreground">A Evolution/WhatsApp exige adicionar pelo menos 1 número para criar o grupo.</p>
+        </div>
+        <div>
           <Label>Descrição (opcional)</Label>
           <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
         </div>
-        <Button onClick={() => mut.mutate()} disabled={mut.isPending || !template || count < 1} className="w-full">
+        <Button onClick={() => mut.mutate()} disabled={mut.isPending || !template || participantPhone.replace(/\D/g, "").length < 10 || count < 1} className="w-full">
           {mut.isPending ? "Enfileirando…" : `Criar ${count} grupo(s)`}
         </Button>
       </CardContent>
