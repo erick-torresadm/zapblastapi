@@ -14,6 +14,7 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as ApiPublicWarmupWorkerRouteImport } from './routes/api/public/warmup-worker'
@@ -68,6 +69,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConviteTokenRoute = ConviteTokenRouteImport.update({
+  id: '/convite/$token',
+  path: '/convite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
@@ -244,6 +250,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/convite/$token': typeof ConviteTokenRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/cancelar': typeof AuthenticatedAppCancelarRoute
@@ -280,6 +287,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/convite/$token': typeof ConviteTokenRoute
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/cancelar': typeof AuthenticatedAppCancelarRoute
@@ -318,6 +326,7 @@ export interface FileRoutesById {
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/convite/$token': typeof ConviteTokenRoute
   '/_authenticated/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
   '/_authenticated/app/cancelar': typeof AuthenticatedAppCancelarRoute
@@ -356,6 +365,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/privacidade'
     | '/termos'
+    | '/convite/$token'
     | '/app/anti-ban'
     | '/app/billing'
     | '/app/cancelar'
@@ -392,6 +402,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/privacidade'
     | '/termos'
+    | '/convite/$token'
     | '/app/anti-ban'
     | '/app/billing'
     | '/app/cancelar'
@@ -429,6 +440,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/termos'
     | '/_authenticated/_admin'
+    | '/convite/$token'
     | '/_authenticated/app/anti-ban'
     | '/_authenticated/app/billing'
     | '/_authenticated/app/cancelar'
@@ -467,6 +479,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   TermosRoute: typeof TermosRoute
+  ConviteTokenRoute: typeof ConviteTokenRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
   ApiPublicFlowTriggerTestRoute: typeof ApiPublicFlowTriggerTestRoute
   ApiPublicFlowWorkerRoute: typeof ApiPublicFlowWorkerRoute
@@ -509,6 +522,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/convite/$token': {
+      id: '/convite/$token'
+      path: '/convite/$token'
+      fullPath: '/convite/$token'
+      preLoaderRoute: typeof ConviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/_admin': {
@@ -835,6 +855,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   TermosRoute: TermosRoute,
+  ConviteTokenRoute: ConviteTokenRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
   ApiPublicFlowTriggerTestRoute: ApiPublicFlowTriggerTestRoute,
   ApiPublicFlowWorkerRoute: ApiPublicFlowWorkerRoute,
