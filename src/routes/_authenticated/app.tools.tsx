@@ -323,7 +323,7 @@ function GroupExtractCard({
     // Só exporta linhas com telefone real (oculto não tem valor pro cliente)
     for (const c of result.contacts) {
       if (!c.phone) continue;
-      rows.push([c.phone, c.jid, c.is_admin ? "sim" : "nao", c.is_privacy_hidden ? "sim" : "nao"]);
+      rows.push([c.phone, c.jid, c.is_admin ? "sim" : "nao", c.was_lid ? "convertido" : "nao"]);
     }
     downloadCsv(`grupo-${result.group.subject ?? "export"}-${Date.now()}.csv`, rows);
   }
@@ -392,7 +392,7 @@ function GroupExtractCard({
               <div>
                 <div className="text-sm font-semibold">{result.group.subject ?? "Grupo"}</div>
                 <div className="text-xs text-muted-foreground">
-                  <span className="text-foreground font-medium">{result.resolved_count ?? result.total}</span> telefone(s) extraído(s)
+                  <span className="text-foreground font-medium">{result.resolved_count ?? result.total}</span> telefone(s) entregue(s)
                   {result.unresolved_count ? <> · <span className="text-amber-600 dark:text-amber-400">{result.unresolved_count} oculto(s)</span> (não cobrados)</> : null}
                 </div>
               </div>
@@ -413,7 +413,7 @@ function GroupExtractCard({
                   {result.contacts.slice(0, 100).map((c: any, idx: number) => (
                     <tr key={idx} className="border-t border-border/40">
                       <td className="px-2 py-1 font-mono">
-                        {c.is_privacy_hidden ? <span className="text-muted-foreground italic">(oculto)</span> : c.phone}
+                        {c.phone ? c.phone : <span className="text-muted-foreground italic">(oculto)</span>}
                       </td>
                       <td className="px-2 py-1">
                         {c.is_admin ? <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> : <XCircle className="h-3.5 w-3.5 text-muted-foreground/40" />}
