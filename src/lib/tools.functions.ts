@@ -302,13 +302,14 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     if (stillUnresolved.length > 0) {
       const dbMap = new Map<string, string>();
       for (const lid of stillUnresolved) {
-        const { data: phone } = await supabaseAdmin.rpc("lookup_lid_phone" as never, {
+        const { data: rpcPhone } = await supabaseAdmin.rpc("lookup_lid_phone" as never, {
           p_user_id: userId,
           p_instance_id: data.instance_id,
           p_lid_jid: lid,
         } as never);
-        if (typeof phone === "string" && phone.replace(/\D/g, "").length >= 8) {
-          dbMap.set(lid, phone.replace(/\D/g, ""));
+        const phone = String((rpcPhone as unknown) ?? "").replace(/\D/g, "");
+        if (phone.length >= 8 && phone.length <= 15) {
+          dbMap.set(lid, phone);
         }
       }
       for (const c of pending) {
@@ -351,7 +352,8 @@ export const extractGroupFn = createServerFn({ method: "POST" })
         jid: c.jid,
         phone: c.phone,
         is_admin: c.admin,
-        is_privacy_hidden: c.isLid,
+        is_privacy_hidden: false,
+        was_lid: c.isLid,
       })),
       ...unresolved.map((c) => ({
         jid: c.jid,
