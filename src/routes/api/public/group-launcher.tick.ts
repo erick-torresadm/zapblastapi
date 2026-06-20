@@ -47,7 +47,7 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
 
             const { data: inst } = await supabaseAdmin
               .from("whatsapp_instances")
-              .select("instance_name, server_id")
+              .select("instance_name, server_id, phone_number")
               .eq("id", campaign.instance_id)
               .maybeSingle();
             if (!inst) throw new Error("Instância não encontrada");
@@ -58,8 +58,11 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
               .maybeSingle();
             if (!srv) throw new Error("Servidor Evolution não encontrado");
             const server = { base_url: srv.base_url, api_key: srv.api_key };
-            const participantPhone = String(job.participant_phone ?? "").replace(/\D/g, "");
-            if (!participantPhone) throw new Error("Informe pelo menos 1 participante inicial para criar o grupo");
+            // Always use the instance's own connected number as initial participant
+            const participantPhone = String(job.participant_phone ?? inst.phone_number ?? "").replace(/\D/g, "");
+            if (!participantPhone || participantPhone.length < 10) {
+              throw new Error("Chip sem número conectado — reconecte o WhatsApp da instância");
+            }
 
             const grp = await createGroup(server, inst.instance_name, {
               subject: job.subject,

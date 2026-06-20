@@ -157,12 +157,11 @@ export const deleteGroupCampaignFn = createServerFn({ method: "POST" })
 
 export const enqueueBulkCreateFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: { campaign_id: string; count: number; subject_template: string; participant_phone: string; description?: string; image_url?: string }) =>
+  .inputValidator((i: { campaign_id: string; count: number; subject_template: string; description?: string; image_url?: string }) =>
     z.object({
       campaign_id: z.string().uuid(),
       count: z.number().int().min(1).max(100),
       subject_template: z.string().min(2).max(120),
-      participant_phone: z.string().min(10).max(20),
       description: z.string().max(2000).optional(),
       image_url: z.string().url().optional(),
     }).parse(i))
@@ -175,12 +174,18 @@ export const enqueueBulkCreateFn = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!campaign) throw new Error("Campanha não encontrada");
     if (!campaign.instance_id) throw new Error("Selecione uma instância (chip) na campanha antes de criar grupos.");
-    const participantPhone = data.participant_phone.replace(/\D/g, "");
-    if (participantPhone.length < 10 || participantPhone.length > 15) {
-      throw new Error("Informe um telefone inicial válido com DDI/DDD. Ex: 5511999999999");
+
+    // The initial participant is always the instance's own connected number.
+    const { data: inst } = await supabase
+      .from("whatsapp_instances")
+      .select("phone_number")
+      .eq("id", campaign.instance_id)
+      .maybeSingle();
+    const participantPhone = String(inst?.phone_number ?? "").replace(/\D/g, "");
+    if (!participantPhone || participantPhone.length < 10) {
+      throw new Error("O chip selecionado não está conectado ao WhatsApp (sem número). Conecte o chip e tente novamente.");
     }
 
-    // figure out starting position
     const { data: maxRow } = await supabase
       .from("group_campaign_links")
       .select("position")
