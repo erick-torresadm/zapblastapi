@@ -50,6 +50,7 @@ import { Route as ApiPublicGroupLauncherTickRouteImport } from './routes/api/pub
 import { Route as ApiPublicEvolutionWebhookTokenRouteImport } from './routes/api/public/evolution-webhook.$token'
 import { Route as ApiPublicCrmResolvePendingRouteImport } from './routes/api/public/crm.resolve-pending'
 import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authenticated/app.lists.$id'
+import { Route as AuthenticatedAppGroupLauncherIdRouteImport } from './routes/_authenticated/app.group-launcher.$id'
 import { Route as AuthenticatedAppFlowsIdRouteImport } from './routes/_authenticated/app.flows.$id'
 import { Route as AuthenticatedAppCampaignsNewRouteImport } from './routes/_authenticated/app.campaigns.new'
 import { Route as AuthenticatedAppCampaignsIdRouteImport } from './routes/_authenticated/app.campaigns.$id'
@@ -274,6 +275,12 @@ const AuthenticatedAppListsIdRoute = AuthenticatedAppListsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedAppListsRoute,
 } as any)
+const AuthenticatedAppGroupLauncherIdRoute =
+  AuthenticatedAppGroupLauncherIdRouteImport.update({
+    id: '/app/group-launcher/$id',
+    path: '/app/group-launcher/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppFlowsIdRoute = AuthenticatedAppFlowsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -363,6 +370,7 @@ export interface FileRoutesByFullPath {
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
+  '/app/group-launcher/$id': typeof AuthenticatedAppGroupLauncherIdRoute
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
@@ -412,6 +420,7 @@ export interface FileRoutesByTo {
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
+  '/app/group-launcher/$id': typeof AuthenticatedAppGroupLauncherIdRoute
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
@@ -465,6 +474,7 @@ export interface FileRoutesById {
   '/_authenticated/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/_authenticated/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/_authenticated/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
+  '/_authenticated/app/group-launcher/$id': typeof AuthenticatedAppGroupLauncherIdRoute
   '/_authenticated/app/lists/$id': typeof AuthenticatedAppListsIdRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
@@ -517,6 +527,7 @@ export interface FileRouteTypes {
     | '/app/campaigns/$id'
     | '/app/campaigns/new'
     | '/app/flows/$id'
+    | '/app/group-launcher/$id'
     | '/app/lists/$id'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
@@ -566,6 +577,7 @@ export interface FileRouteTypes {
     | '/app/campaigns/$id'
     | '/app/campaigns/new'
     | '/app/flows/$id'
+    | '/app/group-launcher/$id'
     | '/app/lists/$id'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
@@ -618,6 +630,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/campaigns/$id'
     | '/_authenticated/app/campaigns/new'
     | '/_authenticated/app/flows/$id'
+    | '/_authenticated/app/group-launcher/$id'
     | '/_authenticated/app/lists/$id'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
@@ -945,6 +958,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppListsIdRouteImport
       parentRoute: typeof AuthenticatedAppListsRoute
     }
+    '/_authenticated/app/group-launcher/$id': {
+      id: '/_authenticated/app/group-launcher/$id'
+      path: '/app/group-launcher/$id'
+      fullPath: '/app/group-launcher/$id'
+      preLoaderRoute: typeof AuthenticatedAppGroupLauncherIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/flows/$id': {
       id: '/_authenticated/app/flows/$id'
       path: '/$id'
@@ -1082,6 +1102,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppCampaignsIdRoute: typeof AuthenticatedAppCampaignsIdRoute
   AuthenticatedAppCampaignsNewRoute: typeof AuthenticatedAppCampaignsNewRoute
+  AuthenticatedAppGroupLauncherIdRoute: typeof AuthenticatedAppGroupLauncherIdRoute
   AuthenticatedAppCampaignsIndexRoute: typeof AuthenticatedAppCampaignsIndexRoute
   AuthenticatedAppGroupLauncherIndexRoute: typeof AuthenticatedAppGroupLauncherIndexRoute
   AuthenticatedAppTrafficIndexRoute: typeof AuthenticatedAppTrafficIndexRoute
@@ -1109,6 +1130,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppCampaignsIdRoute: AuthenticatedAppCampaignsIdRoute,
   AuthenticatedAppCampaignsNewRoute: AuthenticatedAppCampaignsNewRoute,
+  AuthenticatedAppGroupLauncherIdRoute: AuthenticatedAppGroupLauncherIdRoute,
   AuthenticatedAppCampaignsIndexRoute: AuthenticatedAppCampaignsIndexRoute,
   AuthenticatedAppGroupLauncherIndexRoute:
     AuthenticatedAppGroupLauncherIndexRoute,
