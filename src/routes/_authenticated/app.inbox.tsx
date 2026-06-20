@@ -698,10 +698,24 @@ function Inbox() {
             )}
           </div>
 
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar conversa ou mensagem…" className="h-9 pl-8 text-sm rounded-full" />
+          <div className="relative flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar conversa ou mensagem…" className="h-9 pl-8 text-sm rounded-full" />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0"
+              onClick={() => syncContactsMut.mutate()}
+              disabled={syncContactsMut.isPending}
+              title="Sincronizar contatos e fotos diretamente do WhatsApp"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncContactsMut.isPending ? "animate-spin" : ""}`} />
+            </Button>
           </div>
+
 
           <div className="flex gap-1 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-thin">
             {filterChips.map((fc) => (
