@@ -383,7 +383,7 @@ function Inbox() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Auto-sync ao abrir a primeira vez se houver conversas em "Identificando…"
+  // Auto-sync ao abrir a primeira vez se houver conversas em "Aguardando sincronização…"
   const autoSyncRef = useRef(false);
   useEffect(() => {
     if (autoSyncRef.current) return;
@@ -589,7 +589,7 @@ function Inbox() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <span className="truncate text-sm font-semibold">
-                {resolved ? displayName(c.contact_name, c.contact_phone) : (c.contact_name ?? "Identificando…")}
+                {resolved ? displayName(c.contact_name, c.contact_phone) : (c.contact_name ?? "Aguardando sincronização…")}
               </span>
               <span className={`shrink-0 text-[10px] ${c.unread_count > 0 ? "font-semibold text-primary" : "text-muted-foreground"}`}>
                 {fmtTime(c.last_message_at)}
@@ -809,7 +809,7 @@ function Inbox() {
                 <div className="truncate text-sm font-semibold flex items-center gap-2">
                   {current.is_resolved && isPhoneResolved(current.contact_phone)
                     ? displayName(current.contact_name, current.contact_phone)
-                    : (current.contact_name ?? "Identificando contato…")}
+                    : (current.contact_name ?? "Aguardando sincronização…")}
                   {!current.is_resolved && (
                     <span className="text-[9px] rounded-full px-1.5 py-0.5 bg-warning/15 text-warning border border-warning/30 font-normal animate-pulse">
                       sincronizando
