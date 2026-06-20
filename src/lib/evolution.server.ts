@@ -404,8 +404,8 @@ export async function sendPoll(
   poll: { name: string; selectableCount?: number; values: string[] },
   opts?: { delayMs?: number },
 ) {
-  return evoFetch(server, `/message/sendPoll/${encodeURIComponent(instanceName)}`, {
-    method: "POST",
+  return evoFetch(server, ep("sendPoll", { instance: instanceName }), {
+    method: epMethod("sendPoll"),
     body: JSON.stringify({
       number: phone,
       name: poll.name,
