@@ -206,8 +206,8 @@ function AuthPage() {
                     <div><Label htmlFor="su-email">E-mail</Label><Input id="su-email" name="email" type="email" required autoComplete="email" className="mt-1.5" /></div>
                     <div>
                       <Label htmlFor="su-pwd">Senha</Label>
-                      <Input id="su-pwd" name="password" type="password" required autoComplete="new-password" className="mt-1.5" />
-                      <p className="mt-1 text-[11px] text-muted-foreground">Mínimo 4 caracteres. Use o que for fácil de lembrar.</p>
+                      <Input id="su-pwd" name="password" type="password" required autoComplete="new-password" minLength={STRONG_PASSWORD_MIN} className="mt-1.5" />
+                      <p className="mt-1 text-[11px] text-muted-foreground">Mín. {STRONG_PASSWORD_MIN} caracteres com letras, números e símbolo.</p>
                     </div>
                     <Button type="submit" className="w-full bg-gradient-to-br from-primary to-primary-glow shadow-glow" disabled={loading}>Começar 7 dias grátis</Button>
                   </form>
