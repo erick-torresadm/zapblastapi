@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 
 
 const LABELS: Record<string, string> = {
+  profile: "Meu perfil",
   app: "Dashboard",
+
   servers: "Servidores",
   instances: "Chips",
   warmup: "Aquecimento",
