@@ -78,6 +78,8 @@ const couponInputSchema = z.object({
   value: z.number().min(0).max(100_000_000),
   plan_id: z.string().uuid().optional().nullable(),
   free_duration_days: z.number().int().min(1).max(3650).optional().nullable(),
+  tool_scope: z.string().max(50).optional().nullable(),
+  tool_free_uses: z.number().int().min(0).max(10000).optional().default(0),
   expires_at: z.string().datetime().optional().nullable(),
   max_redemptions: z.number().int().min(1).optional().nullable(),
   max_per_user: z.number().int().min(1).default(1),

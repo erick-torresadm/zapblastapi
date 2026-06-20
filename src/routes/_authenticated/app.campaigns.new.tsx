@@ -13,13 +13,19 @@ import { toast } from "sonner";
 import { previewSpintax } from "@/lib/spintax";
 import { formatPhone } from "@/lib/format-instance";
 
-export const Route = createFileRoute("/_authenticated/app/campaigns/new")({ component: NewCampaign });
+export const Route = createFileRoute("/_authenticated/app/campaigns/new")({
+  component: NewCampaign,
+  validateSearch: (search: Record<string, unknown>) => ({
+    list_id: typeof search.list_id === "string" ? search.list_id : undefined,
+  }),
+});
 
 function NewCampaign() {
   const nav = useNavigate();
+  const { list_id: initialListId } = Route.useSearch();
   const [form, setForm] = useState({
     name: "",
-    list_id: "",
+    list_id: initialListId ?? "",
     message_template: "",
     min_delay_s: 15,
     max_delay_s: 60,

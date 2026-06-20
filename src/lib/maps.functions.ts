@@ -143,27 +143,38 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // 1. Check + debit upfront
+    // 1. Try free credit first; otherwise debit wallet
     const cost = TOOL_PRICES.maps_search_flat_cents;
-    const balance = await getBalance(supabase, userId);
-    if (balance < cost) {
-      throw new Error(`Saldo insuficiente. Necessário ${(cost / 100).toFixed(2).replace(".", ",")} (R$). Disponível R$ ${(balance / 100).toFixed(2).replace(".", ",")}. Adicione saldo na Carteira.`);
+    let usedFree = false;
+    const { data: usedCredit, error: creditErr } = await supabase.rpc("consume_tool_credit" as never, { _tool: "maps_search" } as never);
+    if (creditErr) throw new Error(`Falha ao consumir crédito: ${creditErr.message}`);
+    if (usedCredit === true) {
+      usedFree = true;
+    } else {
+      const balance = await getBalance(supabase, userId);
+      if (balance < cost) {
+        throw new Error(`Saldo insuficiente. Necessário R$ ${(cost / 100).toFixed(2).replace(".", ",")}. Disponível R$ ${(balance / 100).toFixed(2).replace(".", ",")}. Use um cupom de busca grátis ou adicione saldo.`);
+      }
+      const { error: debitErr } = await supabase.rpc("debit_wallet" as never, {
+        _amount_cents: cost,
+        _description: `Maps: ${data.query}${data.city ? ` em ${data.city}` : ""}`,
+      } as never);
+      if (debitErr) throw new Error(`Falha ao debitar saldo: ${debitErr.message}`);
     }
-    const { error: debitErr } = await supabase.rpc("debit_wallet" as never, {
-      _amount_cents: cost,
-      _description: `Maps: ${data.query}${data.city ? ` em ${data.city}` : ""}`,
-    } as never);
-    if (debitErr) throw new Error(`Falha ao debitar saldo: ${debitErr.message}`);
 
-    // Refund helper
+    // Refund helper (returns credit if used free; refunds wallet otherwise)
     async function refund(reason: string) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await supabaseAdmin.rpc("credit_wallet" as never, {
-        _user_id: userId,
-        _amount_cents: cost,
-        _type: "refund",
-        _description: `Reembolso Maps: ${reason}`,
-      } as never);
+      if (usedFree) {
+        await supabaseAdmin.rpc("refund_tool_credit" as never, { _user_id: userId, _tool: "maps_search" } as never);
+      } else {
+        await supabaseAdmin.rpc("credit_wallet" as never, {
+          _user_id: userId,
+          _amount_cents: cost,
+          _type: "refund",
+          _description: `Reembolso Maps: ${reason}`,
+        } as never);
+      }
     }
 
     // 2. Run Maps calls (paginate up to maps_search_max_leads)
@@ -241,6 +252,8 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
         cost_cents: 0,
         refunded: true,
         whatsapp_valid_count: 0,
+        used_free: usedFree,
+        can_download: false,
       };
     }
 
@@ -320,7 +333,7 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
       whatsapp_check: !!data.whatsapp_check,
       leads_returned: leads.length,
       whatsapp_valid_count: whatsappValid,
-      cost_cents: cost + extraCost,
+      cost_cents: usedFree ? extraCost : cost + extraCost,
       refunded: false,
       results: leads as never,
     });
@@ -328,9 +341,11 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
     return {
       leads,
       total: leads.length,
-      cost_cents: cost + extraCost,
+      cost_cents: usedFree ? extraCost : cost + extraCost,
       refunded: false,
       whatsapp_valid_count: whatsappValid,
+      used_free: usedFree,
+      can_download: !usedFree,
     };
   });
 

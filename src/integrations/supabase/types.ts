@@ -575,6 +575,8 @@ export type Database = {
           max_redemptions: number | null
           plan_id: string | null
           redemptions_count: number
+          tool_free_uses: number
+          tool_scope: string | null
           type: Database["public"]["Enums"]["coupon_type"]
           updated_at: string
           value: number
@@ -592,6 +594,8 @@ export type Database = {
           max_redemptions?: number | null
           plan_id?: string | null
           redemptions_count?: number
+          tool_free_uses?: number
+          tool_scope?: string | null
           type: Database["public"]["Enums"]["coupon_type"]
           updated_at?: string
           value?: number
@@ -609,6 +613,8 @@ export type Database = {
           max_redemptions?: number | null
           plan_id?: string | null
           redemptions_count?: number
+          tool_free_uses?: number
+          tool_scope?: string | null
           type?: Database["public"]["Enums"]["coupon_type"]
           updated_at?: string
           value?: number
@@ -1671,6 +1677,7 @@ export type Database = {
           max_contacts_per_list: number
           max_crm_agents: number
           max_messages_per_day: number
+          monthly_free_maps_searches: number
           name: string
           price_annual_cents: number | null
           price_cents: number
@@ -1693,6 +1700,7 @@ export type Database = {
           max_contacts_per_list?: number
           max_crm_agents?: number
           max_messages_per_day?: number
+          monthly_free_maps_searches?: number
           name: string
           price_annual_cents?: number | null
           price_cents: number
@@ -1715,6 +1723,7 @@ export type Database = {
           max_contacts_per_list?: number
           max_crm_agents?: number
           max_messages_per_day?: number
+          monthly_free_maps_searches?: number
           name?: string
           price_annual_cents?: number | null
           price_cents?: number
@@ -1796,6 +1805,53 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tool_credits: {
+        Row: {
+          coupon_id: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          note: string | null
+          remaining: number
+          source: string
+          tool: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coupon_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          note?: string | null
+          remaining?: number
+          source?: string
+          tool: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coupon_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          note?: string | null
+          remaining?: number
+          source?: string
+          tool?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_credits_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
             referencedColumns: ["id"]
           },
         ]
@@ -2137,6 +2193,7 @@ export type Database = {
         Args: { _email: string; _ip: string }
         Returns: Json
       }
+      consume_tool_credit: { Args: { _tool: string }; Returns: boolean }
       credit_wallet: {
         Args: {
           _amount_cents: number
@@ -2159,6 +2216,7 @@ export type Database = {
         Returns: number
       }
       expire_trials: { Args: never; Returns: number }
+      get_tool_credits_balance: { Args: { _tool?: string }; Returns: Json }
       get_user_plan_limits: { Args: { _user_id: string }; Returns: Json }
       grant_manual_plan: {
         Args: {
@@ -2213,6 +2271,11 @@ export type Database = {
           _subscription_id?: string
         }
         Returns: Json
+      }
+      redeem_tool_credit_coupon: { Args: { _code: string }; Returns: Json }
+      refund_tool_credit: {
+        Args: { _tool: string; _user_id: string }
+        Returns: undefined
       }
       validate_coupon: {
         Args: { _code: string; _plan_id?: string }

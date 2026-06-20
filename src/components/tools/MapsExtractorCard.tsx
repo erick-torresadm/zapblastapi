@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,10 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { MapPin, Search, Loader2, Download, Star, ExternalLink, Phone, Globe, MessageCircle } from "lucide-react";
+import { MapPin, Search, Loader2, Download, Star, ExternalLink, Phone, Globe, MessageCircle, Send, Gift, Ticket, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { searchMapsLeadsFn } from "@/lib/maps.functions";
+import { getToolCreditsFn, redeemToolCreditCouponFn, pushMapsLeadsToListFn } from "@/lib/tool-credits.functions";
 import { formatPhone } from "@/lib/format-instance";
 
 declare global {
@@ -68,6 +69,11 @@ export function MapsExtractorCard({
   onSuccess: () => void;
 }) {
   const run = useServerFn(searchMapsLeadsFn);
+  const getCredits = useServerFn(getToolCreditsFn);
+  const redeemCoupon = useServerFn(redeemToolCreditCouponFn);
+  const pushToList = useServerFn(pushMapsLeadsToListFn);
+  const qc = useQueryClient();
+  const nav = useNavigate();
   const [mode, setMode] = useState<"text" | "nearby">("text");
   const [query, setQuery] = useState("");
   const [city, setCity] = useState("");
@@ -78,8 +84,12 @@ export function MapsExtractorCard({
   const [waCheck, setWaCheck] = useState(false);
   const [waInstance, setWaInstance] = useState<string>("");
   const [result, setResult] = useState<any | null>(null);
+  const [couponCode, setCouponCode] = useState("");
 
-  const insufficient = balance < flatPrice;
+  const creditsQ = useQuery({ queryKey: ["tool-credits"], queryFn: () => getCredits() });
+  const freeMaps = Number((creditsQ.data as any)?.maps_search ?? 0);
+  const hasFree = freeMaps > 0;
+  const insufficient = !hasFree && balance < flatPrice;
 
   const mut = useMutation({
     mutationFn: () => run({
@@ -98,12 +108,49 @@ export function MapsExtractorCard({
     }),
     onSuccess: (r) => {
       setResult(r);
+      qc.invalidateQueries({ queryKey: ["tool-credits"] });
       if (r.refunded) {
-        toast.warning("Nenhum lead retornado — saldo reembolsado");
+        toast.warning("Nenhum lead retornado — saldo/crédito reembolsado");
+      } else if (r.used_free) {
+        toast.success(`${r.total} leads grátis encontrados • ${freeMaps - 1} buscas grátis restantes`);
       } else {
         toast.success(`${r.total} leads encontrados • debitado ${brl(r.cost_cents)}`);
       }
       onSuccess();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const redeem = useMutation({
+    mutationFn: () => redeemCoupon({ data: { code: couponCode.trim() } }),
+    onSuccess: (r: any) => {
+      if (r?.ok) {
+        toast.success(r.message ?? "Cupom resgatado!");
+        setCouponCode("");
+        qc.invalidateQueries({ queryKey: ["tool-credits"] });
+      } else {
+        toast.error(r?.message ?? "Cupom inválido");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const sendToCampaign = useMutation({
+    mutationFn: async () => {
+      if (!result?.leads?.length) throw new Error("Sem leads para enviar");
+      const phoneLeads = result.leads
+        .filter((l: any) => l.phone)
+        .map((l: any) => ({
+          name: l.name, phone: l.phone,
+          address: l.address ?? null, website: l.website ?? null, category: l.category ?? null,
+        }));
+      if (phoneLeads.length === 0) throw new Error("Nenhum lead com telefone para enviar");
+      const listName = `Maps • ${query || category || "leads"}${city ? ` • ${city}` : ""} • ${new Date().toLocaleDateString("pt-BR")}`;
+      return pushToList({ data: { list_name: listName.slice(0, 120), leads: phoneLeads } });
+    },
+    onSuccess: (r) => {
+      toast.success(`Lista criada com ${r.inserted} contatos`);
+      nav({ to: "/app/campaigns/new", search: { list_id: r.list_id } as any });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -141,10 +188,39 @@ export function MapsExtractorCard({
               Busque negócios reais no Google Maps. Devolve nome, telefone, endereço e site — pronto pra atacar.
             </CardDescription>
           </div>
-          <Badge variant="secondary" className="shrink-0">{brl(flatPrice)} / busca</Badge>
+          {hasFree ? (
+            <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+              <Gift className="mr-1 h-3 w-3" /> {freeMaps} grátis
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="shrink-0">{brl(flatPrice)} / busca</Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Coupon redeem */}
+        <div className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3">
+          <div className="flex-1 min-w-[180px] space-y-1">
+            <Label className="flex items-center gap-1.5 text-xs">
+              <Ticket className="h-3.5 w-3.5" /> Cupom de buscas grátis
+            </Label>
+            <Input
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              placeholder="Ex: YOUTUBE5"
+              className="h-9"
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!couponCode.trim() || redeem.isPending}
+            onClick={() => redeem.mutate()}
+          >
+            {redeem.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Gift className="mr-2 h-4 w-4" />}
+            Resgatar
+          </Button>
+        </div>
         <Tabs value={mode} onValueChange={(v) => setMode(v as any)}>
           <TabsList>
             <TabsTrigger value="text">Busca rápida</TabsTrigger>
@@ -234,8 +310,17 @@ export function MapsExtractorCard({
 
         <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
           <div>
-            <strong className="text-foreground">{brl(flatPrice)} fixo por busca</strong>
-            <p className="text-xs text-muted-foreground">Até {maxLeads} leads • Reembolso automático se vier 0</p>
+            {hasFree ? (
+              <>
+                <strong className="text-emerald-700 dark:text-emerald-400">{freeMaps} busca(s) grátis disponível(is)</strong>
+                <p className="text-xs text-muted-foreground">Buscas grátis liberam só o envio direto pra campanha — CSV é exclusivo de busca paga.</p>
+              </>
+            ) : (
+              <>
+                <strong className="text-foreground">{brl(flatPrice)} fixo por busca</strong>
+                <p className="text-xs text-muted-foreground">Até {maxLeads} leads • Reembolso automático se vier 0 • Inclui download CSV</p>
+              </>
+            )}
           </div>
           <span className={insufficient ? "font-semibold text-destructive" : "text-muted-foreground"}>
             Saldo: {brl(balance)}
@@ -263,7 +348,7 @@ export function MapsExtractorCard({
 
         {result && result.leads.length > 0 && (
           <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <div className="text-sm font-semibold">{result.total} leads encontrados</div>
                 <div className="text-xs text-muted-foreground">
@@ -271,10 +356,32 @@ export function MapsExtractorCard({
                   {result.whatsapp_valid_count > 0 && ` • ${result.whatsapp_valid_count} com WhatsApp ativo`}
                 </div>
               </div>
-              <Button onClick={exportCsv} variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" /> CSV
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => sendToCampaign.mutate()}
+                  disabled={sendToCampaign.isPending || phonesEst === 0}
+                  size="sm"
+                >
+                  {sendToCampaign.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                  Enviar para campanha
+                </Button>
+                {result.can_download ? (
+                  <Button onClick={exportCsv} variant="outline" size="sm">
+                    <Download className="mr-2 h-4 w-4" /> CSV
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" disabled title="Disponível em buscas pagas">
+                    <Lock className="mr-2 h-4 w-4" /> CSV bloqueado
+                  </Button>
+                )}
+              </div>
             </div>
+            {!result.can_download && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
+                Esta busca foi gratuita. Os números ficam disponíveis para disparo dentro da plataforma.
+                Para baixar o CSV, faça uma busca paga ({brl(flatPrice)}).
+              </div>
+            )}
             <div className="max-h-[400px] space-y-2 overflow-y-auto">
               {result.leads.slice(0, 50).map((l: any) => (
                 <div key={l.place_id} className="flex items-start justify-between gap-2 rounded-md border border-border/40 bg-background p-3 text-xs">
