@@ -310,9 +310,35 @@ function BillingPage() {
                   className="w-full"
                   variant={isCurrent ? "outline" : (isUpgrade || p.featured) ? "default" : "outline"}
                   disabled={isCurrent}
-                  onClick={() => showAnnual
-                    ? setPixPlan({ id: p.id, name: p.name, annual: annualTotal })
-                    : setCardPlan({ id: p.id, name: p.name, price: p.price_cents })}
+                  onClick={() => {
+                    const proceed = () => showAnnual
+                      ? setPixPlan({ id: p.id, name: p.name, annual: annualTotal, upgrade: isUpgrade })
+                      : setCardPlan({ id: p.id, name: p.name, price: p.price_cents });
+
+                    // Se está trocando de plano (upgrade ou downgrade), mostra confirmação primeiro
+                    if ((isUpgrade || isDowngrade) && hasActivePaid && sub?.subscription_plans) {
+                      setConfirmChange({
+                        currentPlanName: sub.subscription_plans.name,
+                        newPlanName: p.name,
+                        cycle: showAnnual ? "annual" : "monthly",
+                        changeType: isUpgrade ? "upgrade" : "downgrade",
+                        currentPriceCents: currentMonthly,
+                        newPriceCents: p.price_cents,
+                        diffCents: showAnnual ? priceDiffAnnual : priceDiffMonthly,
+                        currentPeriodEnd: sub.current_period_end,
+                        onConfirm: () => {
+                          // Downgrade no anual: não abre PIX (sem cobrança)
+                          if (isDowngrade && showAnnual) {
+                            toast.info("Downgrade agendado para a próxima renovação anual.");
+                            return;
+                          }
+                          proceed();
+                        },
+                      });
+                    } else {
+                      proceed();
+                    }
+                  }}
                 >
                   <CtaIcon className="h-4 w-4 mr-2" />
                   {cardLabel}
