@@ -85,6 +85,23 @@ export const Route = createFileRoute("/api/public/group-launcher/tick")({
               try { await updateGroupPicture(server, inst.instance_name, jid, job.image_url); } catch { /* non-fatal */ }
             }
 
+            // Invite extras + promote admins (best-effort, non-fatal)
+            const extras = normalizePhoneList(campaign.extra_participants as string[] | null)
+              .filter((p) => p !== participantPhone);
+            const admins = normalizePhoneList(campaign.admin_participants as string[] | null)
+              .filter((p) => p !== participantPhone);
+            if (extras.length) {
+              try {
+                await updateGroupParticipant(server, inst.instance_name, jid, "add", extras);
+              } catch (e) { out.errors.push(`add participants ${jid}: ${(e as Error).message}`); }
+            }
+            if (admins.length) {
+              await new Promise((r) => setTimeout(r, 600));
+              try {
+                await updateGroupParticipant(server, inst.instance_name, jid, "promote", admins);
+              } catch (e) { out.errors.push(`promote admins ${jid}: ${(e as Error).message}`); }
+            }
+
             // figure out next position
             const { data: maxRow } = await supabaseAdmin
               .from("group_campaign_links")
