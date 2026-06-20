@@ -43,6 +43,7 @@ import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppAntiBanRouteImport } from './routes/_authenticated/app.anti-ban'
 import { Route as AuthenticatedAppAgendaRouteImport } from './routes/_authenticated/app.agenda'
 import { Route as AuthenticatedAppTrafficIndexRouteImport } from './routes/_authenticated/app.traffic.index'
+import { Route as AuthenticatedAppGroupLauncherIndexRouteImport } from './routes/_authenticated/app.group-launcher.index'
 import { Route as AuthenticatedAppFlowsIndexRouteImport } from './routes/_authenticated/app.flows.index'
 import { Route as AuthenticatedAppCampaignsIndexRouteImport } from './routes/_authenticated/app.campaigns.index'
 import { Route as ApiPublicGroupLauncherTickRouteImport } from './routes/api/public/group-launcher.tick'
@@ -232,6 +233,12 @@ const AuthenticatedAppTrafficIndexRoute =
     path: '/app/traffic/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppGroupLauncherIndexRoute =
+  AuthenticatedAppGroupLauncherIndexRouteImport.update({
+    id: '/app/group-launcher/',
+    path: '/app/group-launcher/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppFlowsIndexRoute =
   AuthenticatedAppFlowsIndexRouteImport.update({
     id: '/',
@@ -362,6 +369,7 @@ export interface FileRoutesByFullPath {
   '/api/public/group-launcher/tick': typeof ApiPublicGroupLauncherTickRoute
   '/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
+  '/app/group-launcher/': typeof AuthenticatedAppGroupLauncherIndexRoute
   '/app/traffic/': typeof AuthenticatedAppTrafficIndexRoute
   '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
@@ -410,6 +418,7 @@ export interface FileRoutesByTo {
   '/api/public/group-launcher/tick': typeof ApiPublicGroupLauncherTickRoute
   '/app/campaigns': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows': typeof AuthenticatedAppFlowsIndexRoute
+  '/app/group-launcher': typeof AuthenticatedAppGroupLauncherIndexRoute
   '/app/traffic': typeof AuthenticatedAppTrafficIndexRoute
   '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
@@ -462,6 +471,7 @@ export interface FileRoutesById {
   '/api/public/group-launcher/tick': typeof ApiPublicGroupLauncherTickRoute
   '/_authenticated/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/_authenticated/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
+  '/_authenticated/app/group-launcher/': typeof AuthenticatedAppGroupLauncherIndexRoute
   '/_authenticated/app/traffic/': typeof AuthenticatedAppTrafficIndexRoute
   '/_authenticated/_admin/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/_authenticated/_admin/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
@@ -513,6 +523,7 @@ export interface FileRouteTypes {
     | '/api/public/group-launcher/tick'
     | '/app/campaigns/'
     | '/app/flows/'
+    | '/app/group-launcher/'
     | '/app/traffic/'
     | '/app/admin/catalog'
     | '/app/admin/coupons'
@@ -561,6 +572,7 @@ export interface FileRouteTypes {
     | '/api/public/group-launcher/tick'
     | '/app/campaigns'
     | '/app/flows'
+    | '/app/group-launcher'
     | '/app/traffic'
     | '/app/admin/catalog'
     | '/app/admin/coupons'
@@ -612,6 +624,7 @@ export interface FileRouteTypes {
     | '/api/public/group-launcher/tick'
     | '/_authenticated/app/campaigns/'
     | '/_authenticated/app/flows/'
+    | '/_authenticated/app/group-launcher/'
     | '/_authenticated/app/traffic/'
     | '/_authenticated/_admin/app/admin/catalog'
     | '/_authenticated/_admin/app/admin/coupons'
@@ -883,6 +896,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppTrafficIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/group-launcher/': {
+      id: '/_authenticated/app/group-launcher/'
+      path: '/app/group-launcher'
+      fullPath: '/app/group-launcher/'
+      preLoaderRoute: typeof AuthenticatedAppGroupLauncherIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/flows/': {
       id: '/_authenticated/app/flows/'
       path: '/'
@@ -1063,6 +1083,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppCampaignsIdRoute: typeof AuthenticatedAppCampaignsIdRoute
   AuthenticatedAppCampaignsNewRoute: typeof AuthenticatedAppCampaignsNewRoute
   AuthenticatedAppCampaignsIndexRoute: typeof AuthenticatedAppCampaignsIndexRoute
+  AuthenticatedAppGroupLauncherIndexRoute: typeof AuthenticatedAppGroupLauncherIndexRoute
   AuthenticatedAppTrafficIndexRoute: typeof AuthenticatedAppTrafficIndexRoute
   AuthenticatedAppTrafficIdAnalyticsRoute: typeof AuthenticatedAppTrafficIdAnalyticsRoute
   AuthenticatedAppTrafficIdEditorRoute: typeof AuthenticatedAppTrafficIdEditorRoute
@@ -1089,6 +1110,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppCampaignsIdRoute: AuthenticatedAppCampaignsIdRoute,
   AuthenticatedAppCampaignsNewRoute: AuthenticatedAppCampaignsNewRoute,
   AuthenticatedAppCampaignsIndexRoute: AuthenticatedAppCampaignsIndexRoute,
+  AuthenticatedAppGroupLauncherIndexRoute:
+    AuthenticatedAppGroupLauncherIndexRoute,
   AuthenticatedAppTrafficIndexRoute: AuthenticatedAppTrafficIndexRoute,
   AuthenticatedAppTrafficIdAnalyticsRoute:
     AuthenticatedAppTrafficIdAnalyticsRoute,
