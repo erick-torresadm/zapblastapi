@@ -156,7 +156,7 @@ function InstancesPage() {
                   const s = statusVariant[i.status] ?? statusVariant.disconnected;
                   return (
                     <TableRow key={i.id}>
-                      <TableCell className="font-medium">{i.instance_name}<div className="text-xs text-muted-foreground">{i.phone_number ?? "—"}</div></TableCell>
+                      <TableCell className="font-medium">{i.instance_name}<div className="text-xs text-muted-foreground">{formatPhone(i.phone_number)}</div></TableCell>
                       <TableCell className="flex items-center gap-2">{i.server_is_shared ? <Badge variant="outline" className="gap-1 text-[10px]"><Shield className="h-3 w-3" />Perseidas</Badge> : <span>{i.server_name}</span>}</TableCell>
                       <TableCell><Badge className={s.cls}>{s.label}</Badge></TableCell>
                       <TableCell>{i.sent_today}</TableCell>
