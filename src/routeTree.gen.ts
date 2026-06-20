@@ -50,6 +50,7 @@ import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppFlowsIdRouteImport } from './routes/_authenticated/app.flows.$id'
 import { Route as AuthenticatedAppCampaignsNewRouteImport } from './routes/_authenticated/app.campaigns.new'
 import { Route as AuthenticatedAppCampaignsIdRouteImport } from './routes/_authenticated/app.campaigns.$id'
+import { Route as AuthenticatedAppTrafficIdEditorRouteImport } from './routes/_authenticated/app.traffic.$id.editor'
 import { Route as AuthenticatedAdminAppAdminUsersRouteImport } from './routes/_authenticated/_admin.app.admin.users'
 import { Route as AuthenticatedAdminAppAdminSecurityRouteImport } from './routes/_authenticated/_admin.app.admin.security'
 import { Route as AuthenticatedAdminAppAdminCouponsRouteImport } from './routes/_authenticated/_admin.app.admin.coupons'
@@ -269,6 +270,12 @@ const AuthenticatedAppCampaignsIdRoute =
     path: '/app/campaigns/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppTrafficIdEditorRoute =
+  AuthenticatedAppTrafficIdEditorRouteImport.update({
+    id: '/app/traffic/$id/editor',
+    path: '/app/traffic/$id/editor',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminAppAdminUsersRoute =
   AuthenticatedAdminAppAdminUsersRouteImport.update({
     id: '/app/admin/users',
@@ -338,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
   '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
   '/app/admin/users': typeof AuthenticatedAdminAppAdminUsersRoute
+  '/app/traffic/$id/editor': typeof AuthenticatedAppTrafficIdEditorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -382,6 +390,7 @@ export interface FileRoutesByTo {
   '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
   '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
   '/app/admin/users': typeof AuthenticatedAdminAppAdminUsersRoute
+  '/app/traffic/$id/editor': typeof AuthenticatedAppTrafficIdEditorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -430,6 +439,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
   '/_authenticated/_admin/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
   '/_authenticated/_admin/app/admin/users': typeof AuthenticatedAdminAppAdminUsersRoute
+  '/_authenticated/app/traffic/$id/editor': typeof AuthenticatedAppTrafficIdEditorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -477,6 +487,7 @@ export interface FileRouteTypes {
     | '/app/admin/coupons'
     | '/app/admin/security'
     | '/app/admin/users'
+    | '/app/traffic/$id/editor'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -521,6 +532,7 @@ export interface FileRouteTypes {
     | '/app/admin/coupons'
     | '/app/admin/security'
     | '/app/admin/users'
+    | '/app/traffic/$id/editor'
   id:
     | '__root__'
     | '/'
@@ -568,6 +580,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/app/admin/coupons'
     | '/_authenticated/_admin/app/admin/security'
     | '/_authenticated/_admin/app/admin/users'
+    | '/_authenticated/app/traffic/$id/editor'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -879,6 +892,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppCampaignsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/traffic/$id/editor': {
+      id: '/_authenticated/app/traffic/$id/editor'
+      path: '/app/traffic/$id/editor'
+      fullPath: '/app/traffic/$id/editor'
+      preLoaderRoute: typeof AuthenticatedAppTrafficIdEditorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/_admin/app/admin/users': {
       id: '/_authenticated/_admin/app/admin/users'
       path: '/app/admin/users'
@@ -983,6 +1003,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppCampaignsNewRoute: typeof AuthenticatedAppCampaignsNewRoute
   AuthenticatedAppCampaignsIndexRoute: typeof AuthenticatedAppCampaignsIndexRoute
   AuthenticatedAppTrafficIndexRoute: typeof AuthenticatedAppTrafficIndexRoute
+  AuthenticatedAppTrafficIdEditorRoute: typeof AuthenticatedAppTrafficIdEditorRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1007,6 +1028,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppCampaignsNewRoute: AuthenticatedAppCampaignsNewRoute,
   AuthenticatedAppCampaignsIndexRoute: AuthenticatedAppCampaignsIndexRoute,
   AuthenticatedAppTrafficIndexRoute: AuthenticatedAppTrafficIndexRoute,
+  AuthenticatedAppTrafficIdEditorRoute: AuthenticatedAppTrafficIdEditorRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
