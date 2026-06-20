@@ -2,5 +2,8 @@ User-agent: *
 Allow: /
 Disallow: /app/
 Disallow: /api/
+Disallow: /f/
+Disallow: /agenda/
+Disallow: /convite/
 
 Sitemap: https://zapblastapi.lovable.app/sitemap.xml
