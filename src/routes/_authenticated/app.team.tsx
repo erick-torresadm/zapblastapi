@@ -9,9 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Trash2 } from "lucide-react";
+import { Users, Plus, Trash2, Link2, Copy, X } from "lucide-react";
 import { toast } from "sonner";
 import { listAgentsFn, addAgentFn, updateAgentFn, removeAgentFn } from "@/lib/crm.functions";
+import { listInviteLinksFn, createInviteLinkFn, revokeInviteLinkFn } from "@/lib/invites.functions";
 
 export const Route = createFileRoute("/_authenticated/app/team")({ component: TeamPage });
 
