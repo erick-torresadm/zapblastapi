@@ -190,7 +190,7 @@ export function MessageBubble({
         )}
         {m.media_type === "audio" && url && (
           <div className="px-2 py-1">
-            <AudioPlayer url={url} duration={m.duration_seconds} ptt={!!m.is_ptt} />
+            <AudioMessage url={url} duration={m.duration_seconds} ptt={!!m.is_ptt} isOut={isOut} />
           </div>
         )}
         {m.media_type === "document" && (
