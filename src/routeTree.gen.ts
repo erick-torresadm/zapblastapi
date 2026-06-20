@@ -42,6 +42,7 @@ import { Route as AuthenticatedAppFlowsIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppCampaignsNewRouteImport } from './routes/_authenticated/app.campaigns.new'
 import { Route as AuthenticatedAppCampaignsIdRouteImport } from './routes/_authenticated/app.campaigns.$id'
 import { Route as AuthenticatedAdminAppAdminSecurityRouteImport } from './routes/_authenticated/_admin.app.admin.security'
+import { Route as AuthenticatedAdminAppAdminCouponsRouteImport } from './routes/_authenticated/_admin.app.admin.coupons'
 import { Route as AuthenticatedAdminAppAdminCatalogRouteImport } from './routes/_authenticated/_admin.app.admin.catalog'
 
 const TermosRoute = TermosRouteImport.update({
@@ -218,6 +219,12 @@ const AuthenticatedAdminAppAdminSecurityRoute =
     path: '/app/admin/security',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminAppAdminCouponsRoute =
+  AuthenticatedAdminAppAdminCouponsRouteImport.update({
+    id: '/app/admin/coupons',
+    path: '/app/admin/coupons',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminAppAdminCatalogRoute =
   AuthenticatedAdminAppAdminCatalogRouteImport.update({
     id: '/app/admin/catalog',
@@ -257,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
   '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
+  '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
   '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
 }
 export interface FileRoutesByTo {
@@ -290,6 +298,7 @@ export interface FileRoutesByTo {
   '/app/campaigns': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows': typeof AuthenticatedAppFlowsIndexRoute
   '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
+  '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
   '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
 }
 export interface FileRoutesById {
@@ -327,6 +336,7 @@ export interface FileRoutesById {
   '/_authenticated/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/_authenticated/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
   '/_authenticated/_admin/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
+  '/_authenticated/_admin/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
   '/_authenticated/_admin/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
 }
 export interface FileRouteTypes {
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/app/campaigns/'
     | '/app/flows/'
     | '/app/admin/catalog'
+    | '/app/admin/coupons'
     | '/app/admin/security'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -396,6 +407,7 @@ export interface FileRouteTypes {
     | '/app/campaigns'
     | '/app/flows'
     | '/app/admin/catalog'
+    | '/app/admin/coupons'
     | '/app/admin/security'
   id:
     | '__root__'
@@ -432,6 +444,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/campaigns/'
     | '/_authenticated/app/flows/'
     | '/_authenticated/_admin/app/admin/catalog'
+    | '/_authenticated/_admin/app/admin/coupons'
     | '/_authenticated/_admin/app/admin/security'
   fileRoutesById: FileRoutesById
 }
@@ -681,6 +694,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAppAdminSecurityRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/_admin/app/admin/coupons': {
+      id: '/_authenticated/_admin/app/admin/coupons'
+      path: '/app/admin/coupons'
+      fullPath: '/app/admin/coupons'
+      preLoaderRoute: typeof AuthenticatedAdminAppAdminCouponsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/_admin/app/admin/catalog': {
       id: '/_authenticated/_admin/app/admin/catalog'
       path: '/app/admin/catalog'
@@ -693,6 +713,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminAppAdminCatalogRoute: typeof AuthenticatedAdminAppAdminCatalogRoute
+  AuthenticatedAdminAppAdminCouponsRoute: typeof AuthenticatedAdminAppAdminCouponsRoute
   AuthenticatedAdminAppAdminSecurityRoute: typeof AuthenticatedAdminAppAdminSecurityRoute
 }
 
@@ -700,6 +721,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
   {
     AuthenticatedAdminAppAdminCatalogRoute:
       AuthenticatedAdminAppAdminCatalogRoute,
+    AuthenticatedAdminAppAdminCouponsRoute:
+      AuthenticatedAdminAppAdminCouponsRoute,
     AuthenticatedAdminAppAdminSecurityRoute:
       AuthenticatedAdminAppAdminSecurityRoute,
   }
