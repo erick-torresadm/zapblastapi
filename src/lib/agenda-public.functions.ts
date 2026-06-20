@@ -65,7 +65,7 @@ export const bookAppointmentFn = createServerFn({ method: "POST" })
       _starts_at: data.starts_at,
       _customer_name: data.customer_name,
       _customer_phone: data.customer_phone,
-      _customer_notes: data.customer_notes ?? null,
+      _customer_notes: data.customer_notes ?? "",
     });
     if (error) throw new Error(error.message);
     return result as { ok: boolean; message?: string; appointment_id?: string; confirm_token?: string };
