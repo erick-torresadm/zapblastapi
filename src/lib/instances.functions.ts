@@ -2,14 +2,17 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-// Resolve um servidor por ID: usa cliente do usuário (RLS) para próprios; admin para compartilhado.
+// Resolve um servidor por ID. api_key não é mais legível pelo authenticated
+// (column-level security), então buscamos via service_role e validamos ownership/sharing.
 async function resolveServer(serverId: string, userClient: any) {
-  const { data: own } = await userClient.from("evolution_servers").select("*").eq("id", serverId).maybeSingle();
-  if (own) return { server: own, isShared: own.is_shared as boolean };
+  const { data: userRow } = await userClient.auth.getUser();
+  const uid = userRow?.user?.id as string | undefined;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: shared } = await supabaseAdmin.from("evolution_servers").select("*").eq("id", serverId).eq("is_shared", true).maybeSingle();
-  if (!shared) return null;
-  return { server: shared, isShared: true };
+  const { data: srv } = await supabaseAdmin.from("evolution_servers").select("*").eq("id", serverId).maybeSingle();
+  if (!srv) return null;
+  if (srv.is_shared) return { server: srv, isShared: true };
+  if (uid && srv.user_id === uid) return { server: srv, isShared: false };
+  return null;
 }
 
 export const listAvailableServersFn = createServerFn({ method: "GET" })
