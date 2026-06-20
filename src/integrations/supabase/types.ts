@@ -2497,6 +2497,7 @@ export type Database = {
           card_last4: string | null
           created_at: string
           current_period_end: string | null
+          current_period_start: string | null
           efi_subscription_id: number | null
           id: string
           next_charge_at: string | null
@@ -2518,6 +2519,7 @@ export type Database = {
           card_last4?: string | null
           created_at?: string
           current_period_end?: string | null
+          current_period_start?: string | null
           efi_subscription_id?: number | null
           id?: string
           next_charge_at?: string | null
@@ -2539,6 +2541,7 @@ export type Database = {
           card_last4?: string | null
           created_at?: string
           current_period_end?: string | null
+          current_period_start?: string | null
           efi_subscription_id?: number | null
           id?: string
           next_charge_at?: string | null
