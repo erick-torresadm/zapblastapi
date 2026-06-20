@@ -31,7 +31,7 @@ export const listKeywordTriggersFn = createServerFn({ method: "GET" })
 
     const query = supabase
       .from("flow_keyword_triggers" as any)
-      .select("id,user_id,flow_id,instance_id,keywords,match_mode,active,created_by_admin,allow_from_me,delay_seconds,cooldown_seconds,created_at,updated_at")
+      .select("id,user_id,flow_id,instance_id,keywords,match_mode,active,created_by_admin,allow_from_me,delay_seconds,cooldown_seconds,per_contact_cooldown_seconds,last_triggered_at,created_at,updated_at")
       .order("created_at", { ascending: false });
 
     const { data, error } = admin ? await query : await query.eq("user_id", userId);
