@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Copy, ExternalLink, Trash2, RefreshCw, Loader2, ChevronRight } from "lucide-react";
+import { ArrowLeft, Copy, ExternalLink, Trash2, RefreshCw, Loader2, ChevronRight, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   getGroupCampaignFn, enqueueBulkCreateFn, pasteGroupLinksFn,
@@ -38,6 +38,7 @@ function Page() {
   const { campaign, links, jobs } = data;
   const publicUrl = typeof window !== "undefined" ? `${window.location.origin}/g/${campaign.slug}` : `/g/${campaign.slug}`;
   const pendingJobs = jobs.filter((j) => j.status === "pending" || j.status === "processing").length;
+  const failedJobs = jobs.filter((j) => j.status === "failed");
 
   return (
     <div className="space-y-6">
@@ -81,6 +82,15 @@ function Page() {
             <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm">
               <Loader2 className="h-4 w-4 animate-spin" />
               Criando {pendingJobs} grupo(s) em background…
+            </div>
+          )}
+          {failedJobs.length > 0 && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <div>{failedJobs.length} grupo(s) falharam na última criação.</div>
+                <div className="text-xs opacity-90">{failedJobs[0].last_error}</div>
+              </div>
             </div>
           )}
         </CardContent>
