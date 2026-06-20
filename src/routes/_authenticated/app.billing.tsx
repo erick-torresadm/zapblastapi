@@ -353,3 +353,95 @@ function BillingPage() {
     </div>
   );
 }
+
+function CouponGlobalSection({ plans }: { plans: any[] }) {
+  const qc = useQueryClient();
+  const validate = useServerFn(validateCouponFn);
+  const applyFree = useServerFn(applyFreeCouponFn);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [applied, setApplied] = useState<any>(null);
+  const [selPlan, setSelPlan] = useState<string>("");
+
+  const tryValidate = async () => {
+    if (!code.trim()) return;
+    setBusy(true);
+    try {
+      const r = await validate({ data: { code: code.trim(), plan_id: null } });
+      if (!r.valid) { toast.error(r.message); setApplied(null); return; }
+      setApplied({ ...r, code: code.trim().toUpperCase() });
+      toast.success("Cupom válido! " + (r.type === "free" ? "Escolha o plano para ativar grátis." : "Aplique no checkout do plano."));
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro");
+    } finally { setBusy(false); }
+  };
+
+  const activate = async () => {
+    if (!applied || !selPlan) return;
+    setBusy(true);
+    try {
+      const r = await applyFree({ data: { code: applied.code, plan_id: selPlan } });
+      if (!r.valid) { toast.error(r.message ?? "Erro"); return; }
+      toast.success(`Plano ativado grátis por ${r.duration_days} dias!`);
+      qc.invalidateQueries({ queryKey: ["billing"] });
+      qc.invalidateQueries({ queryKey: ["plan-limits"] });
+      setApplied(null); setCode(""); setSelPlan("");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Card className="border-primary/30 bg-primary/5">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Ticket className="h-4 w-4" /> Tem um cupom de desconto?
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {!applied ? (
+          <div className="flex gap-2">
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="DIGITE SEU CUPOM"
+              className="font-mono"
+              onKeyDown={(e) => e.key === "Enter" && tryValidate()}
+            />
+            <Button onClick={tryValidate} disabled={busy || !code.trim()} variant="outline">Aplicar</Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm flex-wrap">
+              <Check className="h-4 w-4 text-success" />
+              <span className="font-mono font-bold">{applied.code}</span>
+              <Badge variant="secondary">
+                {applied.type === "percent" ? `${applied.value}% off` :
+                 applied.type === "fixed" ? `R$ ${(applied.value/100).toFixed(2)} off` :
+                 `${applied.free_duration_days ?? 30} dias grátis`}
+              </Badge>
+              <Button variant="ghost" size="sm" className="ml-auto" onClick={() => { setApplied(null); setCode(""); }}>Remover</Button>
+            </div>
+            {applied.type === "free" && (
+              <div className="flex gap-2">
+                <select
+                  value={selPlan}
+                  onChange={(e) => setSelPlan(e.target.value)}
+                  className="flex-1 rounded-md border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Escolha o plano para ativar</option>
+                  {plans.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <Button onClick={activate} disabled={busy || !selPlan}>Ativar grátis</Button>
+              </div>
+            )}
+            {applied.type !== "free" && (
+              <p className="text-xs text-muted-foreground">Aplique este cupom no checkout do plano escolhido abaixo.</p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
