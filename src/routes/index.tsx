@@ -94,8 +94,8 @@ function Landing() {
 
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
             <a href="#features" className="transition-colors hover:text-foreground">{t("nav.features")}</a>
+            <a href="#plataforma" className="transition-colors hover:text-foreground">Plataforma</a>
             <a href="#tools" className="transition-colors hover:text-foreground">Ferramentas</a>
-            <a href="#how" className="transition-colors hover:text-foreground">{t("nav.how")}</a>
             <a href="#anti-ban" className="transition-colors hover:text-foreground">{t("nav.antiban")}</a>
             <a href="#pricing" className="transition-colors hover:text-foreground">{t("nav.pricing")}</a>
             <a href="#faq" className="transition-colors hover:text-foreground">{t("nav.faq")}</a>
