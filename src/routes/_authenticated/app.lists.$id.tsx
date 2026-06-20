@@ -75,7 +75,12 @@ function ListDetail() {
                 <SelectTrigger><SelectValue placeholder="Selecione um chip conectado" /></SelectTrigger>
                 <SelectContent>
                   {chips?.length ? chips.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.instance_name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>
+                      <span className="flex items-center gap-1.5">
+                        <span className="font-medium">{c.instance_name}</span>
+                        <span className="text-muted-foreground text-xs">{formatPhone(c.phone_number)}</span>
+                      </span>
+                    </SelectItem>
                   )) : <div className="px-2 py-2 text-xs text-muted-foreground">Nenhum chip conectado</div>}
                 </SelectContent>
               </Select>
