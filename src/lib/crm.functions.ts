@@ -99,7 +99,7 @@ export const listConversationsFn = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    let q = supabase.from("crm_conversations" as never)
+    let q = supabase.from("crm_conversations" as any)
       .select("id,owner_user_id,instance_id,contact_phone,contact_jid,contact_name,contact_avatar_url,contact_avatar_path,contact_about,contact_email,contact_company,tags,custom_fields,assigned_agent_id,status,chat_type,last_message_at,last_message_text,last_message_direction,last_message_type,unread_count,presence,presence_at,pinned_at,archived_at,muted_until,last_seen_at,is_resolved,snoozed_until,label_ids")
       .or("chat_type.is.null,chat_type.eq.user")
       .order("pinned_at", { ascending: false, nullsFirst: false })
