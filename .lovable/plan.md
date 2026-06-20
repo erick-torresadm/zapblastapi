@@ -1,86 +1,136 @@
-## Plano de Hardening de Segurança — ZapBlast API
 
-Pesquisei boas práticas para apps "vibecoding" (apps gerados rapidamente com Lovable/Supabase) e os vetores mais comuns são: brute force em login, endpoints públicos sem rate limit, RLS frouxa, segredos vazando para o cliente, ausência de logs de auditoria e admin sem MFA. Abaixo o plano dividido em camadas.
+# Plano — Cupons, Plano Manual, CRM, Performance, Convites e UX
 
-### 1. Proteção do Login (anti brute force)
-
-- Ativar **HIBP (Have I Been Pwned)** no Supabase Auth para bloquear senhas vazadas.
-- Forçar política de senha: mínimo 10 caracteres, exigir letras + números + símbolo.
-- Implementar **rate limit no client** em `/auth` (cooldown progressivo: 3 tentativas → espera 30s, 5 → 5min, 10 → bloqueio 1h via tabela).
-- Criar tabela `auth_attempts` (email + ip + tentativas + bloqueado_até) consultada por server fn antes de permitir nova tentativa.
-- Captcha (hCaptcha já vem nativo no Supabase) — habilitar via `configure_auth`.
-- Logar tentativas em `signup_ip_log` / nova `login_attempts_log` para auditoria.
-
-### 2. Proteção do Admin
-
-- Validar role `admin` **sempre via `has_role()` no servidor** (nunca client-side). Auditar todas as server fns que usam `supabaseAdmin` e exigir `requireSupabaseAuth` + check de role.
-- Criar `_authenticated/_admin/route.tsx` (layout gate) que faz `beforeLoad` checando `has_role(uid, 'admin')` via server fn — sem isso, redireciona.
-- Mover `app.admin.catalog.tsx` para esse gate.
-- Adicionar **log de auditoria** (`admin_audit_log`): toda ação privilegiada (alterar plano, criar chip catalog, dar role) grava actor_id, ação, payload, ip.
-- Recomendar (e mostrar banner) habilitar **MFA TOTP** para contas admin.
-
-### 3. Endpoints Públicos (`/api/public/*`)
-
-Hoje temos: `evolution-webhook`, `dispatch-worker`, `flow-worker`, `warmup-worker`, `flow-trigger-test`.
-
-- **Webhook Evolution**: já usa token na URL — adicionar validação de timing-safe compare e log de IP. Garantir que `flow-trigger-test` exija o mesmo token ou auth.
-- **Workers (dispatch/flow/warmup)**: exigir header secreto `X-Worker-Secret` (novo secret `WORKER_CRON_SECRET`) — hoje qualquer um pode disparar via URL pública.
-- Rate limit básico in-memory por IP (token bucket) nesses endpoints para mitigar flood.
-- Validar todo input com **Zod** antes de processar.
-
-### 4. Exposição de Dados / RLS
-
-- Rodar scan de segurança e revisar cada policy:
-  - Tabelas user-scoped (`flows`, `campaigns`, `chat_messages` etc.) → policies devem usar `auth.uid()` e nunca ter SELECT para `anon`.
-  - Tabelas `subscription_plans`, `chip_catalog` → revisar se exposição pública é intencional.
-- Remover `GRANT` para `anon` onde não houver policy `TO anon`.
-- Conferir que `service_role` não está sendo usado em código que roda no client.
-- Garantir que respostas de server fns **não retornam PII desnecessária** (ex.: `email`, `ip`, `raw_payload` completo).
-
-### 5. Headers de Segurança e CORS
-
-- Adicionar middleware global em `src/start.ts` para injetar headers:
-  - `Strict-Transport-Security`
-  - `X-Content-Type-Options: nosniff`
-  - `X-Frame-Options: DENY`
-  - `Referrer-Policy: strict-origin-when-cross-origin`
-  - `Permissions-Policy` mínimo
-  - CSP básica permitindo Supabase + Evolution
-- CORS restrito nos endpoints públicos (apenas origem necessária; webhook permanece aberto mas autenticado).
-
-### 6. Validação de Input
-
-- Auditar server fns sem `inputValidator(zod)` e adicionar schemas com bounds (min/max length, regex telefone, etc.).
-- Sanitizar texto de mensagens/flows antes de salvar (remover null bytes, limitar tamanho).
-
-### 7. Segredos e Configuração
-
-- Confirmar via `fetch_secrets` que nenhum secret server-only está exposto como `VITE_`.
-- Rotacionar `LOVABLE_API_KEY` se houver suspeita.
-- Documentar no `security memory` o modelo de acesso.
-
-### 8. Monitoramento
-
-- Tabela `security_events` (login_failed, admin_action, webhook_rejected, rate_limited) consultável por admin numa nova aba **Admin → Segurança**.
-- Edge alerta (futuro) por e-mail quando >N eventos críticos/min.
+Como pediu "você prioriza", organizei em **4 fases** por impacto (valor pro usuário × risco). Tudo é entregue, mas em ondas para validar cada etapa.
 
 ---
 
-### Ordem de Implementação Sugerida
+## Fase 1 — Monetização: Cupons + Plano Manual (Admin)
 
-1. Migration: `login_attempts`, `admin_audit_log`, `security_events` + RLS/GRANTs.
-2. Server fn `check_login_rate_limit` + integração na `/auth`.
-3. `configure_auth` (HIBP + senha forte + captcha).
-4. Layout `_authenticated/_admin` + `has_role` check + mover admin pages.
-5. Worker secret nos `/api/public/*-worker` + validação Zod.
-6. Headers globais em `start.ts`.
-7. Auditoria RLS + scan + correções.
-8. Página Admin → Segurança (logs).
-9. Atualizar `security memory`.
+### 1.1 Sistema de Cupons
+Nova tabela `coupons` e `coupon_redemptions`:
 
-### Decisões que Preciso Confirmar
+- **Tipos**: `percent` (0–100%), `fixed` (centavos em R$), `free` (zera 100% e ativa plano X por Y dias)
+- **Campos**: `code` (único, uppercase), `type`, `value`, `plan_id` (opcional — restringe a um plano), `free_duration_days` (para tipo `free`), `expires_at`, `max_redemptions` (total), `max_per_user`, `active`, `created_by`
+- **Resgates**: `coupon_redemptions` (cupom, user, valor aplicado, subscription_id, data)
 
-- **Captcha**: ativar hCaptcha no login (precisa de site key — managed pelo Supabase, ok)?
-- **MFA admin**: só banner recomendando, ou bloquear admin sem MFA?
-- **Worker secret**: posso gerar `WORKER_CRON_SECRET` automaticamente e você atualiza os jobs cron que chamam esses endpoints?
-- Quer que eu implemente **tudo de uma vez** ou em fases (começando por login + admin)?
+**Telas:**
+- `/app/admin/cupons` (admin): listar, criar, editar, desativar, ver resgates
+- No checkout (`/app/billing` e dialogs PIX/Cartão): campo "Tenho cupom" → valida via server fn `validateCoupon`, mostra preço final, aplica no momento do pagamento
+- Cupons tipo `free` pulam o gateway e ativam a subscription direto via `applyFreeCoupon` (server fn, audit log)
+
+**Server fns** em `src/lib/coupons.functions.ts`:
+- `validateCoupon({ code, plan_id })` → retorna `{ valid, discount_cents, final_cents, type, message }`
+- `redeemCoupon({ code, plan_id, payment_intent_id? })` (auth required)
+- `applyFreeCoupon({ code, plan_id })` (auth, cria subscription `active` com `current_period_end = now + free_duration_days`)
+- Admin: `createCoupon`, `updateCoupon`, `listCoupons`, `listRedemptions` (gate `_admin`, registra em `admin_audit_log`)
+
+### 1.2 Atribuir Plano Manualmente (Pagamento Fora)
+Em `/app/admin/usuarios` (ou na página de detalhes do user) adicionar ação **"Ativar plano (pago fora)"**:
+
+- Form: usuário (busca por email), plano, duração (1/3/6/12 meses ou custom), valor pago, método (PIX externo / dinheiro / outro), nota
+- Cria/atualiza `subscriptions` com `status='active'`, `current_period_start=now`, `current_period_end=now+duração`
+- Insere em `wallet_transactions` (tipo `topup` com descrição "Pagamento externo — <método> — <nota>") + `admin_audit_log` (`action='manual_plan_grant'`)
+- Server fn `grantManualPlan` com `requireSupabaseAuth` + `has_role('admin')`
+
+---
+
+## Fase 2 — CRM: telefones @lid, nome e foto
+
+### 2.1 Resolver @lid → telefone real
+Já existe `lookup_lid_phone()`. Ajustes:
+
+- Trigger em `chat_messages` antes do upsert da conversa: se `contact_phone` parece ser @lid (ou veio do JID @lid), chama `lookup_lid_phone` e substitui por número real quando encontrado
+- Backfill: server fn admin `backfillLidPhones` percorre `crm_conversations` com phones inválidos e re-resolve
+- Exibição: helper `formatContactPhone()` no front que esconde @lid e mostra "Resolvendo..." quando ainda não temos
+
+### 2.2 Nome e foto do contato (via Evolution API)
+Nova tabela `crm_contacts_profile` (cache):
+- `owner_user_id`, `instance_id`, `contact_phone` (PK composta), `push_name`, `verified_name`, `profile_pic_url`, `profile_pic_fetched_at`, `updated_at`
+
+**Fontes (cascata):**
+1. `push_name` que já vem no webhook (`raw_payload.data.pushName`) → grava no cache
+2. Endpoint Evolution `/chat/fetchProfilePictureUrl/{instance}` para foto
+3. Endpoint Evolution `/chat/findContacts/{instance}` para nome verificado/business
+
+**Server fn** `refreshContactProfile({ instance_id, phone })` chamada:
+- Sob demanda (ao abrir conversa, se cache > 24h)
+- Em lote diário (cron `refresh-stale-profiles` para conversas ativas)
+
+**UI**: `ContactPanel.tsx` e lista de conversas usam `push_name || verified_name || phone` e `profile_pic_url` (com fallback nas iniciais atuais).
+
+---
+
+## Fase 3 — Convite por link na Equipe + Performance
+
+### 3.1 Convite por link (sem SMTP)
+Em `/app/team` adicionar aba **"Link de convite"** ao lado do convite por e-mail:
+
+- Tabela `crm_invite_links`: `owner_user_id`, `token` (random 32 chars), `role` (`agent`/`admin`), `max_uses`, `uses`, `expires_at`, `active`
+- Owner gera link `https://<app>/convite/{token}` → copia/compartilha por WhatsApp
+- Rota pública `/convite/$token` mostra "Você foi convidado por X". Se logado: aceita e vira `crm_agent`. Se não: login/cadastro e depois aceita
+- Server fns: `createInviteLink`, `revokeInviteLink`, `acceptInviteLink({ token })`
+
+### 3.2 Performance (delay no clique)
+Diagnóstico + correções já mapeadas:
+
+- Auditar `onAuthStateChange` (deve estar filtrado para SIGNED_IN/OUT/USER_UPDATED — checar se não está disparando `invalidateQueries` em TOKEN_REFRESHED)
+- Reduzir invalidações globais: trocar `queryClient.invalidateQueries()` sem chave por invalidações por `queryKey`
+- Adicionar `staleTime` razoável (30s–2min) em queries de listagem (chips, campanhas, conversas)
+- Remover `realtime` subscriptions duplicadas (uma por componente é comum) → centralizar em hook único por canal
+- Loaders pesados (admin/catalog, security): paginação real (limite 50, cursor) em vez de fetch tudo
+- Memoizar listas grandes (`React.memo` + `useMemo` em rows de conversa/campanha)
+- Code-split rotas pesadas (admin) — já é automático via TanStack, validar bundle
+
+---
+
+## Fase 4 — UX: Bot (Palavras-chave) e Fluxo
+
+### 4.1 Bot (`/app/keywords`)
+Reorganizar a página em **seções com tabs/cards claros**:
+
+- **Topo**: switch global "Bot ativo" + estatísticas (gatilhos disparados hoje/semana)
+- **Tab "Gatilhos"**: tabela limpa com colunas: Palavra-chave, Tipo de match (exata/contém/regex), Ação (responder texto / iniciar fluxo / encaminhar), Status, Disparos
+- **Tab "Configurações"**: horário de atendimento, mensagem padrão fora do horário, ignorar grupos, anti-loop
+- **Tab "Histórico"**: `flow_keyword_audit` paginado
+- Botão "Novo gatilho" abre dialog em etapas (1. palavra → 2. tipo → 3. ação → 4. revisar)
+- Ícones consistentes (lucide), badges de status coloridos, ordenação/busca
+
+### 4.2 Fluxo (`/app/flows/$id`)
+Pediu "no fluxo ajuste" mas não detalhou. Vou propor melhorias padrão:
+
+- Sidebar de blocos categorizada (Mensagens / Lógica / Integrações / IA)
+- Mini-mapa do fluxo
+- Validação visual: blocos sem conexão ficam destacados em amarelo
+- Painel direito com propriedades do bloco selecionado (em vez de modal)
+- Botão "Testar fluxo" que simula uma conversa
+
+> **Se quiser ajustes específicos no Fluxo**, me diga depois — implemento como hotfix.
+
+---
+
+## Detalhes técnicos resumidos
+
+**Novas tabelas (Fase 1–3)**:
+`coupons`, `coupon_redemptions`, `crm_contacts_profile`, `crm_invite_links`
+
+**Novos arquivos principais**:
+- `src/lib/coupons.functions.ts`, `src/lib/admin-plans.functions.ts`
+- `src/lib/crm-profile.functions.ts`, `src/lib/invites.functions.ts`
+- `src/routes/_authenticated/_admin.app.admin.coupons.tsx`
+- `src/routes/_authenticated/_admin.app.admin.users.tsx` (se não existir)
+- `src/routes/convite.$token.tsx` (rota pública)
+- Refatoração: `src/routes/_authenticated/app.keywords.tsx`, `app.team.tsx`, `app.flows.$id.tsx`
+
+**Segurança**: todas as ações de admin passam por `has_role('admin')` + `log_admin_action`. Cupons validados sempre server-side. Convites com token random + expiração + revogação.
+
+---
+
+## Ordem de execução
+
+1. **Agora (Fase 1)**: migrations de cupons + plano manual, server fns, telas admin, integração no checkout
+2. **Depois (Fase 2)**: migration `crm_contacts_profile`, integração Evolution, resolver @lid, UI
+3. **Depois (Fase 3)**: convites por link + auditoria/correção de performance
+4. **Por último (Fase 4)**: redesign Bot + ajustes Fluxo
+
+Confirma que faço nessa ordem? Se quiser **inverter** alguma fase ou **soltar antes** (ex: performance primeiro porque incomoda já), é só dizer.

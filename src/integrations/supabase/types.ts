@@ -503,6 +503,126 @@ export type Database = {
           },
         ]
       }
+      coupon_redemptions: {
+        Row: {
+          coupon_id: string
+          created_at: string
+          discount_cents: number
+          final_cents: number
+          id: string
+          payment_intent_id: string | null
+          plan_id: string | null
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          coupon_id: string
+          created_at?: string
+          discount_cents?: number
+          final_cents?: number
+          id?: string
+          payment_intent_id?: string | null
+          plan_id?: string | null
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          coupon_id?: string
+          created_at?: string
+          discount_cents?: number
+          final_cents?: number
+          id?: string
+          payment_intent_id?: string | null
+          plan_id?: string | null
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expires_at: string | null
+          free_duration_days: number | null
+          id: string
+          max_per_user: number
+          max_redemptions: number | null
+          plan_id: string | null
+          redemptions_count: number
+          type: Database["public"]["Enums"]["coupon_type"]
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          free_duration_days?: number | null
+          id?: string
+          max_per_user?: number
+          max_redemptions?: number | null
+          plan_id?: string | null
+          redemptions_count?: number
+          type: Database["public"]["Enums"]["coupon_type"]
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          free_duration_days?: number | null
+          id?: string
+          max_per_user?: number
+          max_redemptions?: number | null
+          plan_id?: string | null
+          redemptions_count?: number
+          type?: Database["public"]["Enums"]["coupon_type"]
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_agents: {
         Row: {
           active: boolean
@@ -532,6 +652,56 @@ export type Database = {
           role?: string
         }
         Relationships: []
+      }
+      crm_contacts_profile: {
+        Row: {
+          contact_phone: string
+          created_at: string
+          id: string
+          instance_id: string | null
+          owner_user_id: string
+          profile_pic_fetched_at: string | null
+          profile_pic_url: string | null
+          push_name: string | null
+          saved_name: string | null
+          updated_at: string
+          verified_name: string | null
+        }
+        Insert: {
+          contact_phone: string
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          owner_user_id: string
+          profile_pic_fetched_at?: string | null
+          profile_pic_url?: string | null
+          push_name?: string | null
+          saved_name?: string | null
+          updated_at?: string
+          verified_name?: string | null
+        }
+        Update: {
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          owner_user_id?: string
+          profile_pic_fetched_at?: string | null
+          profile_pic_url?: string | null
+          push_name?: string | null
+          saved_name?: string | null
+          updated_at?: string
+          verified_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_profile_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       crm_conversations: {
         Row: {
@@ -636,6 +806,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_invite_links: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          display_name: string | null
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          owner_user_id: string
+          role: string
+          token: string
+          updated_at: string
+          uses: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          owner_user_id: string
+          role?: string
+          token: string
+          updated_at?: string
+          uses?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          owner_user_id?: string
+          role?: string
+          token?: string
+          updated_at?: string
+          uses?: number
+        }
+        Relationships: []
       }
       crm_notes: {
         Row: {
@@ -1913,6 +2128,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invite_link: { Args: { _token: string }; Returns: Json }
+      apply_free_coupon: {
+        Args: { _code: string; _plan_id: string }
+        Returns: Json
+      }
       check_login_lockout: {
         Args: { _email: string; _ip: string }
         Returns: Json
@@ -1940,6 +2160,17 @@ export type Database = {
       }
       expire_trials: { Args: never; Returns: number }
       get_user_plan_limits: { Args: { _user_id: string }; Returns: Json }
+      grant_manual_plan: {
+        Args: {
+          _amount_paid_cents: number
+          _duration_days: number
+          _method: string
+          _note: string
+          _plan_id: string
+          _target_user: string
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1964,6 +2195,7 @@ export type Database = {
         Returns: string
       }
       normalize_email: { Args: { _email: string }; Returns: string }
+      preview_invite_link: { Args: { _token: string }; Returns: Json }
       record_login_attempt: {
         Args: {
           _email: string
@@ -1972,6 +2204,19 @@ export type Database = {
           _user_agent: string
         }
         Returns: undefined
+      }
+      redeem_coupon: {
+        Args: {
+          _code: string
+          _payment_intent_id?: string
+          _plan_id: string
+          _subscription_id?: string
+        }
+        Returns: Json
+      }
+      validate_coupon: {
+        Args: { _code: string; _plan_id?: string }
+        Returns: Json
       }
     }
     Enums: {
@@ -1991,6 +2236,7 @@ export type Database = {
         | "failed"
         | "refunded"
         | "expired"
+      coupon_type: "percent" | "fixed" | "free"
       instance_status:
         | "disconnected"
         | "connecting"
@@ -2165,6 +2411,7 @@ export const Constants = {
         "refunded",
         "expired",
       ],
+      coupon_type: ["percent", "fixed", "free"],
       instance_status: [
         "disconnected",
         "connecting",

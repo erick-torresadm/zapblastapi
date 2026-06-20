@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -250,6 +251,14 @@ function KeywordsPage() {
 
       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
 
+      <Tabs defaultValue="rules" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="rules"><Bot className="h-4 w-4 mr-1.5" />Regras ({(list?.items ?? []).length})</TabsTrigger>
+          <TabsTrigger value="queue"><PlayCircle className="h-4 w-4 mr-1.5" />Fila ({recent?.todayCount ?? 0} hoje)</TabsTrigger>
+          <TabsTrigger value="audit"><Activity className="h-4 w-4 mr-1.5" />Diagnóstico</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="rules" className="space-y-3">
       <div className="grid gap-3">
         {(list?.items ?? []).map((t: Trigger) => (
           <Card key={t.id}>
@@ -320,7 +329,9 @@ function KeywordsPage() {
           </Card>
         )}
       </div>
+        </TabsContent>
 
+        <TabsContent value="audit" className="space-y-3">
       {/* Diagnóstico em tempo real */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
@@ -365,7 +376,9 @@ function KeywordsPage() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
+        <TabsContent value="queue" className="space-y-3">
       {/* Fila de disparos recentes */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
@@ -444,6 +457,8 @@ function KeywordsPage() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Dialog de teste manual */}
       <Dialog open={!!testOpenFor} onOpenChange={(o) => !o && setTestOpenFor(null)}>
