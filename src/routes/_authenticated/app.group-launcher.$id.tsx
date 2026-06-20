@@ -313,7 +313,7 @@ function PasteLinksCard({ campaignId }: { campaignId: string }) {
   );
 }
 
-function SettingsCard({ campaign }: { campaign: { id: string; name: string; slug: string; member_limit: number; instance_id: string | null; is_active: boolean; default_description: string | null; default_image_url: string | null } }) {
+function SettingsCard({ campaign }: { campaign: { id: string; name: string; slug: string; member_limit: number; instance_id: string | null; is_active: boolean; default_description: string | null; default_image_url: string | null; extra_participants?: string[] | null; admin_participants?: string[] | null } }) {
   const qc = useQueryClient();
   const updateFn = useServerFn(updateGroupCampaignFn);
   const instancesFn = useServerFn(listInstancesFn);
@@ -322,16 +322,23 @@ function SettingsCard({ campaign }: { campaign: { id: string; name: string; slug
   const [limit, setLimit] = useState(campaign.member_limit);
   const [instanceId, setInstanceId] = useState(campaign.instance_id ?? "");
   const [active, setActive] = useState(campaign.is_active);
+  const [extras, setExtras] = useState((campaign.extra_participants ?? []).join("\n"));
+  const [admins, setAdmins] = useState((campaign.admin_participants ?? []).join("\n"));
 
   const { data: instances } = useQuery({
     queryKey: ["instances"],
     queryFn: () => instancesFn({ data: undefined as never }),
   });
 
+  const parseList = (s: string) =>
+    s.split(/[\s,;\n]+/).map((x) => x.trim()).filter(Boolean);
+
   const mut = useMutation({
     mutationFn: () => updateFn({ data: {
       id: campaign.id, name, slug, member_limit: limit,
       instance_id: instanceId || null, is_active: active,
+      extra_participants: parseList(extras),
+      admin_participants: parseList(admins),
     } }),
     onSuccess: () => { toast.success("Salvo"); qc.invalidateQueries({ queryKey: ["group-campaign", campaign.id] }); },
     onError: (e: Error) => toast.error(e.message),
@@ -366,6 +373,36 @@ function SettingsCard({ campaign }: { campaign: { id: string; name: string; slug
             </Select>
           </div>
         </div>
+
+        <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+          <div>
+            <Label>Convidados (números a adicionar em cada novo grupo)</Label>
+            <Textarea
+              value={extras}
+              onChange={(e) => setExtras(e.target.value)}
+              rows={4}
+              placeholder="5511999999999&#10;5511888888888"
+              className="font-mono text-xs"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Um número por linha, com DDI+DDD (ex: <code>5511999999999</code>). Eles serão adicionados automaticamente assim que cada grupo for criado.
+            </p>
+          </div>
+          <div>
+            <Label>Admins do grupo (subconjunto dos convidados)</Label>
+            <Textarea
+              value={admins}
+              onChange={(e) => setAdmins(e.target.value)}
+              rows={3}
+              placeholder="5511999999999"
+              className="font-mono text-xs"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Estes números serão promovidos a administradores após entrar no grupo. Devem estar listados acima também.
+            </p>
+          </div>
+        </div>
+
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
           Campanha ativa (link público redireciona quando ativada)
