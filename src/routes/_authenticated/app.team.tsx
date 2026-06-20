@@ -154,3 +154,121 @@ function TeamPage() {
     </div>
   );
 }
+
+function InviteLinksCard() {
+  const qc = useQueryClient();
+  const listFn = useServerFn(listInviteLinksFn);
+  const createFn = useServerFn(createInviteLinkFn);
+  const revokeFn = useServerFn(revokeInviteLinkFn);
+
+  const linksQ = useQuery({ queryKey: ["invite-links"], queryFn: () => listFn() });
+  const [role, setRole] = useState<"agent" | "admin" | "viewer">("agent");
+  const [maxUses, setMaxUses] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [name, setName] = useState("");
+
+  const create = async () => {
+    try {
+      await createFn({
+        data: {
+          role,
+          display_name: name,
+          max_uses: maxUses ? Number(maxUses) : null,
+          expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
+        },
+      });
+      qc.invalidateQueries({ queryKey: ["invite-links"] });
+      setName(""); setMaxUses(""); setExpiresAt("");
+      toast.success("Link de convite criado!");
+    } catch (e: any) { toast.error(e.message ?? "Erro"); }
+  };
+
+  const revoke = async (id: string) => {
+    if (!confirm("Desativar este link?")) return;
+    await revokeFn({ data: { id } });
+    qc.invalidateQueries({ queryKey: ["invite-links"] });
+  };
+
+  const copyLink = (token: string) => {
+    const url = `${window.location.origin}/convite/${token}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link copiado!");
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2"><Link2 className="h-4 w-4" /> Convite por link</CardTitle>
+        <CardDescription>
+          Gere um link único para convidar membros sem precisar de e-mail. Compartilhe pelo WhatsApp ou onde preferir.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-[1fr_140px_160px_140px_auto]">
+          <div>
+            <Label className="text-xs">Identificação (opcional)</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Equipe vendas" />
+          </div>
+          <div>
+            <Label className="text-xs">Papel</Label>
+            <Select value={role} onValueChange={(v) => setRole(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="agent">Atendente</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="viewer">Visualizador</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Validade</Label>
+            <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">Máx. usos</Label>
+            <Input type="number" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} placeholder="∞" />
+          </div>
+          <div className="flex items-end">
+            <Button onClick={create}><Plus className="mr-1 h-4 w-4" /> Gerar link</Button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {(linksQ.data ?? []).map((l: any) => {
+            const url = typeof window !== "undefined" ? `${window.location.origin}/convite/${l.token}` : l.token;
+            return (
+              <div key={l.id} className="flex items-center gap-3 rounded border p-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant={l.active ? "default" : "secondary"} className="capitalize">{l.role}</Badge>
+                    {l.display_name && <span className="text-sm font-medium">{l.display_name}</span>}
+                    {!l.active && <Badge variant="outline">desativado</Badge>}
+                  </div>
+                  <div className="text-xs font-mono text-muted-foreground truncate mt-1">{url}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    {l.uses}{l.max_uses ? `/${l.max_uses}` : ""} usos
+                    {l.expires_at && ` · até ${new Date(l.expires_at).toLocaleDateString("pt-BR")}`}
+                  </div>
+                </div>
+                {l.active && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => copyLink(l.token)}>
+                      <Copy className="h-3 w-3 mr-1" /> Copiar
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => revoke(l.id)}>
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            );
+          })}
+          {!linksQ.data?.length && (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhum link criado ainda.</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
