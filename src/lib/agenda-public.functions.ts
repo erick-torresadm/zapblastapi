@@ -55,7 +55,7 @@ export const bookAppointmentFn = createServerFn({ method: "POST" })
     starts_at: input.starts_at,
     customer_name: z.string().trim().min(2).max(100).parse(input.customer_name),
     customer_phone: z.string().trim().min(8).max(20).parse(input.customer_phone),
-    customer_notes: input.customer_notes?.slice(0, 500) ?? null,
+    customer_notes: input.customer_notes?.slice(0, 500),
   }))
   .handler(async ({ data }) => {
     const { data: result, error } = await pubClient().rpc("agenda_public_book", {
@@ -65,18 +65,25 @@ export const bookAppointmentFn = createServerFn({ method: "POST" })
       _starts_at: data.starts_at,
       _customer_name: data.customer_name,
       _customer_phone: data.customer_phone,
-      _customer_notes: data.customer_notes,
+      _customer_notes: data.customer_notes ?? null,
     });
     if (error) throw new Error(error.message);
     return result as { ok: boolean; message?: string; appointment_id?: string; confirm_token?: string };
   });
+
+export type AppointmentByToken = {
+  id: string; starts_at: string; ends_at: string; status: string;
+  customer_name: string; customer_phone: string;
+  service_name: string; duration_min: number;
+  professional_name: string; business_name: string; business_slug: string;
+};
 
 export const getAppointmentByTokenFn = createServerFn({ method: "GET" })
   .inputValidator((input: { token: string }) => ({ token: z.string().uuid().parse(input.token) }))
   .handler(async ({ data }) => {
     const { data: result, error } = await pubClient().rpc("agenda_public_get_by_token", { _token: data.token });
     if (error) throw new Error(error.message);
-    return result as { found: boolean; appointment?: Record<string, unknown> };
+    return result as { found: boolean; appointment?: AppointmentByToken };
   });
 
 export const confirmAppointmentFn = createServerFn({ method: "POST" })
