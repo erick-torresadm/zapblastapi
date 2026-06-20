@@ -6,15 +6,9 @@ import { parseGroupInviteCode, inviteInfoGroup, fetchInstances } from "@/lib/evo
 // Resolve the connected phone of an instance. Tries DB first, then Evolution API
 // (ownerJid / number). Persists the result so subsequent calls are fast.
 export async function resolveInstancePhone(
-  supabaseAdmin: { from: (t: string) => { select: (...a: unknown[]) => unknown; update: (...a: unknown[]) => unknown } },
+  sb: any,
   instanceId: string,
 ): Promise<string | null> {
-  const sb = supabaseAdmin as unknown as {
-    from: (t: string) => {
-      select: (s: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: Record<string, unknown> | null }> } };
-      update: (p: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<unknown> };
-    };
-  };
   const { data: inst } = await sb.from("whatsapp_instances")
     .select("phone_number, instance_name, server_id")
     .eq("id", instanceId).maybeSingle();
