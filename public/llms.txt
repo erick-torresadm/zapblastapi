@@ -1,0 +1,23 @@
+# Perseidas
+
+> Plataforma anti-ban para WhatsApp: disparos em massa, fluxos por palavra-chave, CRM multi-atendente, aquecimento de chips, agendamento e extração de leads do Google Maps. Tudo em um só painel, com 10 dias grátis no Pro.
+
+A Perseidas opera sobre Evolution API (API não oficial) e foi desenhada para reduzir o risco de banimento com aquecimento automático, limites diários por chip, rotação inteligente e mensagens humanizadas. O público-alvo são pequenos e médios negócios brasileiros que querem vender e atender no WhatsApp em escala.
+
+## Recursos principais
+
+- Disparos em massa com fila anti-ban, agendamento e variáveis por contato
+- Fluxos (chatbot) acionados por palavra-chave, com nós condicionais
+- CRM multi-atendente, etiquetas, notas e respostas rápidas
+- Aquecimento (warmup) automático entre chips antes de campanhas
+- Agendamento público com confirmação por WhatsApp e reengajamento
+- Extração de leads do Google Maps por nicho e cidade
+- Links rotativos de grupos do WhatsApp com auto-reposição quando cheios
+- Funis de tráfego com encurtador, blocklist e logic routing
+
+## Pages
+
+- [Início](/): Visão geral, planos, FAQ e prova social.
+- [Entrar / Criar conta](/auth): Login e cadastro com e-mail/senha ou Google.
+- [Política de Privacidade](/privacidade): Tratamento de dados, LGPD e limites em API não oficial.
+- [Termos de Uso](/termos): Condições de uso e isenção de garantia contra banimento.
