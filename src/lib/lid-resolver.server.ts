@@ -70,20 +70,49 @@ export async function resolveLidFromHistory(
 ): Promise<{ phone: string; jid: string } | null> {
   const lid = args.lid_jid;
   if (!lid || !lid.endsWith("@lid")) return null;
+
+  // Estratégia 1: alguma mensagem anterior chegou com este @lid em remoteJidAlt
+  // e o remoteJid era @s.whatsapp.net (o número real). É o caso ouro.
   try {
-    const res = await supabaseAdmin.rpc("lookup_lid_phone", {
-      p_user_id: args.user_id,
-      p_instance_id: args.instance_id,
-      p_lid_jid: lid,
-    });
-    console.log("[lid] lookup_lid_phone", { lid, instance: args.instance_id, data: res?.data, error: res?.error });
-    if (res?.error) return null;
-    const phone = pickPhone(res?.data);
-    if (!phone) return null;
-    return { phone, jid: `${phone}@s.whatsapp.net` };
+    let q = supabaseAdmin
+      .from("incoming_messages")
+      .select("raw_payload, received_at")
+      .eq("user_id", args.user_id)
+      .eq("raw_payload->data->key->>remoteJidAlt", lid)
+      .like("raw_payload->data->key->>remoteJid", "%@s.whatsapp.net")
+      .order("received_at", { ascending: false })
+      .limit(1);
+    if (args.instance_id) q = q.eq("instance_id", args.instance_id);
+    const { data, error } = await q;
+    console.log("[lid] history strat1", { lid, count: data?.length, error: error?.message });
+    if (data && data.length > 0) {
+      const rj = data[0]?.raw_payload?.data?.key?.remoteJid;
+      const phone = pickPhone(rj);
+      if (phone) return { phone, jid: `${phone}@s.whatsapp.net` };
+    }
   } catch (e) {
-    console.warn("[lid] lookup_lid_phone exception", (e as Error).message);
-    return null;
+    console.warn("[lid] history strat1 exception", (e as Error).message);
   }
+
+  // Estratégia 2: chat_messages com contact_jid==@lid e contact_phone real (não-LID).
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("chat_messages")
+      .select("contact_phone")
+      .eq("user_id", args.user_id)
+      .eq("contact_jid", `${lid.split("@")[0]}@s.whatsapp.net`)
+      .limit(1);
+    console.log("[lid] history strat2", { lid, count: data?.length, error: error?.message });
+    if (data && data.length > 0 && isRealPhone(data[0].contact_phone)) {
+      const phone = pickPhone(data[0].contact_phone);
+      if (phone && !phone.startsWith(lid.split("@")[0])) {
+        return { phone, jid: `${phone}@s.whatsapp.net` };
+      }
+    }
+  } catch (e) {
+    console.warn("[lid] history strat2 exception", (e as Error).message);
+  }
+
+  return null;
 }
 
