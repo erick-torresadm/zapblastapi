@@ -28,7 +28,7 @@ import {
   reactToMessageFn, starMessageFn, deleteMessageFn,
 } from "@/lib/crm.functions";
 import {
-  sendChatMediaFn, signMediaUrlsFn, sendPresenceFn,
+  sendChatMediaFn, signMediaUrlsFn, signAvatarsFn, sendPresenceFn,
   listQuickRepliesFn, saveQuickReplyFn, deleteQuickReplyFn,
 } from "@/lib/crm-media.functions";
 import { MessageBubble, type Msg } from "@/components/crm/MessageBubble";
@@ -38,7 +38,9 @@ import { DateSeparator } from "@/components/crm/DateSeparator";
 import { MediaPreviewDialog } from "@/components/crm/MediaPreviewDialog";
 import { ReplyPreview } from "@/components/crm/ReplyPreview";
 import { EmptyChatState } from "@/components/crm/EmptyChatState";
-import { formatPhone } from "@/lib/format-instance";
+import { Avatar } from "@/components/crm/Avatar";
+import { formatPhone as fmtPhoneNew, displayName, isPhoneResolved } from "@/lib/crm-phone";
+
 
 export const Route = createFileRoute("/_authenticated/app/inbox")({ component: Inbox });
 
