@@ -1,10 +1,12 @@
 // Bolha de mensagem: texto, imagem, vídeo, áudio (PTT/normal), documento, sticker.
 // Suporta reply (quoted), reações, estrelas, exclusão lógica, hover-actions.
 import { useState } from "react";
-import { Download, FileText, Play, Pause, Reply, Smile, Copy, Star, Trash2, MoreVertical, CheckCheck, Check } from "lucide-react";
+import { Download, FileText, Reply, Smile, Copy, Star, Trash2, MoreVertical, CheckCheck, Check } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { AudioMessage } from "./AudioMessage";
+
 
 type Msg = {
   id: string;
