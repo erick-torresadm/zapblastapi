@@ -6,8 +6,10 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Server, Smartphone, Users, Send, Inbox, UserCog,
-  LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, Bot, Sparkles, Ticket, Calendar, Megaphone, Rocket,
+  LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, Bot, Sparkles, Ticket, Calendar, Megaphone, Rocket, User2,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -31,9 +33,11 @@ const operationNav = [
   { to: "/app/anti-ban", label: "Anti-ban", icon: ShieldCheck },
 ];
 const accountNav = [
+  { to: "/app/profile", label: "Meu perfil", icon: User2 },
   { to: "/app/wallet", label: "Carteira", icon: Wallet },
   { to: "/app/billing", label: "Planos", icon: CreditCard },
 ];
+
 
 export function AppSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -65,6 +69,28 @@ export function AppSidebar() {
     queryKey: ["current-user"],
     queryFn: async () => (await supabase.auth.getUser()).data.user,
   });
+
+  const { data: profileMini } = useQuery({
+    queryKey: ["profile-avatar-sidebar", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!data?.avatar_url) return { full_name: data?.full_name ?? null, signedUrl: null as string | null };
+      let signedUrl: string | null = null;
+      if (data.avatar_url.startsWith("http")) signedUrl = data.avatar_url;
+      else {
+        const { data: s } = await supabase.storage.from("avatars").createSignedUrl(data.avatar_url, 60 * 60 * 24);
+        signedUrl = s?.signedUrl ?? null;
+      }
+      return { full_name: data.full_name ?? null, signedUrl };
+    },
+  });
+
 
   async function signOut() {
     await qc.cancelQueries();
@@ -190,16 +216,27 @@ export function AppSidebar() {
           </div>
         </div>
         <div className="flex items-center gap-2 px-1">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary-glow/80 text-[11px] font-bold text-primary-foreground">
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1 text-xs">
-            <div className="truncate font-medium">{user?.email ?? "—"}</div>
-          </div>
-          <Button variant="ghost" size="icon" onClick={signOut} className="h-7 w-7 text-muted-foreground hover:text-destructive">
+          <Link
+            to="/app/profile"
+            className="flex flex-1 items-center gap-2 rounded-md p-1 transition-colors hover:bg-sidebar-accent/60"
+            title="Meu perfil"
+          >
+            <Avatar className="h-8 w-8">
+              {profileMini?.signedUrl && <AvatarImage src={profileMini.signedUrl} alt={profileMini.full_name ?? "Avatar"} />}
+              <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary-glow/80 text-[11px] font-bold text-primary-foreground">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1 text-xs">
+              <div className="truncate font-medium">{profileMini?.full_name || user?.email || "—"}</div>
+              <div className="truncate text-[10px] text-muted-foreground">Ver meu perfil</div>
+            </div>
+          </Link>
+          <Button variant="ghost" size="icon" onClick={signOut} className="h-7 w-7 text-muted-foreground hover:text-destructive" title="Sair">
             <LogOut className="h-3.5 w-3.5" />
           </Button>
         </div>
+
       </SidebarFooter>
     </Sidebar>
   );

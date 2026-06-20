@@ -2,11 +2,14 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Wallet, Sparkles } from "lucide-react";
+import { Wallet, Sparkles, Crown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+
 const LABELS: Record<string, string> = {
+  profile: "Meu perfil",
   app: "Dashboard",
+
   servers: "Servidores",
   instances: "Chips",
   warmup: "Aquecimento",
@@ -35,6 +38,26 @@ export function AppTopbar() {
       return data?.balance_cents ?? 0;
     },
   });
+
+  const { data: planInfo } = useQuery({
+    queryKey: ["current-plan-badge"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return null;
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("status, subscription_plans(name)")
+        .eq("user_id", u.user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data) return { name: "Sem plano", status: "none" as const };
+      const planName = (data as { subscription_plans?: { name?: string } }).subscription_plans?.name ?? "Sem plano";
+      return { name: planName, status: (data.status as string) ?? "none" };
+    },
+    refetchInterval: 60000,
+  });
+
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border/60 bg-background/70 px-3 backdrop-blur-xl sm:gap-3 sm:px-4">
@@ -73,11 +96,21 @@ export function AppTopbar() {
           <Wallet className="h-3.5 w-3.5 text-primary" />
           <span className="tabular-nums">R$ {((wallet ?? 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
         </Link>
-        <Link to="/app/billing" className="hidden sm:block">
-          <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary hover:bg-primary/20">
-            <Sparkles className="mr-1 h-3 w-3" /> Upgrade
-          </Badge>
+        <Link
+          to="/app/billing"
+          className="hidden sm:flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+          title="Seu plano atual"
+        >
+          <Crown className="h-3.5 w-3.5" />
+          <span>Plano:&nbsp;<strong>{planInfo?.name ?? "…"}</strong></span>
+          {planInfo?.status === "trialing" && (
+            <Badge variant="outline" className="ml-1 border-warning/40 bg-warning/10 text-warning text-[10px] px-1.5 py-0">Teste</Badge>
+          )}
+          {(planInfo?.status === "none" || planInfo?.status === "past_due") && (
+            <Sparkles className="ml-0.5 h-3 w-3" />
+          )}
         </Link>
+
       </div>
     </header>
   );
