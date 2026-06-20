@@ -41,8 +41,8 @@ import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppFlowsIdRouteImport } from './routes/_authenticated/app.flows.$id'
 import { Route as AuthenticatedAppCampaignsNewRouteImport } from './routes/_authenticated/app.campaigns.new'
 import { Route as AuthenticatedAppCampaignsIdRouteImport } from './routes/_authenticated/app.campaigns.$id'
-import { Route as AuthenticatedAppAdminCatalogRouteImport } from './routes/_authenticated/app.admin.catalog'
 import { Route as AuthenticatedAdminAppAdminSecurityRouteImport } from './routes/_authenticated/_admin.app.admin.security'
+import { Route as AuthenticatedAdminAppAdminCatalogRouteImport } from './routes/_authenticated/_admin.app.admin.catalog'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
@@ -212,16 +212,16 @@ const AuthenticatedAppCampaignsIdRoute =
     path: '/app/campaigns/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAppAdminCatalogRoute =
-  AuthenticatedAppAdminCatalogRouteImport.update({
-    id: '/app/admin/catalog',
-    path: '/app/admin/catalog',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAdminAppAdminSecurityRoute =
   AuthenticatedAdminAppAdminSecurityRouteImport.update({
     id: '/app/admin/security',
     path: '/app/admin/security',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAppAdminCatalogRoute =
+  AuthenticatedAdminAppAdminCatalogRouteImport.update({
+    id: '/app/admin/catalog',
+    path: '/app/admin/catalog',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 
@@ -249,7 +249,6 @@ export interface FileRoutesByFullPath {
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app/': typeof AuthenticatedAppIndexRoute
-  '/app/admin/catalog': typeof AuthenticatedAppAdminCatalogRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
@@ -257,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
+  '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
 }
 export interface FileRoutesByTo {
@@ -282,7 +282,6 @@ export interface FileRoutesByTo {
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app': typeof AuthenticatedAppIndexRoute
-  '/app/admin/catalog': typeof AuthenticatedAppAdminCatalogRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
@@ -290,6 +289,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/app/campaigns': typeof AuthenticatedAppCampaignsIndexRoute
   '/app/flows': typeof AuthenticatedAppFlowsIndexRoute
+  '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
 }
 export interface FileRoutesById {
@@ -319,7 +319,6 @@ export interface FileRoutesById {
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
-  '/_authenticated/app/admin/catalog': typeof AuthenticatedAppAdminCatalogRoute
   '/_authenticated/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
   '/_authenticated/app/campaigns/new': typeof AuthenticatedAppCampaignsNewRoute
   '/_authenticated/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
@@ -327,6 +326,7 @@ export interface FileRoutesById {
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/_authenticated/app/campaigns/': typeof AuthenticatedAppCampaignsIndexRoute
   '/_authenticated/app/flows/': typeof AuthenticatedAppFlowsIndexRoute
+  '/_authenticated/_admin/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/_authenticated/_admin/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
 }
 export interface FileRouteTypes {
@@ -355,7 +355,6 @@ export interface FileRouteTypes {
     | '/api/public/flow-worker'
     | '/api/public/warmup-worker'
     | '/app/'
-    | '/app/admin/catalog'
     | '/app/campaigns/$id'
     | '/app/campaigns/new'
     | '/app/flows/$id'
@@ -363,6 +362,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution-webhook/$token'
     | '/app/campaigns/'
     | '/app/flows/'
+    | '/app/admin/catalog'
     | '/app/admin/security'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -388,7 +388,6 @@ export interface FileRouteTypes {
     | '/api/public/flow-worker'
     | '/api/public/warmup-worker'
     | '/app'
-    | '/app/admin/catalog'
     | '/app/campaigns/$id'
     | '/app/campaigns/new'
     | '/app/flows/$id'
@@ -396,6 +395,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution-webhook/$token'
     | '/app/campaigns'
     | '/app/flows'
+    | '/app/admin/catalog'
     | '/app/admin/security'
   id:
     | '__root__'
@@ -424,7 +424,6 @@ export interface FileRouteTypes {
     | '/api/public/flow-worker'
     | '/api/public/warmup-worker'
     | '/_authenticated/app/'
-    | '/_authenticated/app/admin/catalog'
     | '/_authenticated/app/campaigns/$id'
     | '/_authenticated/app/campaigns/new'
     | '/_authenticated/app/flows/$id'
@@ -432,6 +431,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution-webhook/$token'
     | '/_authenticated/app/campaigns/'
     | '/_authenticated/app/flows/'
+    | '/_authenticated/_admin/app/admin/catalog'
     | '/_authenticated/_admin/app/admin/security'
   fileRoutesById: FileRoutesById
 }
@@ -674,13 +674,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppCampaignsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/admin/catalog': {
-      id: '/_authenticated/app/admin/catalog'
-      path: '/app/admin/catalog'
-      fullPath: '/app/admin/catalog'
-      preLoaderRoute: typeof AuthenticatedAppAdminCatalogRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/_admin/app/admin/security': {
       id: '/_authenticated/_admin/app/admin/security'
       path: '/app/admin/security'
@@ -688,15 +681,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAppAdminSecurityRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/_admin/app/admin/catalog': {
+      id: '/_authenticated/_admin/app/admin/catalog'
+      path: '/app/admin/catalog'
+      fullPath: '/app/admin/catalog'
+      preLoaderRoute: typeof AuthenticatedAdminAppAdminCatalogRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminAppAdminCatalogRoute: typeof AuthenticatedAdminAppAdminCatalogRoute
   AuthenticatedAdminAppAdminSecurityRoute: typeof AuthenticatedAdminAppAdminSecurityRoute
 }
 
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
   {
+    AuthenticatedAdminAppAdminCatalogRoute:
+      AuthenticatedAdminAppAdminCatalogRoute,
     AuthenticatedAdminAppAdminSecurityRoute:
       AuthenticatedAdminAppAdminSecurityRoute,
   }
@@ -751,7 +754,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppWalletRoute: typeof AuthenticatedAppWalletRoute
   AuthenticatedAppWarmupRoute: typeof AuthenticatedAppWarmupRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
-  AuthenticatedAppAdminCatalogRoute: typeof AuthenticatedAppAdminCatalogRoute
   AuthenticatedAppCampaignsIdRoute: typeof AuthenticatedAppCampaignsIdRoute
   AuthenticatedAppCampaignsNewRoute: typeof AuthenticatedAppCampaignsNewRoute
   AuthenticatedAppCampaignsIndexRoute: typeof AuthenticatedAppCampaignsIndexRoute
@@ -774,7 +776,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppWalletRoute: AuthenticatedAppWalletRoute,
   AuthenticatedAppWarmupRoute: AuthenticatedAppWarmupRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
-  AuthenticatedAppAdminCatalogRoute: AuthenticatedAppAdminCatalogRoute,
   AuthenticatedAppCampaignsIdRoute: AuthenticatedAppCampaignsIdRoute,
   AuthenticatedAppCampaignsNewRoute: AuthenticatedAppCampaignsNewRoute,
   AuthenticatedAppCampaignsIndexRoute: AuthenticatedAppCampaignsIndexRoute,
