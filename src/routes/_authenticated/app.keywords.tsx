@@ -251,6 +251,14 @@ function KeywordsPage() {
 
       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
 
+      <Tabs defaultValue="rules" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="rules"><Bot className="h-4 w-4 mr-1.5" />Regras ({(list?.items ?? []).length})</TabsTrigger>
+          <TabsTrigger value="queue"><PlayCircle className="h-4 w-4 mr-1.5" />Fila ({recent?.todayCount ?? 0} hoje)</TabsTrigger>
+          <TabsTrigger value="audit"><Activity className="h-4 w-4 mr-1.5" />Diagnóstico</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="rules" className="space-y-3">
       <div className="grid gap-3">
         {(list?.items ?? []).map((t: Trigger) => (
           <Card key={t.id}>
