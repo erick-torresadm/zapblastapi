@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/public/agenda-dispatch")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { sendText } = await import("@/lib/evolution.server");
 
-        const origin = new URL(request.url).origin;
+        const origin = process.env.PUBLIC_APP_URL || "https://zapblastapi.lovable.app";
 
         // ============ 1) Gerar reminders de campanhas de reengajamento ============
         const { data: camps } = await supabaseAdmin

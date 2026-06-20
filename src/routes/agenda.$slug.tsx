@@ -8,9 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, ArrowLeft, CheckCircle2, MessageCircle, Sparkles } from "lucide-react";
 import { getPublicBusinessFn, getPublicSlotsFn, bookAppointmentFn } from "@/lib/agenda-public.functions";
 import { toast } from "sonner";
+
+function maskBRPhone(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+function phoneDigits(v: string) { return v.replace(/\D/g, ""); }
 
 export const Route = createFileRoute("/agenda/$slug")({
   loader: async ({ params }) => {
@@ -69,10 +78,17 @@ function PublicAgenda() {
   });
 
   const bookMut = useMutation({
-    mutationFn: () => book({ data: {
-      business_id: biz.id, service_id: svc!.id, professional_id: pro!.id, starts_at: slot!,
-      customer_name: form.name, customer_phone: form.phone, customer_notes: form.notes,
-    } }) as unknown as Promise<{ ok: boolean; message?: string; confirm_token?: string }>,
+    mutationFn: () => {
+      const digits = phoneDigits(form.phone);
+      if (digits.length < 10 || digits.length > 11) {
+        return Promise.reject(new Error("Telefone inválido. Use DDD + número, ex: (11) 99999-9999"));
+      }
+      const e164 = `55${digits}`;
+      return book({ data: {
+        business_id: biz.id, service_id: svc!.id, professional_id: pro!.id, starts_at: slot!,
+        customer_name: form.name, customer_phone: e164, customer_notes: form.notes,
+      } }) as unknown as Promise<{ ok: boolean; message?: string; confirm_token?: string }>;
+    },
     onSuccess: (r) => {
       if (!r.ok) { toast.error(r.message || "Erro"); return; }
       setConfirmToken(r.confirm_token ?? null);
@@ -154,22 +170,47 @@ function PublicAgenda() {
                   <Clock className="h-3 w-3 inline mr-1" />
                   {new Date(slot).toLocaleString("pt-BR", { dateStyle: "full", timeStyle: "short" })} · {svc.name} com {pro.name}
                 </div>
-                <div><Label>Nome completo</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-                <div><Label>WhatsApp</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="11999999999" /></div>
-                <div><Label>Observações (opcional)</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                <Button className="w-full" disabled={!form.name || !form.phone || bookMut.isPending} onClick={() => bookMut.mutate()}>
-                  Confirmar agendamento
+                <div><Label>Nome completo</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Maria Silva" /></div>
+                <div>
+                  <Label>WhatsApp</Label>
+                  <Input
+                    inputMode="tel"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: maskBRPhone(e.target.value) })}
+                    placeholder="(11) 99999-9999"
+                    maxLength={16}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">DDD + número. Usaremos para enviar a confirmação no WhatsApp.</p>
+                </div>
+                <div><Label>Observações (opcional)</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Algo que o profissional precise saber?" /></div>
+                <Button className="w-full" disabled={!form.name || phoneDigits(form.phone).length < 10 || bookMut.isPending} onClick={() => bookMut.mutate()}>
+                  {bookMut.isPending ? "Enviando..." : "Confirmar agendamento"}
                 </Button>
               </>
             )}
 
             {step === "done" && (
-              <div className="text-center py-6 space-y-3">
-                <CheckCircle2 className="h-12 w-12 mx-auto text-emerald-500" />
-                <h2 className="font-semibold text-lg">Agendamento confirmado!</h2>
-                <p className="text-sm text-muted-foreground">Você receberá uma mensagem no WhatsApp com o lembrete.</p>
+              <div className="text-center py-8 space-y-4">
+                <div className="relative inline-flex">
+                  <div className="absolute inset-0 rounded-full blur-2xl opacity-30" style={{ background: accent }} />
+                  <div className="relative h-20 w-20 rounded-full flex items-center justify-center" style={{ background: `${accent}15`, border: `2px solid ${accent}` }}>
+                    <CheckCircle2 className="h-10 w-10" style={{ color: accent }} />
+                  </div>
+                </div>
+                <div>
+                  <h2 className="font-bold text-xl flex items-center justify-center gap-1">
+                    <Sparkles className="h-4 w-4" style={{ color: accent }} /> Agendamento confirmado!
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">Tudo certo, {form.name.split(" ")[0]}. Em instantes você receberá uma mensagem no WhatsApp com os detalhes.</p>
+                </div>
+                <div className="p-4 rounded-xl border bg-muted/40 text-left text-sm space-y-1">
+                  <div className="flex items-center gap-2 font-medium"><Calendar className="h-4 w-4" />{svc?.name}{pro && ` · ${pro.name}`}</div>
+                  <div className="flex items-center gap-2 text-muted-foreground"><Clock className="h-4 w-4" />{slot && new Date(slot).toLocaleString("pt-BR", { dateStyle: "full", timeStyle: "short" })}</div>
+                </div>
                 {confirmToken && (
-                  <a className="text-primary hover:underline text-sm" href={`/agenda/confirmar/${confirmToken}`}>Ver detalhes</a>
+                  <Button asChild variant="outline" className="w-full">
+                    <a href={`/agenda/confirmar/${confirmToken}`}><MessageCircle className="h-4 w-4 mr-2" />Ver / gerenciar agendamento</a>
+                  </Button>
                 )}
               </div>
             )}
