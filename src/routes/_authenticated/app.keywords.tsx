@@ -457,6 +457,8 @@ function KeywordsPage() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Dialog de teste manual */}
       <Dialog open={!!testOpenFor} onOpenChange={(o) => !o && setTestOpenFor(null)}>
