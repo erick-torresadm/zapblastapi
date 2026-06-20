@@ -348,7 +348,7 @@ export function MapsExtractorCard({
 
         {result && result.leads.length > 0 && (
           <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <div className="text-sm font-semibold">{result.total} leads encontrados</div>
                 <div className="text-xs text-muted-foreground">
@@ -356,10 +356,32 @@ export function MapsExtractorCard({
                   {result.whatsapp_valid_count > 0 && ` • ${result.whatsapp_valid_count} com WhatsApp ativo`}
                 </div>
               </div>
-              <Button onClick={exportCsv} variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" /> CSV
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => sendToCampaign.mutate()}
+                  disabled={sendToCampaign.isPending || phonesEst === 0}
+                  size="sm"
+                >
+                  {sendToCampaign.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                  Enviar para campanha
+                </Button>
+                {result.can_download ? (
+                  <Button onClick={exportCsv} variant="outline" size="sm">
+                    <Download className="mr-2 h-4 w-4" /> CSV
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" disabled title="Disponível em buscas pagas">
+                    <Lock className="mr-2 h-4 w-4" /> CSV bloqueado
+                  </Button>
+                )}
+              </div>
             </div>
+            {!result.can_download && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
+                Esta busca foi gratuita. Os números ficam disponíveis para disparo dentro da plataforma.
+                Para baixar o CSV, faça uma busca paga ({brl(flatPrice)}).
+              </div>
+            )}
             <div className="max-h-[400px] space-y-2 overflow-y-auto">
               {result.leads.slice(0, 50).map((l: any) => (
                 <div key={l.place_id} className="flex items-start justify-between gap-2 rounded-md border border-border/40 bg-background p-3 text-xs">
