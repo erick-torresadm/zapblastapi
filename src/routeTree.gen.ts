@@ -21,6 +21,7 @@ import { Route as ApiPublicWarmupWorkerRouteImport } from './routes/api/public/w
 import { Route as ApiPublicFlowWorkerRouteImport } from './routes/api/public/flow-worker'
 import { Route as ApiPublicFlowTriggerTestRouteImport } from './routes/api/public/flow-trigger-test'
 import { Route as ApiPublicDispatchWorkerRouteImport } from './routes/api/public/dispatch-worker'
+import { Route as ApiPublicAgendaDispatchRouteImport } from './routes/api/public/agenda-dispatch'
 import { Route as AuthenticatedAppWarmupRouteImport } from './routes/_authenticated/app.warmup'
 import { Route as AuthenticatedAppWalletRouteImport } from './routes/_authenticated/app.wallet'
 import { Route as AuthenticatedAppToolsRouteImport } from './routes/_authenticated/app.tools'
@@ -104,6 +105,11 @@ const ApiPublicFlowTriggerTestRoute =
 const ApiPublicDispatchWorkerRoute = ApiPublicDispatchWorkerRouteImport.update({
   id: '/api/public/dispatch-worker',
   path: '/api/public/dispatch-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAgendaDispatchRoute = ApiPublicAgendaDispatchRouteImport.update({
+  id: '/api/public/agenda-dispatch',
+  path: '/api/public/agenda-dispatch',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppWarmupRoute = AuthenticatedAppWarmupRouteImport.update({
@@ -265,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/app/tools': typeof AuthenticatedAppToolsRoute
   '/app/wallet': typeof AuthenticatedAppWalletRoute
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
+  '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
@@ -301,6 +308,7 @@ export interface FileRoutesByTo {
   '/app/tools': typeof AuthenticatedAppToolsRoute
   '/app/wallet': typeof AuthenticatedAppWalletRoute
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
+  '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
@@ -341,6 +349,7 @@ export interface FileRoutesById {
   '/_authenticated/app/tools': typeof AuthenticatedAppToolsRoute
   '/_authenticated/app/wallet': typeof AuthenticatedAppWalletRoute
   '/_authenticated/app/warmup': typeof AuthenticatedAppWarmupRoute
+  '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-trigger-test': typeof ApiPublicFlowTriggerTestRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
@@ -380,6 +389,7 @@ export interface FileRouteTypes {
     | '/app/tools'
     | '/app/wallet'
     | '/app/warmup'
+    | '/api/public/agenda-dispatch'
     | '/api/public/dispatch-worker'
     | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
@@ -416,6 +426,7 @@ export interface FileRouteTypes {
     | '/app/tools'
     | '/app/wallet'
     | '/app/warmup'
+    | '/api/public/agenda-dispatch'
     | '/api/public/dispatch-worker'
     | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
@@ -455,6 +466,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/tools'
     | '/_authenticated/app/wallet'
     | '/_authenticated/app/warmup'
+    | '/api/public/agenda-dispatch'
     | '/api/public/dispatch-worker'
     | '/api/public/flow-trigger-test'
     | '/api/public/flow-worker'
@@ -480,6 +492,7 @@ export interface RootRouteChildren {
   PrivacidadeRoute: typeof PrivacidadeRoute
   TermosRoute: typeof TermosRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
+  ApiPublicAgendaDispatchRoute: typeof ApiPublicAgendaDispatchRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
   ApiPublicFlowTriggerTestRoute: typeof ApiPublicFlowTriggerTestRoute
   ApiPublicFlowWorkerRoute: typeof ApiPublicFlowWorkerRoute
@@ -571,6 +584,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/dispatch-worker'
       fullPath: '/api/public/dispatch-worker'
       preLoaderRoute: typeof ApiPublicDispatchWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/agenda-dispatch': {
+      id: '/api/public/agenda-dispatch'
+      path: '/api/public/agenda-dispatch'
+      fullPath: '/api/public/agenda-dispatch'
+      preLoaderRoute: typeof ApiPublicAgendaDispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/warmup': {
@@ -856,6 +876,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacidadeRoute: PrivacidadeRoute,
   TermosRoute: TermosRoute,
   ConviteTokenRoute: ConviteTokenRoute,
+  ApiPublicAgendaDispatchRoute: ApiPublicAgendaDispatchRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
   ApiPublicFlowTriggerTestRoute: ApiPublicFlowTriggerTestRoute,
   ApiPublicFlowWorkerRoute: ApiPublicFlowWorkerRoute,
