@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createGroup, fetchInviteCode, findGroupInfos, updateGroupPicture } from "@/lib/evolution.server";
+import { resolveInstancePhone } from "@/lib/group-launcher.functions";
+
 
 /**
  * Background worker for Group Launcher.
