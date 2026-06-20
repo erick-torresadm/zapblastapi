@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MapPin, Search, Loader2, Download, Star, ExternalLink, Phone, Globe, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { searchMapsLeadsFn } from "@/lib/maps.functions";
+import { formatPhone } from "@/lib/format-instance";
 
 declare global {
   interface Window { google: any; initMapsTool?: () => void }
