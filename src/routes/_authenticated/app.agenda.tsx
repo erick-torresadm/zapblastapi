@@ -328,21 +328,37 @@ function ProfessionalsTab({ business }: { business: Business }) {
   return (
     <div className="space-y-3">
       <Button onClick={() => setEditing({ name: "", phone: "", color: "#6366f1", active: true })}><Plus className="h-4 w-4 mr-1" />Novo profissional</Button>
-      {pros.map((p) => (
-        <Card key={p.id}>
+      {pros.length === 0 && (
+        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Cadastre o primeiro profissional e depois clique em <b>Horários</b> pra definir os dias e horas que ele atende.</CardContent></Card>
+      )}
+      {pros.map((p) => {
+        const noHours = (p.agenda_availability?.length ?? 0) === 0;
+        return (
+        <Card key={p.id} className={noHours ? "border-amber-500/50" : undefined}>
           <CardContent className="p-3 flex items-center gap-3 flex-wrap">
             <div className="w-3 h-3 rounded-full" style={{ background: p.color || "#888" }} />
             <div className="flex-1 min-w-[200px]">
-              <div className="font-medium">{p.name}</div>
+              <div className="font-medium flex items-center gap-2">
+                {p.name}
+                {noHours && (
+                  <Badge variant="secondary" className="bg-amber-500/20 text-amber-700">
+                    <AlertTriangle className="h-3 w-3 mr-1" />sem horários
+                  </Badge>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground">{p.phone || "sem WhatsApp"}</div>
             </div>
             {!p.active && <Badge variant="secondary">Inativo</Badge>}
-            <Button size="sm" variant="outline" onClick={() => setAvailPro(p.id)}>Horários</Button>
+            <Button size="sm" variant={noHours ? "default" : "outline"} onClick={() => setAvailPro(p.id)}>
+              <Clock className="h-3 w-3 mr-1" />Horários
+            </Button>
             <Button size="sm" variant="outline" onClick={() => setEditing({ id: p.id, name: p.name, phone: p.phone ?? "", color: p.color ?? "#6366f1", active: p.active })}>Editar</Button>
             <Button size="sm" variant="ghost" onClick={() => { if (confirm("Remover?")) del({ data: { id: p.id } }).then(() => qc.invalidateQueries({ queryKey: ["agenda-pros"] })); }}><Trash2 className="h-3 w-3" /></Button>
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
+
 
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         <DialogContent>
