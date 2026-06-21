@@ -11,9 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Users, ShieldCheck, Download, Wallet, Sparkles, Loader2, MapPin, UserPlus } from "lucide-react";
+import { CheckCircle2, XCircle, ShieldCheck, Download, Wallet, Sparkles, Loader2, MapPin, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { validateNumbersFn, extractGroupFn, getToolsPricingFn } from "@/lib/tools.functions";
+import { validateNumbersFn, getToolsPricingFn } from "@/lib/tools.functions";
 import { listInstancesFn } from "@/lib/instances.functions";
 import { getWalletFn } from "@/lib/wallet.functions";
 import { MapsExtractorCard } from "@/components/tools/MapsExtractorCard";
@@ -92,7 +92,7 @@ function ToolsPage() {
       )}
 
       <Tabs defaultValue="maps" className="space-y-4">
-        <TabsList className="grid w-full max-w-3xl grid-cols-2 md:grid-cols-4">
+        <TabsList className="grid w-full max-w-3xl grid-cols-3">
           <TabsTrigger value="maps">
             <MapPin className="mr-2 h-4 w-4" /> Google Maps
           </TabsTrigger>
@@ -101,9 +101,6 @@ function ToolsPage() {
           </TabsTrigger>
           <TabsTrigger value="validator">
             <ShieldCheck className="mr-2 h-4 w-4" /> Validador
-          </TabsTrigger>
-          <TabsTrigger value="group">
-            <Users className="mr-2 h-4 w-4" /> Extrair grupo
           </TabsTrigger>
         </TabsList>
 
@@ -126,16 +123,6 @@ function ToolsPage() {
           <ValidatorCard
             instances={connectedInstances}
             pricePerNumber={pricing?.validator_per_number_cents ?? 2}
-            balance={balance}
-            onSuccess={() => refetchWallet()}
-          />
-        </TabsContent>
-
-        <TabsContent value="group">
-          <GroupExtractCard
-            instances={connectedInstances}
-            pricePerContact={pricing?.group_extract_per_contact_cents ?? 10}
-            minCharge={pricing?.group_extract_min_charge_cents ?? 100}
             balance={balance}
             onSuccess={() => refetchWallet()}
           />
@@ -283,157 +270,3 @@ function ValidatorCard({
   );
 }
 
-// ============================================================================
-
-function GroupExtractCard({
-  instances,
-  pricePerContact,
-  minCharge,
-  balance,
-  onSuccess,
-}: {
-  instances: any[];
-  pricePerContact: number;
-  minCharge: number;
-  balance: number;
-  onSuccess: () => void;
-}) {
-  const extract = useServerFn(extractGroupFn);
-  const [instanceId, setInstanceId] = useState<string>("");
-  const [group, setGroup] = useState("");
-  const [result, setResult] = useState<any | null>(null);
-
-  const mut = useMutation({
-    mutationFn: () => extract({ data: { instance_id: instanceId, group: group.trim() } }),
-    onSuccess: (r) => {
-      setResult(r);
-      const resolved = r.resolved_count ?? r.total;
-      const hidden = r.unresolved_count ?? 0;
-      toast.success(
-        `${resolved} telefone(s) extraído(s)${hidden ? ` · ${hidden} oculto(s) não cobrado(s)` : ""} — debitado ${brl(r.cost_cents)}`,
-      );
-      onSuccess();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  function exportCsv() {
-    if (!result) return;
-    const rows: string[][] = [["telefone", "jid", "admin", "privacidade_oculta"]];
-    // Só exporta linhas com telefone real (oculto não tem valor pro cliente)
-    for (const c of result.contacts) {
-      if (!c.phone) continue;
-      rows.push([c.phone, c.jid, c.is_admin ? "sim" : "nao", c.was_lid ? "convertido" : "nao"]);
-    }
-    downloadCsv(`grupo-${result.group.subject ?? "export"}-${Date.now()}.csv`, rows);
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" /> Extrator de membros de grupo
-            </CardTitle>
-            <CardDescription>
-              Cole o link de convite ou o JID do grupo. A gente devolve todos os números prontos pra importar em campanhas.
-            </CardDescription>
-          </div>
-          <Badge variant="secondary" className="shrink-0">{brl(pricePerContact)} / contato</Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label>Chip que vai consultar</Label>
-            <Select value={instanceId} onValueChange={setInstanceId}>
-              <SelectTrigger><SelectValue placeholder="Escolha um chip conectado" /></SelectTrigger>
-              <SelectContent>
-                {instances.map((i: any) => (
-                  <SelectItem key={i.id} value={i.id}>
-                    <span className="flex items-center gap-1.5">
-                      <span className="font-medium">{i.instance_name}</span>
-                      <span className="text-muted-foreground text-xs">{formatPhone(i.phone_number)}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Link de convite ou JID do grupo</Label>
-            <Input
-              value={group}
-              onChange={(e) => setGroup(e.target.value)}
-              placeholder="https://chat.whatsapp.com/ABCxyz123..."
-            />
-          </div>
-        </div>
-
-        <div className="rounded-md border border-dashed border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-          <strong className="text-foreground">Dica:</strong> funciona com <em>grupos</em> e <em>comunidades</em>. Em comunidade, expandimos automaticamente os sub-grupos vinculados e juntamos todos os membros (sem repetição). Se o chip não participa, conseguimos só o nome e o tamanho — o WhatsApp só libera a lista completa quando o chip está dentro. Cobrança mínima de {brl(minCharge)}.
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={() => mut.mutate()}
-            disabled={!instanceId || !group.trim() || mut.isPending}
-          >
-            {mut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
-            Extrair contatos
-          </Button>
-          <Link to="/app/wallet"><Button variant="outline">Saldo: {brl(balance)}</Button></Link>
-        </div>
-
-        {result && (
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold">{result.group.subject ?? "Grupo"}</div>
-                <div className="text-xs text-muted-foreground">
-                  <span className="text-foreground font-medium">{result.resolved_count ?? result.total}</span> telefone(s) entregue(s)
-                  {result.unresolved_count ? <> · <span className="text-amber-600 dark:text-amber-400">{result.unresolved_count} oculto(s)</span> (não cobrados)</> : null}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold">{brl(result.cost_cents)}</div>
-                <div className="text-[11px] uppercase text-muted-foreground">debitado</div>
-              </div>
-            </div>
-            <div className="mb-3 max-h-48 overflow-y-auto rounded border border-border bg-background">
-              <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-muted/50">
-                  <tr className="text-left">
-                    <th className="px-2 py-1.5">Telefone</th>
-                    <th className="px-2 py-1.5">Admin</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.contacts.slice(0, 100).map((c: any, idx: number) => (
-                    <tr key={idx} className="border-t border-border/40">
-                      <td className="px-2 py-1 font-mono">
-                        {c.phone ? c.phone : <span className="text-muted-foreground italic">(oculto)</span>}
-                      </td>
-                      <td className="px-2 py-1">
-                        {c.is_admin ? <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> : <XCircle className="h-3.5 w-3.5 text-muted-foreground/40" />}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {result.contacts.length > 100 && (
-                <div className="bg-muted/30 px-2 py-1.5 text-center text-[11px] text-muted-foreground">
-                  +{result.contacts.length - 100} contatos no CSV
-                </div>
-              )}
-            </div>
-            <Button onClick={exportCsv} variant="outline" size="sm" className="w-full">
-              <Download className="mr-2 h-4 w-4" /> Baixar CSV completo
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
