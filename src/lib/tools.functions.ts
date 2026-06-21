@@ -414,6 +414,13 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       sourceCounts,
     });
 
+    if (sawAdminOnlySummary && participants.length <= 10 && finalDeclaredSize <= 20) {
+      throw new Error(
+        `A Evolution/WhatsApp retornou só um resumo de administradores (${participants.length} membro(s)), não a lista real do grupo. ` +
+        `Não debitei nada. O chip precisa estar dentro do grupo e com a lista sincronizada para liberar todos os participantes.`,
+      );
+    }
+
     if (finalDeclaredSize > 20 && participants.length < finalDeclaredSize) {
       throw new Error(
         `A Evolution/WhatsApp informou que o grupo tem ${finalDeclaredSize} membro(s), mas só liberou ${participants.length}. ` +
@@ -507,6 +514,14 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     // Step 4: charge ONLY for participants where we extracted a real phone.
     const resolved = pending.filter((c) => !!c.phone);
     const unresolved = pending.filter((c) => !c.phone);
+
+    if (finalDeclaredSize > 20 && resolved.length < finalDeclaredSize) {
+      throw new Error(
+        `Consegui ler ${participants.length} participante(s), mas só ${resolved.length} telefone(s) vieram liberados pelo WhatsApp. ` +
+        `Como o grupo tem ${finalDeclaredSize} membro(s), não debitei nada para não entregar uma lista parcial. ` +
+        `Use um chip que já tenha histórico/conversa com esses membros ou aguarde o WhatsApp sincronizar os @lid.`,
+      );
+    }
 
     if (resolved.length === 0) {
       throw new Error(
