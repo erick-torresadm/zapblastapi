@@ -391,13 +391,92 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       }
     };
 
-    await tryFindFull("beforeJoin");
+    // Community expansion: members live in linked sub-groups, not in the parent JID.
+    // Detect by inviteInfo flag OR by findGroupInfos saying isCommunity, OR by an empty parent
+    // whose declared size is 0 — typical of community announce containers.
+    const expandCommunityRoster = async (label: string) => {
+      if (!communityParentJid) return;
+      try {
+        const all = await evo.fetchAllGroups(server, instance.instance_name, true);
+        const parent = communityParentJid;
+        const subs = (all || []).filter((g) => {
+          const rec = g as Record<string, unknown>;
+          const linked = normalizeGroupJid(rec.linkedParent)
+            ?? normalizeGroupJid(rec.parentGroup)
+            ?? normalizeGroupJid(rec.parentGroupJid)
+            ?? normalizeGroupJid(rec.linkedParentJid)
+            ?? normalizeGroupJid((rec.groupMetadata as Record<string, unknown> | undefined)?.linkedParent);
+          return linked === parent;
+        });
+        communitySubgroups.length = 0;
+        let totalDeclared = 0;
+        for (const sg of subs) {
+          const sgJid = normalizeGroupJid(sg.id);
+          if (!sgJid) continue;
+          const sgSize = declaredGroupSize(sg);
+          totalDeclared += sgSize;
+          let rows = extractParticipants(sg);
+          if (rows.length === 0) {
+            try {
+              const roster = await evo.fetchGroupParticipants(server, instance.instance_name, sgJid);
+              rows = extractParticipants(roster);
+            } catch (e) {
+              console.warn(`[extractGroupFn] ${label} subgroup ${sgJid} participants failed:`, (e as Error).message);
+            }
+          }
+          if (rows.length === 0) {
+            try {
+              const full = await evo.findGroupInfos(server, instance.instance_name, sgJid);
+              rows = extractParticipants(full);
+            } catch { /* swallow */ }
+          }
+          participants = mergeParticipants(participants, rows);
+          communitySubgroups.push({
+            jid: sgJid,
+            subject: typeof sg.subject === "string" ? sg.subject : null,
+            size: sgSize,
+            resolved: rows.length,
+          });
+        }
+        expectedSize = Math.max(expectedSize, totalDeclared, participants.length);
+        sourceCounts[`${label}:communitySubgroups`] = subs.length;
+        sourceCounts[`${label}:communityParticipants`] = participants.length;
+        console.log(`[extractGroupFn] ${label} community expanded`, {
+          parent,
+          subgroups: subs.length,
+          totalDeclared,
+          uniqueParticipants: participants.length,
+        });
+      } catch (e) {
+        console.warn(`[extractGroupFn] ${label} community expansion failed:`, (e as Error).message);
+      }
+    };
 
-    if (inviteCode && !isRosterComplete()) {
+    if (!isCommunity) {
+      await tryFindFull("beforeJoin");
+      // If findGroupInfos surfaced isCommunity after the fact, flip the flag and try expansion.
+      if (info && (info as Record<string, unknown>).isCommunity) {
+        isCommunity = true;
+        communityParentJid = communityParentJid ?? groupJid;
+      }
+    }
+
+    if (isCommunity) {
+      await expandCommunityRoster("beforeJoin");
+    }
+
+    const needsJoin = inviteCode && (
+      isCommunity ? participants.length === 0 : !isRosterComplete()
+    );
+
+    if (needsJoin) {
       try {
         const accepted = await evo.acceptInviteCode(server, instance.instance_name, inviteCode);
         const acceptedJid = normalizeGroupJid(accepted.groupJid) ?? normalizeGroupJid(accepted.id);
-        if (acceptedJid) groupJid = acceptedJid;
+        if (acceptedJid) {
+          groupJid = acceptedJid;
+          if (isCommunity && !communityParentJid) communityParentJid = acceptedJid;
+        }
         joinedNow = true;
         sourceCounts.acceptInvite = acceptedJid ? 1 : 0;
       } catch (e) {
@@ -406,27 +485,42 @@ export const extractGroupFn = createServerFn({ method: "POST" })
 
       for (const delay of [1500, 2500, 4000, 6000, 8000, 10000]) {
         await new Promise((r) => setTimeout(r, delay));
-        await tryFindFull("afterJoin");
-        if (isRosterComplete()) break;
+        if (isCommunity) {
+          await expandCommunityRoster("afterJoin");
+          if (communitySubgroups.length > 0 && participants.length > 0) break;
+        } else {
+          await tryFindFull("afterJoin");
+          if (isRosterComplete()) break;
+        }
       }
     }
 
     const finalDeclaredSize = Math.max(expectedSize, declaredGroupSize(info), participants.length);
     console.log("[extractGroupFn] roster summary", {
       groupJid,
+      isCommunity,
+      communityParentJid,
+      communitySubgroups: communitySubgroups.length,
       expectedSize: finalDeclaredSize,
       deliveredParticipants: participants.length,
       sourceCounts,
     });
 
-    if (sawAdminOnlySummary && participants.length <= 10 && finalDeclaredSize <= 20) {
+    if (isCommunity && communitySubgroups.length === 0) {
+      throw new Error(
+        `Esse link é de uma Comunidade do WhatsApp e o chip ainda não enxerga os sub-grupos vinculados. ` +
+        `Não debitei nada. Deixe o chip dentro da comunidade por 1–2 minutos para o WhatsApp sincronizar os sub-grupos e tente novamente.`,
+      );
+    }
+
+    if (!isCommunity && sawAdminOnlySummary && participants.length <= 10 && finalDeclaredSize <= 20) {
       throw new Error(
         `A Evolution/WhatsApp retornou só um resumo de administradores (${participants.length} membro(s)), não a lista real do grupo. ` +
         `Não debitei nada. O chip precisa estar dentro do grupo e com a lista sincronizada para liberar todos os participantes.`,
       );
     }
 
-    if (finalDeclaredSize > 20 && participants.length < finalDeclaredSize) {
+    if (!isCommunity && finalDeclaredSize > 20 && participants.length < finalDeclaredSize) {
       throw new Error(
         `A Evolution/WhatsApp informou que o grupo tem ${finalDeclaredSize} membro(s), mas só liberou ${participants.length}. ` +
         `Não debitei nada. Confirme que o chip entrou mesmo no grupo, aguarde a sincronização do WhatsApp e tente novamente.`,
