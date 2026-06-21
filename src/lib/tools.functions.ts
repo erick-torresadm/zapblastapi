@@ -209,9 +209,13 @@ function normalizeGroupJid(value: unknown): string | null {
 function declaredGroupSize(source: unknown): number {
   if (!source || typeof source !== "object") return 0;
   const record = source as Record<string, unknown>;
-  for (const key of ["size", "participantsCount", "participants_count", "memberCount", "membersCount", "_count"]) {
+  for (const key of ["size", "participantsCount", "participants_count", "participantCount", "memberCount", "membersCount", "_count", "count"]) {
     const n = Number(record[key]);
     if (Number.isFinite(n) && n > 0) return n;
+  }
+  for (const value of Object.values(record)) {
+    const nested = declaredGroupSize(value);
+    if (nested > 0) return nested;
   }
   return 0;
 }
@@ -223,11 +227,14 @@ function extractParticipants(source: unknown, depth = 0): GroupParticipantRow[] 
       .map((item) => {
         if (!item || typeof item !== "object") return null;
         const record = item as Record<string, unknown>;
-        const id = String(record.id ?? record.jid ?? record.remoteJid ?? "").trim();
+        const id = String(record.id ?? record.jid ?? record.remoteJid ?? record.lid ?? "").trim();
         if (!/@(s\.whatsapp\.net|c\.us|lid)$/i.test(id)) return null;
+        const adminRole = typeof record.admin === "string" && record.admin
+          ? record.admin
+          : record.isSuperAdmin ? "superadmin" : record.isAdmin ? "admin" : null;
         return {
           id,
-          admin: typeof record.admin === "string" ? record.admin : null,
+          admin: adminRole,
           phoneNumber: typeof record.phoneNumber === "string" ? record.phoneNumber : null,
           phone: typeof record.phone === "string" ? record.phone : null,
         };
@@ -254,6 +261,10 @@ function mergeParticipants(current: GroupParticipantRow[], incoming: GroupPartic
   return Array.from(byId.values());
 }
 
+function looksLikeAdminSummary(rows: GroupParticipantRow[]): boolean {
+  return rows.length > 0 && rows.length <= 10 && rows.every((row) => !!row.admin);
+}
+
 export const extractGroupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { instance_id: string; group: string }) =>
@@ -276,6 +287,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     let expectedSize = 0;
     let participants: GroupParticipantRow[] = [];
     const sourceCounts: Record<string, number> = {};
+    let sawAdminOnlySummary = false;
 
     const inviteCode = evo.parseGroupInviteCode(raw);
     if (inviteCode) {
@@ -284,7 +296,9 @@ export const extractGroupFn = createServerFn({ method: "POST" })
         info = inv;
         expectedSize = Math.max(expectedSize, declaredGroupSize(inv));
         groupJid = normalizeGroupJid(inv?.groupJid) ?? normalizeGroupJid(inv?.id);
-        participants = mergeParticipants(participants, extractParticipants(inv));
+        const rows = extractParticipants(inv);
+        sawAdminOnlySummary = sawAdminOnlySummary || looksLikeAdminSummary(rows);
+        participants = mergeParticipants(participants, rows);
         sourceCounts.inviteInfo = participants.length;
       } catch (e) {
         throw new Error(`Não consegui ler esse convite: ${(e as Error).message}`);
@@ -298,6 +312,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     }
 
     const isRosterComplete = () => {
+      if (looksLikeAdminSummary(participants)) return false;
       if (expectedSize > 20) return participants.length >= expectedSize;
       return participants.length > 0;
     };
@@ -325,6 +340,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
           const match = await findMatchingGroup();
           if (match) {
             const rows = extractParticipants(match);
+            sawAdminOnlySummary = sawAdminOnlySummary || looksLikeAdminSummary(rows);
             participants = mergeParticipants(participants, rows);
             sourceCounts[`${label}:fetchAllGroups:matched`] = rows.length;
           }
@@ -337,6 +353,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       try {
         const roster = await evo.fetchGroupParticipants(server, instance.instance_name, groupJid);
         const rows = extractParticipants(roster);
+        sawAdminOnlySummary = sawAdminOnlySummary || looksLikeAdminSummary(rows);
         participants = mergeParticipants(participants, rows);
         sourceCounts[`${label}:participants`] = rows.length;
         console.log(`[extractGroupFn] ${label} /group/participants returned ${rows.length}/${expectedSize || "?"} participants for ${groupJid}`);
@@ -349,6 +366,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
         info = full;
         expectedSize = Math.max(expectedSize, declaredGroupSize(full));
         const rows = extractParticipants(full);
+        sawAdminOnlySummary = sawAdminOnlySummary || looksLikeAdminSummary(rows);
         participants = mergeParticipants(participants, rows);
         sourceCounts[`${label}:findGroupInfos`] = rows.length;
         console.log(`[extractGroupFn] ${label} findGroupInfos returned ${rows.length}/${expectedSize || "?"} participants`);
@@ -359,6 +377,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       try {
         const match = await findMatchingGroup();
         const rows = extractParticipants(match);
+        sawAdminOnlySummary = sawAdminOnlySummary || looksLikeAdminSummary(rows);
         participants = mergeParticipants(participants, rows);
         sourceCounts[`${label}:fetchAllGroups`] = rows.length;
         console.log(`[extractGroupFn] ${label} fetchAllGroups match returned ${rows.length}/${expectedSize || "?"} participants`);
@@ -394,6 +413,13 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       deliveredParticipants: participants.length,
       sourceCounts,
     });
+
+    if (sawAdminOnlySummary && participants.length <= 10 && finalDeclaredSize <= 20) {
+      throw new Error(
+        `A Evolution/WhatsApp retornou só um resumo de administradores (${participants.length} membro(s)), não a lista real do grupo. ` +
+        `Não debitei nada. O chip precisa estar dentro do grupo e com a lista sincronizada para liberar todos os participantes.`,
+      );
+    }
 
     if (finalDeclaredSize > 20 && participants.length < finalDeclaredSize) {
       throw new Error(
@@ -488,6 +514,21 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     // Step 4: charge ONLY for participants where we extracted a real phone.
     const resolved = pending.filter((c) => !!c.phone);
     const unresolved = pending.filter((c) => !c.phone);
+
+    if (inviteCode && participants.length <= 10) {
+      throw new Error(
+        `A Evolution/WhatsApp retornou só ${participants.length} participante(s) para esse convite, o que normalmente é apenas prévia/admins do grupo. ` +
+        `Não debitei nada para não entregar uma lista parcial. Deixe o chip dentro do grupo, aguarde a sincronização completa e tente novamente pelo JID do grupo.`,
+      );
+    }
+
+    if (finalDeclaredSize > 20 && resolved.length < finalDeclaredSize) {
+      throw new Error(
+        `Consegui ler ${participants.length} participante(s), mas só ${resolved.length} telefone(s) vieram liberados pelo WhatsApp. ` +
+        `Como o grupo tem ${finalDeclaredSize} membro(s), não debitei nada para não entregar uma lista parcial. ` +
+        `Use um chip que já tenha histórico/conversa com esses membros ou aguarde o WhatsApp sincronizar os @lid.`,
+      );
+    }
 
     if (resolved.length === 0) {
       throw new Error(
