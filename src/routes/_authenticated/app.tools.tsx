@@ -372,7 +372,7 @@ function GroupExtractCard({
         </div>
 
         <div className="rounded-md border border-dashed border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-          <strong className="text-foreground">Dica:</strong> se o link for de um grupo que você <em>não participa</em>, conseguimos o nome e o tamanho, mas o WhatsApp só libera a lista completa de membros quando o chip está dentro do grupo. Cobrança mínima de {brl(minCharge)}.
+          <strong className="text-foreground">Dica:</strong> funciona com <em>grupos</em> e <em>comunidades</em>. Em comunidade, expandimos automaticamente os sub-grupos vinculados e juntamos todos os membros (sem repetição). Se o chip não participa, conseguimos só o nome e o tamanho — o WhatsApp só libera a lista completa quando o chip está dentro. Cobrança mínima de {brl(minCharge)}.
         </div>
 
         <div className="flex flex-wrap gap-2">
