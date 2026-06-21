@@ -92,7 +92,7 @@ function ToolsPage() {
       )}
 
       <Tabs defaultValue="maps" className="space-y-4">
-        <TabsList className="grid w-full max-w-3xl grid-cols-2 md:grid-cols-4">
+        <TabsList className="grid w-full max-w-3xl grid-cols-3">
           <TabsTrigger value="maps">
             <MapPin className="mr-2 h-4 w-4" /> Google Maps
           </TabsTrigger>
@@ -101,9 +101,6 @@ function ToolsPage() {
           </TabsTrigger>
           <TabsTrigger value="validator">
             <ShieldCheck className="mr-2 h-4 w-4" /> Validador
-          </TabsTrigger>
-          <TabsTrigger value="group">
-            <Users className="mr-2 h-4 w-4" /> Extrair grupo
           </TabsTrigger>
         </TabsList>
 
@@ -126,16 +123,6 @@ function ToolsPage() {
           <ValidatorCard
             instances={connectedInstances}
             pricePerNumber={pricing?.validator_per_number_cents ?? 2}
-            balance={balance}
-            onSuccess={() => refetchWallet()}
-          />
-        </TabsContent>
-
-        <TabsContent value="group">
-          <GroupExtractCard
-            instances={connectedInstances}
-            pricePerContact={pricing?.group_extract_per_contact_cents ?? 10}
-            minCharge={pricing?.group_extract_min_charge_cents ?? 100}
             balance={balance}
             onSuccess={() => refetchWallet()}
           />
