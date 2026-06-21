@@ -239,19 +239,33 @@ export const extractGroupFn = createServerFn({ method: "POST" })
         const full = await evo.findGroupInfos(server, instance.instance_name, groupJid);
         info = full;
         const fullParticipants = (full?.participants as Array<{ id: string; admin?: string | null }>) || [];
+        console.log(`[extractGroupFn] findGroupInfos returned ${fullParticipants.length} participants (declared size=${full?.size})`);
         if (fullParticipants.length > 0) fetchedAuthoritativeRoster = true;
         if (fullParticipants.length > participants.length) participants = fullParticipants;
-      } catch {
-        // ignored — instance not member yet
+      } catch (e) {
+        console.warn("[extractGroupFn] findGroupInfos failed:", (e as Error).message);
       }
       try {
         const roster = await evo.fetchGroupParticipants(server, instance.instance_name, groupJid);
+        console.log(`[extractGroupFn] fetchGroupParticipants returned ${roster.length} participants`);
         if (roster.length > 0) fetchedAuthoritativeRoster = true;
         if (roster.length > participants.length) participants = roster;
-      } catch {
-        // ignored — instance not member yet or server version lacks this route
+      } catch (e) {
+        console.warn("[extractGroupFn] fetchGroupParticipants failed:", (e as Error).message);
+      }
+      // Fallback: scan fetchAllGroups(getParticipants=true) and pick this group.
+      try {
+        const all = await evo.fetchAllGroups(server, instance.instance_name, true);
+        const match = all.find((g) => String(g?.id ?? "") === groupJid);
+        const matchParticipants = (match?.participants as Array<{ id: string; admin?: string | null }>) || [];
+        console.log(`[extractGroupFn] fetchAllGroups match has ${matchParticipants.length} participants (of ${all.length} groups)`);
+        if (matchParticipants.length > 0) fetchedAuthoritativeRoster = true;
+        if (matchParticipants.length > participants.length) participants = matchParticipants;
+      } catch (e) {
+        console.warn("[extractGroupFn] fetchAllGroups failed:", (e as Error).message);
       }
     };
+
 
     await tryFindFull();
 
