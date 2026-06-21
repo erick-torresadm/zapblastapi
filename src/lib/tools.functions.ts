@@ -413,7 +413,10 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     const pending: Pending[] = participants.map((p) => {
       const jid = String(p.id);
       const isLid = jid.endsWith("@lid");
-      const phone = isLid ? null : (jid.split("@")[0] || "").replace(/\D/g, "") || null;
+      const directPhone = String(p.phoneNumber ?? p.phone ?? "").replace(/\D/g, "");
+      const phone = directPhone.length >= 8 && directPhone.length <= 15
+        ? directPhone
+        : isLid ? null : (jid.split("@")[0] || "").replace(/\D/g, "") || null;
       return { jid, admin: !!p.admin, phone, isLid };
     });
 
@@ -532,7 +535,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       group: {
         id: groupJid,
         subject: (info?.subject as string) ?? null,
-        size: (info?.size as number) ?? participants.length,
+        size: finalDeclaredSize,
       },
       cost_cents: cost,
       total: contacts.length,
