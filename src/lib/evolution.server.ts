@@ -144,12 +144,19 @@ async function evoFetch(
   return (body && typeof body === "object" && !Array.isArray(body) ? body : { value: body }) as Record<string, unknown>;
 }
 
-function evoArray<T>(body: unknown, keys: string[] = []): T[] {
+function evoArray<T>(body: unknown, keys: string[] = [], depth = 0): T[] {
   if (Array.isArray(body)) return body as T[];
-  if (!body || typeof body !== "object") return [];
+  if (!body || typeof body !== "object" || depth > 4) return [];
   const record = body as Record<string, unknown>;
   for (const key of [...keys, "data", "value", "contacts", "chats", "groups"]) {
-    if (Array.isArray(record[key])) return record[key] as T[];
+    const value = record[key];
+    if (Array.isArray(value)) return value as T[];
+    const nested = evoArray<T>(value, keys, depth + 1);
+    if (nested.length) return nested;
+  }
+  for (const value of Object.values(record)) {
+    const nested = evoArray<T>(value, keys, depth + 1);
+    if (nested.length) return nested;
   }
   return [];
 }
@@ -623,6 +630,10 @@ export function isInQuietHours(startHour: number, endHour: number, now: Date = n
 export type GroupParticipant = {
   id: string;            // JID (5511...@s.whatsapp.net or ...@lid)
   admin?: "admin" | "superadmin" | null;
+  phoneNumber?: string | null;
+  phone?: string | null;
+  name?: string | null;
+  imgUrl?: string | null;
 };
 
 export type GroupInfo = {

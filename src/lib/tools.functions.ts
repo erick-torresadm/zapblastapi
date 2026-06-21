@@ -175,7 +175,6 @@ function collectLidMappings(source: unknown, out = new Map<string, string>(), de
 }
 
 async function persistLidMappings(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabaseAdmin: any,
   args: { userId: string; instanceId: string; mappings: Map<string, string> },
 ) {
@@ -189,6 +188,70 @@ async function persistLidMappings(
     })),
     { onConflict: "owner_user_id,lid_jid" },
   );
+}
+
+type GroupParticipantRow = {
+  id: string;
+  admin?: string | null;
+  phoneNumber?: string | null;
+  phone?: string | null;
+};
+
+const GROUP_JID_RE = /^[\w.-]+@g\.us$/i;
+
+function normalizeGroupJid(value: unknown): string | null {
+  const raw = String(value ?? "").trim();
+  const direct = raw.match(/[\w.-]+@g\.us/i)?.[0];
+  if (direct && GROUP_JID_RE.test(direct)) return direct;
+  return null;
+}
+
+function declaredGroupSize(source: unknown): number {
+  if (!source || typeof source !== "object") return 0;
+  const record = source as Record<string, unknown>;
+  for (const key of ["size", "participantsCount", "participants_count", "memberCount", "membersCount", "_count"]) {
+    const n = Number(record[key]);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 0;
+}
+
+function extractParticipants(source: unknown, depth = 0): GroupParticipantRow[] {
+  if (!source || depth > 5) return [];
+  if (Array.isArray(source)) {
+    const direct = source
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const record = item as Record<string, unknown>;
+        const id = String(record.id ?? record.jid ?? record.remoteJid ?? "").trim();
+        if (!/@(s\.whatsapp\.net|c\.us|lid)$/i.test(id)) return null;
+        return {
+          id,
+          admin: typeof record.admin === "string" ? record.admin : null,
+          phoneNumber: typeof record.phoneNumber === "string" ? record.phoneNumber : null,
+          phone: typeof record.phone === "string" ? record.phone : null,
+        };
+      })
+      .filter(Boolean) as GroupParticipantRow[];
+    if (direct.length) return direct;
+    return source.flatMap((item) => extractParticipants(item, depth + 1));
+  }
+  if (typeof source !== "object") return [];
+  const record = source as Record<string, unknown>;
+  for (const key of ["participants", "members", "groupParticipants", "data", "value"]) {
+    const rows = extractParticipants(record[key], depth + 1);
+    if (rows.length) return rows;
+  }
+  return [];
+}
+
+function mergeParticipants(current: GroupParticipantRow[], incoming: GroupParticipantRow[]): GroupParticipantRow[] {
+  const byId = new Map<string, GroupParticipantRow>();
+  for (const row of [...current, ...incoming]) {
+    if (!row.id) continue;
+    byId.set(row.id, { ...byId.get(row.id), ...row });
+  }
+  return Array.from(byId.values());
 }
 
 export const extractGroupFn = createServerFn({ method: "POST" })
@@ -205,113 +268,142 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     const evo = await import("@/lib/evolution.server");
     const raw = data.group.trim();
 
-    // Step 1: resolve to group info (invite link OR group JID)
+    // Step 1: resolve to group info (invite link OR group JID). inviteInfo may return
+    // an internal invite id, so only accept values that are real @g.us JIDs.
     let info: Awaited<ReturnType<typeof evo.findGroupInfos>> | null = null;
     let groupJid: string | null = null;
     let joinedNow = false;
+    let expectedSize = 0;
+    let participants: GroupParticipantRow[] = [];
+    const sourceCounts: Record<string, number> = {};
 
     const inviteCode = evo.parseGroupInviteCode(raw);
     if (inviteCode) {
       try {
         const inv = await evo.inviteInfoGroup(server, instance.instance_name, inviteCode);
         info = inv;
-        groupJid = String(inv?.id ?? inv?.groupJid ?? "") || null;
+        expectedSize = Math.max(expectedSize, declaredGroupSize(inv));
+        groupJid = normalizeGroupJid(inv?.groupJid) ?? normalizeGroupJid(inv?.id);
+        participants = mergeParticipants(participants, extractParticipants(inv));
+        sourceCounts.inviteInfo = participants.length;
       } catch (e) {
         throw new Error(`Não consegui ler esse convite: ${(e as Error).message}`);
       }
     } else if (raw.includes("@g.us")) {
-      groupJid = raw;
+      groupJid = normalizeGroupJid(raw);
     } else if (/^\d{8,}-\d{8,}$/.test(raw)) {
       groupJid = `${raw}@g.us`;
     } else {
       throw new Error("Cole um link de convite (https://chat.whatsapp.com/...) ou o JID do grupo");
     }
 
-    // Step 2: fetch the real roster. inviteInfoGroup usually returns only admins;
-    // /group/participants is the authoritative list once the chip is a member.
-    let participants: Array<{ id: string; admin?: string | null }> =
-      (info?.participants as Array<{ id: string; admin?: string | null }>) || [];
-    let fetchedAuthoritativeRoster = false;
+    const isRosterComplete = () => {
+      if (expectedSize > 20) return participants.length >= expectedSize;
+      return participants.length > 0;
+    };
 
-    const tryFindFull = async () => {
+    const findMatchingGroup = async () => {
+      const all = await evo.fetchAllGroups(server, instance.instance_name, true);
+      const currentSubject = String(info?.subject ?? "").trim().toLowerCase();
+      const match = all.find((g) => normalizeGroupJid(g?.id) === groupJid)
+        ?? all.find((g) => {
+          const subject = String(g?.subject ?? "").trim().toLowerCase();
+          const size = declaredGroupSize(g);
+          return !!currentSubject && subject === currentSubject && (!expectedSize || !size || Math.abs(size - expectedSize) <= 2);
+        });
+      if (!match) return null;
+      groupJid = normalizeGroupJid(match.id) ?? groupJid;
+      expectedSize = Math.max(expectedSize, declaredGroupSize(match));
+      return match;
+    };
+
+    // Step 2: fetch the real roster. /group/participants is the official full list;
+    // findGroupInfos and fetchAllGroups are fallbacks for server/version differences.
+    const tryFindFull = async (label: string) => {
+      if (!groupJid) {
+        try {
+          const match = await findMatchingGroup();
+          if (match) {
+            const rows = extractParticipants(match);
+            participants = mergeParticipants(participants, rows);
+            sourceCounts[`${label}:fetchAllGroups:matched`] = rows.length;
+          }
+        } catch (e) {
+          console.warn(`[extractGroupFn] ${label} fetchAllGroups match failed:`, (e as Error).message);
+        }
+      }
       if (!groupJid) return;
+
+      try {
+        const roster = await evo.fetchGroupParticipants(server, instance.instance_name, groupJid);
+        const rows = extractParticipants(roster);
+        participants = mergeParticipants(participants, rows);
+        sourceCounts[`${label}:participants`] = rows.length;
+        console.log(`[extractGroupFn] ${label} /group/participants returned ${rows.length}/${expectedSize || "?"} participants for ${groupJid}`);
+      } catch (e) {
+        console.warn(`[extractGroupFn] ${label} /group/participants failed:`, (e as Error).message);
+      }
+
       try {
         const full = await evo.findGroupInfos(server, instance.instance_name, groupJid);
         info = full;
-        const fullParticipants = (full?.participants as Array<{ id: string; admin?: string | null }>) || [];
-        console.log(`[extractGroupFn] findGroupInfos returned ${fullParticipants.length} participants (declared size=${full?.size})`);
-        if (fullParticipants.length > 0) fetchedAuthoritativeRoster = true;
-        if (fullParticipants.length > participants.length) participants = fullParticipants;
+        expectedSize = Math.max(expectedSize, declaredGroupSize(full));
+        const rows = extractParticipants(full);
+        participants = mergeParticipants(participants, rows);
+        sourceCounts[`${label}:findGroupInfos`] = rows.length;
+        console.log(`[extractGroupFn] ${label} findGroupInfos returned ${rows.length}/${expectedSize || "?"} participants`);
       } catch (e) {
-        console.warn("[extractGroupFn] findGroupInfos failed:", (e as Error).message);
+        console.warn(`[extractGroupFn] ${label} findGroupInfos failed:`, (e as Error).message);
       }
+
       try {
-        const roster = await evo.fetchGroupParticipants(server, instance.instance_name, groupJid);
-        console.log(`[extractGroupFn] fetchGroupParticipants returned ${roster.length} participants`);
-        if (roster.length > 0) fetchedAuthoritativeRoster = true;
-        if (roster.length > participants.length) participants = roster;
+        const match = await findMatchingGroup();
+        const rows = extractParticipants(match);
+        participants = mergeParticipants(participants, rows);
+        sourceCounts[`${label}:fetchAllGroups`] = rows.length;
+        console.log(`[extractGroupFn] ${label} fetchAllGroups match returned ${rows.length}/${expectedSize || "?"} participants`);
       } catch (e) {
-        console.warn("[extractGroupFn] fetchGroupParticipants failed:", (e as Error).message);
-      }
-      // Fallback: scan fetchAllGroups(getParticipants=true) and pick this group.
-      try {
-        const all = await evo.fetchAllGroups(server, instance.instance_name, true);
-        const match = all.find((g) => String(g?.id ?? "") === groupJid);
-        const matchParticipants = (match?.participants as Array<{ id: string; admin?: string | null }>) || [];
-        console.log(`[extractGroupFn] fetchAllGroups match has ${matchParticipants.length} participants (of ${all.length} groups)`);
-        if (matchParticipants.length > 0) fetchedAuthoritativeRoster = true;
-        if (matchParticipants.length > participants.length) participants = matchParticipants;
-      } catch (e) {
-        console.warn("[extractGroupFn] fetchAllGroups failed:", (e as Error).message);
+        console.warn(`[extractGroupFn] ${label} fetchAllGroups failed:`, (e as Error).message);
       }
     };
 
+    await tryFindFull("beforeJoin");
 
-    await tryFindFull();
-
-    // Step 2b: if we still don't have the full member list, auto-join via the invite code
-    // (invite endpoints often return only a handful of admins, not the 1000+ real members).
-    const declaredSize = Number((info?.size as number) ?? 0);
-    const needsJoin =
-      !!inviteCode &&
-      !fetchedAuthoritativeRoster &&
-      (participants.length === 0 || declaredSize === 0 || (declaredSize > 0 && participants.length < declaredSize));
-
-    if (needsJoin) {
+    if (inviteCode && !isRosterComplete()) {
       try {
-        const accepted = await evo.acceptInviteCode(server, instance.instance_name, inviteCode!);
-        groupJid = String(accepted.groupJid ?? accepted.id ?? groupJid ?? "") || groupJid;
+        const accepted = await evo.acceptInviteCode(server, instance.instance_name, inviteCode);
+        const acceptedJid = normalizeGroupJid(accepted.groupJid) ?? normalizeGroupJid(accepted.id);
+        if (acceptedJid) groupJid = acceptedJid;
         joinedNow = true;
-        // Give Evolution time to sync the roster. Retry up to ~30s.
-        for (const delay of [2000, 3000, 4000, 5000, 6000, 8000]) {
-          await new Promise((r) => setTimeout(r, delay));
-          await tryFindFull();
-          const latestDeclaredSize = Number((info?.size as number) ?? declaredSize);
-          if (fetchedAuthoritativeRoster && (!latestDeclaredSize || participants.length >= latestDeclaredSize)) break;
-          if (!latestDeclaredSize && participants.length > 20) break;
-        }
+        sourceCounts.acceptInvite = acceptedJid ? 1 : 0;
       } catch (e) {
         console.warn("[extractGroupFn] auto-join failed:", (e as Error).message);
       }
+
+      for (const delay of [1500, 2500, 4000, 6000, 8000, 10000]) {
+        await new Promise((r) => setTimeout(r, delay));
+        await tryFindFull("afterJoin");
+        if (isRosterComplete()) break;
+      }
     }
 
-    const finalDeclaredSize = Number((info?.size as number) ?? declaredSize);
-    // Only block when we have basically nothing (just the invite admins) AND the group is much bigger.
-    // Otherwise return what we have — charging only happens per delivered phone below.
-    if (
-      inviteCode &&
-      !fetchedAuthoritativeRoster &&
-      participants.length <= 10 &&
-      finalDeclaredSize > 20
-    ) {
+    const finalDeclaredSize = Math.max(expectedSize, declaredGroupSize(info), participants.length);
+    console.log("[extractGroupFn] roster summary", {
+      groupJid,
+      expectedSize: finalDeclaredSize,
+      deliveredParticipants: participants.length,
+      sourceCounts,
+    });
+
+    if (finalDeclaredSize > 20 && participants.length < finalDeclaredSize) {
       throw new Error(
-        `O chip entrou no grupo mas o WhatsApp ainda não sincronizou a lista (${participants.length}/${finalDeclaredSize}). Aguarde 1–2 minutos e tente novamente. Nenhum valor foi cobrado.`,
+        `A Evolution/WhatsApp informou que o grupo tem ${finalDeclaredSize} membro(s), mas só liberou ${participants.length}. ` +
+        `Não debitei nada. Confirme que o chip entrou mesmo no grupo, aguarde a sincronização do WhatsApp e tente novamente.`,
       );
     }
 
-
     if (participants.length === 0) {
-      throw new Error("Não foi possível listar os membros do grupo. Verifique se o link de convite é válido e tente novamente.");
+      throw new Error("Não foi possível listar os membros do grupo. Verifique se o chip está no grupo e tente novamente. Nenhum valor foi cobrado.");
     }
 
 
@@ -320,7 +412,10 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     const pending: Pending[] = participants.map((p) => {
       const jid = String(p.id);
       const isLid = jid.endsWith("@lid");
-      const phone = isLid ? null : (jid.split("@")[0] || "").replace(/\D/g, "") || null;
+      const directPhone = String(p.phoneNumber ?? p.phone ?? "").replace(/\D/g, "");
+      const phone = directPhone.length >= 8 && directPhone.length <= 15
+        ? directPhone
+        : isLid ? null : (jid.split("@")[0] || "").replace(/\D/g, "") || null;
       return { jid, admin: !!p.admin, phone, isLid };
     });
 
@@ -439,7 +534,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       group: {
         id: groupJid,
         subject: (info?.subject as string) ?? null,
-        size: (info?.size as number) ?? participants.length,
+        size: finalDeclaredSize,
       },
       cost_cents: cost,
       total: contacts.length,
