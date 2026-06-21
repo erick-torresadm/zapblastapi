@@ -231,6 +231,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     // /group/participants is the authoritative list once the chip is a member.
     let participants: Array<{ id: string; admin?: string | null }> =
       (info?.participants as Array<{ id: string; admin?: string | null }>) || [];
+    let fetchedAuthoritativeRoster = false;
 
     const tryFindFull = async () => {
       if (!groupJid) return;
@@ -238,12 +239,14 @@ export const extractGroupFn = createServerFn({ method: "POST" })
         const full = await evo.findGroupInfos(server, instance.instance_name, groupJid);
         info = full;
         const fullParticipants = (full?.participants as Array<{ id: string; admin?: string | null }>) || [];
+        if (fullParticipants.length > 0) fetchedAuthoritativeRoster = true;
         if (fullParticipants.length > participants.length) participants = fullParticipants;
       } catch {
         // ignored — instance not member yet
       }
       try {
         const roster = await evo.fetchGroupParticipants(server, instance.instance_name, groupJid);
+        if (roster.length > 0) fetchedAuthoritativeRoster = true;
         if (roster.length > participants.length) participants = roster;
       } catch {
         // ignored — instance not member yet or server version lacks this route
@@ -257,11 +260,13 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     const declaredSize = Number((info?.size as number) ?? 0);
     const needsJoin =
       !!inviteCode &&
-      (participants.length === 0 || (declaredSize > 0 && participants.length < declaredSize));
+      !fetchedAuthoritativeRoster &&
+      (participants.length === 0 || declaredSize === 0 || (declaredSize > 0 && participants.length < declaredSize));
 
     if (needsJoin) {
       try {
-        await evo.acceptInviteCode(server, instance.instance_name, inviteCode!);
+        const accepted = await evo.acceptInviteCode(server, instance.instance_name, inviteCode!);
+        groupJid = String(accepted.groupJid ?? accepted.id ?? groupJid ?? "") || groupJid;
         joinedNow = true;
         // Give Evolution a moment to sync the roster, then refetch a few times.
         for (const delay of [1500, 3000, 5000]) {
@@ -276,6 +281,11 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     }
 
     const finalDeclaredSize = Number((info?.size as number) ?? declaredSize);
+    if (inviteCode && !fetchedAuthoritativeRoster) {
+      throw new Error(
+        `O chip ainda não confirmou a lista real de membros do grupo. Aguarde 1–2 minutos com o chip dentro do grupo e tente novamente. Nenhum valor foi cobrado.`,
+      );
+    }
     if (finalDeclaredSize > 20 && participants.length > 0 && participants.length < Math.min(finalDeclaredSize, 20)) {
       throw new Error(
         `O WhatsApp ainda não sincronizou a lista completa. O grupo informa ${finalDeclaredSize} membro(s), ` +
