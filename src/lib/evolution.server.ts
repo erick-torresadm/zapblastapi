@@ -681,7 +681,7 @@ export async function findGroupInfos(
 ): Promise<GroupInfo> {
   const r = await evoFetch(
     server,
-    ep("findGroupInfos", { instance: instanceName, query: { groupJid } }),
+    ep("findGroupInfos", { instance: instanceName, query: { groupJid, getParticipants: true } }),
     { method: epMethod("findGroupInfos") },
   );
   return r as GroupInfo;

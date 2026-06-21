@@ -268,12 +268,13 @@ export const extractGroupFn = createServerFn({ method: "POST" })
         const accepted = await evo.acceptInviteCode(server, instance.instance_name, inviteCode!);
         groupJid = String(accepted.groupJid ?? accepted.id ?? groupJid ?? "") || groupJid;
         joinedNow = true;
-        // Give Evolution a moment to sync the roster, then refetch a few times.
-        for (const delay of [1500, 3000, 5000]) {
+        // Give Evolution time to sync the roster. Retry up to ~30s.
+        for (const delay of [2000, 3000, 4000, 5000, 6000, 8000]) {
           await new Promise((r) => setTimeout(r, delay));
           await tryFindFull();
           const latestDeclaredSize = Number((info?.size as number) ?? declaredSize);
-          if (!latestDeclaredSize || participants.length >= latestDeclaredSize) break;
+          if (fetchedAuthoritativeRoster && (!latestDeclaredSize || participants.length >= latestDeclaredSize)) break;
+          if (!latestDeclaredSize && participants.length > 20) break;
         }
       } catch (e) {
         console.warn("[extractGroupFn] auto-join failed:", (e as Error).message);
@@ -281,17 +282,19 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     }
 
     const finalDeclaredSize = Number((info?.size as number) ?? declaredSize);
-    if (inviteCode && !fetchedAuthoritativeRoster) {
+    // Only block when we have basically nothing (just the invite admins) AND the group is much bigger.
+    // Otherwise return what we have — charging only happens per delivered phone below.
+    if (
+      inviteCode &&
+      !fetchedAuthoritativeRoster &&
+      participants.length <= 10 &&
+      finalDeclaredSize > 20
+    ) {
       throw new Error(
-        `O chip ainda não confirmou a lista real de membros do grupo. Aguarde 1–2 minutos com o chip dentro do grupo e tente novamente. Nenhum valor foi cobrado.`,
+        `O chip entrou no grupo mas o WhatsApp ainda não sincronizou a lista (${participants.length}/${finalDeclaredSize}). Aguarde 1–2 minutos e tente novamente. Nenhum valor foi cobrado.`,
       );
     }
-    if (finalDeclaredSize > 20 && participants.length > 0 && participants.length < Math.min(finalDeclaredSize, 20)) {
-      throw new Error(
-        `O WhatsApp ainda não sincronizou a lista completa. O grupo informa ${finalDeclaredSize} membro(s), ` +
-        `mas o chip recebeu só ${participants.length}. Aguarde 1–2 minutos com o chip dentro do grupo e tente novamente. Nenhum valor foi cobrado.`,
-      );
-    }
+
 
     if (participants.length === 0) {
       throw new Error("Não foi possível listar os membros do grupo. Verifique se o link de convite é válido e tente novamente.");
