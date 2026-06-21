@@ -357,25 +357,6 @@ function Landing() {
               </ul>
             </div>
 
-            {/* Extrator de grupo */}
-            <div className="group relative overflow-hidden rounded-3xl border border-border/60 bg-background/70 p-7 backdrop-blur transition-all hover:border-primary/40 hover:shadow-glow">
-              <div className="flex items-start justify-between">
-                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
-                  <UsersRound className="h-5 w-5" />
-                </div>
-                <span className="rounded-full border border-success/40 bg-success/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-success">R$ 0,01 / membro</span>
-              </div>
-              <h3 className="mt-4 font-display text-xl font-semibold">Extrator de membros de grupo</h3>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                Cola o link do grupo, recebe a lista completa de membros pronta pra prospecção. <strong className="text-foreground">Público hiper-segmentado</strong> que já demonstrou interesse no nicho.
-              </p>
-              <ul className="mt-4 space-y-2 text-sm">
-                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Funciona em grupos onde você é membro</li>
-                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Nome + número + foto + admin</li>
-                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> CSV pronto pra campanha segmentada</li>
-                <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Lead 10x mais quente que tráfego frio</li>
-              </ul>
-            </div>
 
             {/* Contatos não salvos */}
             <div className="group relative overflow-hidden rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/10 to-background/70 p-7 backdrop-blur transition-all hover:shadow-glow">
