@@ -209,9 +209,13 @@ function normalizeGroupJid(value: unknown): string | null {
 function declaredGroupSize(source: unknown): number {
   if (!source || typeof source !== "object") return 0;
   const record = source as Record<string, unknown>;
-  for (const key of ["size", "participantsCount", "participants_count", "memberCount", "membersCount", "_count"]) {
+  for (const key of ["size", "participantsCount", "participants_count", "participantCount", "memberCount", "membersCount", "_count", "count"]) {
     const n = Number(record[key]);
     if (Number.isFinite(n) && n > 0) return n;
+  }
+  for (const value of Object.values(record)) {
+    const nested = declaredGroupSize(value);
+    if (nested > 0) return nested;
   }
   return 0;
 }
@@ -223,11 +227,14 @@ function extractParticipants(source: unknown, depth = 0): GroupParticipantRow[] 
       .map((item) => {
         if (!item || typeof item !== "object") return null;
         const record = item as Record<string, unknown>;
-        const id = String(record.id ?? record.jid ?? record.remoteJid ?? "").trim();
+        const id = String(record.id ?? record.jid ?? record.remoteJid ?? record.lid ?? "").trim();
         if (!/@(s\.whatsapp\.net|c\.us|lid)$/i.test(id)) return null;
+        const adminRole = typeof record.admin === "string" && record.admin
+          ? record.admin
+          : record.isSuperAdmin ? "superadmin" : record.isAdmin ? "admin" : null;
         return {
           id,
-          admin: typeof record.admin === "string" ? record.admin : null,
+          admin: adminRole,
           phoneNumber: typeof record.phoneNumber === "string" ? record.phoneNumber : null,
           phone: typeof record.phone === "string" ? record.phone : null,
         };
@@ -252,6 +259,10 @@ function mergeParticipants(current: GroupParticipantRow[], incoming: GroupPartic
     byId.set(row.id, { ...byId.get(row.id), ...row });
   }
   return Array.from(byId.values());
+}
+
+function looksLikeAdminSummary(rows: GroupParticipantRow[]): boolean {
+  return rows.length > 0 && rows.length <= 10 && rows.every((row) => !!row.admin);
 }
 
 export const extractGroupFn = createServerFn({ method: "POST" })
