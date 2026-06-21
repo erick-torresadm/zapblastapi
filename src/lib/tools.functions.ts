@@ -227,7 +227,8 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       throw new Error("Cole um link de convite (https://chat.whatsapp.com/...) ou o JID do grupo");
     }
 
-    // Step 2: try findGroupInfos (requires the chip to be a member of the group).
+    // Step 2: fetch the real roster. inviteInfoGroup usually returns only admins;
+    // /group/participants is the authoritative list once the chip is a member.
     let participants: Array<{ id: string; admin?: string | null }> =
       (info?.participants as Array<{ id: string; admin?: string | null }>) || [];
 
@@ -236,9 +237,16 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       try {
         const full = await evo.findGroupInfos(server, instance.instance_name, groupJid);
         info = full;
-        participants = (full?.participants as Array<{ id: string; admin?: string | null }>) || [];
+        const fullParticipants = (full?.participants as Array<{ id: string; admin?: string | null }>) || [];
+        if (fullParticipants.length > participants.length) participants = fullParticipants;
       } catch {
         // ignored — instance not member yet
+      }
+      try {
+        const roster = await evo.fetchGroupParticipants(server, instance.instance_name, groupJid);
+        if (roster.length > participants.length) participants = roster;
+      } catch {
+        // ignored — instance not member yet or server version lacks this route
       }
     };
 
@@ -255,12 +263,24 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       try {
         await evo.acceptInviteCode(server, instance.instance_name, inviteCode!);
         joinedNow = true;
-        // Give Evolution a moment to sync the group roster, then refetch.
-        await new Promise((r) => setTimeout(r, 1500));
-        await tryFindFull();
+        // Give Evolution a moment to sync the roster, then refetch a few times.
+        for (const delay of [1500, 3000, 5000]) {
+          await new Promise((r) => setTimeout(r, delay));
+          await tryFindFull();
+          const latestDeclaredSize = Number((info?.size as number) ?? declaredSize);
+          if (!latestDeclaredSize || participants.length >= latestDeclaredSize) break;
+        }
       } catch (e) {
         console.warn("[extractGroupFn] auto-join failed:", (e as Error).message);
       }
+    }
+
+    const finalDeclaredSize = Number((info?.size as number) ?? declaredSize);
+    if (finalDeclaredSize > 20 && participants.length > 0 && participants.length < Math.min(finalDeclaredSize, 20)) {
+      throw new Error(
+        `O WhatsApp ainda não sincronizou a lista completa. O grupo informa ${finalDeclaredSize} membro(s), ` +
+        `mas o chip recebeu só ${participants.length}. Aguarde 1–2 minutos com o chip dentro do grupo e tente novamente. Nenhum valor foi cobrado.`,
+      );
     }
 
     if (participants.length === 0) {
