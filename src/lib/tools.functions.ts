@@ -288,6 +288,9 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     let participants: GroupParticipantRow[] = [];
     const sourceCounts: Record<string, number> = {};
     let sawAdminOnlySummary = false;
+    let isCommunity = false;
+    let communityParentJid: string | null = null;
+    const communitySubgroups: Array<{ jid: string; subject: string | null; size: number; resolved: number }> = [];
 
     const inviteCode = evo.parseGroupInviteCode(raw);
     if (inviteCode) {
@@ -295,7 +298,9 @@ export const extractGroupFn = createServerFn({ method: "POST" })
         const inv = await evo.inviteInfoGroup(server, instance.instance_name, inviteCode);
         info = inv;
         expectedSize = Math.max(expectedSize, declaredGroupSize(inv));
-        groupJid = normalizeGroupJid(inv?.groupJid) ?? normalizeGroupJid(inv?.id);
+        groupJid = normalizeGroupJid((inv as Record<string, unknown>)?.groupJid) ?? normalizeGroupJid(inv?.id);
+        isCommunity = !!(inv as Record<string, unknown> | null)?.isCommunity;
+        if (isCommunity) communityParentJid = groupJid;
         const rows = extractParticipants(inv);
         sawAdminOnlySummary = sawAdminOnlySummary || looksLikeAdminSummary(rows);
         participants = mergeParticipants(participants, rows);
