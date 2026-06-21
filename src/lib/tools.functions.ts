@@ -287,6 +287,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     let expectedSize = 0;
     let participants: GroupParticipantRow[] = [];
     const sourceCounts: Record<string, number> = {};
+    let sawAdminOnlySummary = false;
 
     const inviteCode = evo.parseGroupInviteCode(raw);
     if (inviteCode) {
@@ -295,7 +296,9 @@ export const extractGroupFn = createServerFn({ method: "POST" })
         info = inv;
         expectedSize = Math.max(expectedSize, declaredGroupSize(inv));
         groupJid = normalizeGroupJid(inv?.groupJid) ?? normalizeGroupJid(inv?.id);
-        participants = mergeParticipants(participants, extractParticipants(inv));
+        const rows = extractParticipants(inv);
+        sawAdminOnlySummary = sawAdminOnlySummary || looksLikeAdminSummary(rows);
+        participants = mergeParticipants(participants, rows);
         sourceCounts.inviteInfo = participants.length;
       } catch (e) {
         throw new Error(`Não consegui ler esse convite: ${(e as Error).message}`);
@@ -309,6 +312,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     }
 
     const isRosterComplete = () => {
+      if (looksLikeAdminSummary(participants)) return false;
       if (expectedSize > 20) return participants.length >= expectedSize;
       return participants.length > 0;
     };
@@ -336,6 +340,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
           const match = await findMatchingGroup();
           if (match) {
             const rows = extractParticipants(match);
+            sawAdminOnlySummary = sawAdminOnlySummary || looksLikeAdminSummary(rows);
             participants = mergeParticipants(participants, rows);
             sourceCounts[`${label}:fetchAllGroups:matched`] = rows.length;
           }
@@ -348,6 +353,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       try {
         const roster = await evo.fetchGroupParticipants(server, instance.instance_name, groupJid);
         const rows = extractParticipants(roster);
+        sawAdminOnlySummary = sawAdminOnlySummary || looksLikeAdminSummary(rows);
         participants = mergeParticipants(participants, rows);
         sourceCounts[`${label}:participants`] = rows.length;
         console.log(`[extractGroupFn] ${label} /group/participants returned ${rows.length}/${expectedSize || "?"} participants for ${groupJid}`);
@@ -360,6 +366,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
         info = full;
         expectedSize = Math.max(expectedSize, declaredGroupSize(full));
         const rows = extractParticipants(full);
+        sawAdminOnlySummary = sawAdminOnlySummary || looksLikeAdminSummary(rows);
         participants = mergeParticipants(participants, rows);
         sourceCounts[`${label}:findGroupInfos`] = rows.length;
         console.log(`[extractGroupFn] ${label} findGroupInfos returned ${rows.length}/${expectedSize || "?"} participants`);
@@ -370,6 +377,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       try {
         const match = await findMatchingGroup();
         const rows = extractParticipants(match);
+        sawAdminOnlySummary = sawAdminOnlySummary || looksLikeAdminSummary(rows);
         participants = mergeParticipants(participants, rows);
         sourceCounts[`${label}:fetchAllGroups`] = rows.length;
         console.log(`[extractGroupFn] ${label} fetchAllGroups match returned ${rows.length}/${expectedSize || "?"} participants`);
