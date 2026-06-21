@@ -175,7 +175,6 @@ function collectLidMappings(source: unknown, out = new Map<string, string>(), de
 }
 
 async function persistLidMappings(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabaseAdmin: any,
   args: { userId: string; instanceId: string; mappings: Map<string, string> },
 ) {
