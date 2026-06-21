@@ -69,6 +69,7 @@ export const EVOLUTION_ENDPOINTS = {
   inviteInfoGroup:    { method: "GET",  path: "/group/inviteInfo/{instance}" },
   acceptInviteCode:   { method: "GET",  path: "/group/acceptInviteCode/{instance}" },
   findGroupInfos:     { method: "GET",  path: "/group/findGroupInfos/{instance}" },
+  groupParticipants:  { method: "GET",  path: "/group/participants/{instance}" },
   fetchAllGroups:     { method: "GET",  path: "/group/fetchAllGroups/{instance}" },
   createGroup:        { method: "POST", path: "/group/create/{instance}" },
   fetchInviteCode:    { method: "GET",  path: "/group/inviteCode/{instance}" },
@@ -684,6 +685,20 @@ export async function findGroupInfos(
     { method: epMethod("findGroupInfos") },
   );
   return r as GroupInfo;
+}
+
+/** Fetch the authoritative group member list. The instance must be a member. */
+export async function fetchGroupParticipants(
+  server: EvolutionServer,
+  instanceName: string,
+  groupJid: string,
+): Promise<GroupParticipant[]> {
+  const r = await evoFetchRaw(
+    server,
+    ep("groupParticipants", { instance: instanceName, query: { groupJid } }),
+    { method: epMethod("groupParticipants") },
+  );
+  return evoArray<GroupParticipant>(r, ["participants", "members"]);
 }
 
 /** Fetch all groups the instance participates in. */
