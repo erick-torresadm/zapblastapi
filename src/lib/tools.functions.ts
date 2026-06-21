@@ -215,7 +215,7 @@ export const extractGroupFn = createServerFn({ method: "POST" })
       try {
         const inv = await evo.inviteInfoGroup(server, instance.instance_name, inviteCode);
         info = inv;
-        groupJid = (inv?.id as string) || null;
+        groupJid = String(inv?.id ?? inv?.groupJid ?? "") || null;
       } catch (e) {
         throw new Error(`Não consegui ler esse convite: ${(e as Error).message}`);
       }
