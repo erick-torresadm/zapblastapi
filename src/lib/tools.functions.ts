@@ -191,6 +191,70 @@ async function persistLidMappings(
   );
 }
 
+type GroupParticipantRow = {
+  id: string;
+  admin?: string | null;
+  phoneNumber?: string | null;
+  phone?: string | null;
+};
+
+const GROUP_JID_RE = /^[\w.-]+@g\.us$/i;
+
+function normalizeGroupJid(value: unknown): string | null {
+  const raw = String(value ?? "").trim();
+  const direct = raw.match(/[\w.-]+@g\.us/i)?.[0];
+  if (direct && GROUP_JID_RE.test(direct)) return direct;
+  return null;
+}
+
+function declaredGroupSize(source: unknown): number {
+  if (!source || typeof source !== "object") return 0;
+  const record = source as Record<string, unknown>;
+  for (const key of ["size", "participantsCount", "participants_count", "memberCount", "membersCount", "_count"]) {
+    const n = Number(record[key]);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 0;
+}
+
+function extractParticipants(source: unknown, depth = 0): GroupParticipantRow[] {
+  if (!source || depth > 5) return [];
+  if (Array.isArray(source)) {
+    const direct = source
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const record = item as Record<string, unknown>;
+        const id = String(record.id ?? record.jid ?? record.remoteJid ?? "").trim();
+        if (!/@(s\.whatsapp\.net|c\.us|lid)$/i.test(id)) return null;
+        return {
+          id,
+          admin: typeof record.admin === "string" ? record.admin : null,
+          phoneNumber: typeof record.phoneNumber === "string" ? record.phoneNumber : null,
+          phone: typeof record.phone === "string" ? record.phone : null,
+        };
+      })
+      .filter(Boolean) as GroupParticipantRow[];
+    if (direct.length) return direct;
+    return source.flatMap((item) => extractParticipants(item, depth + 1));
+  }
+  if (typeof source !== "object") return [];
+  const record = source as Record<string, unknown>;
+  for (const key of ["participants", "members", "groupParticipants", "data", "value"]) {
+    const rows = extractParticipants(record[key], depth + 1);
+    if (rows.length) return rows;
+  }
+  return [];
+}
+
+function mergeParticipants(current: GroupParticipantRow[], incoming: GroupParticipantRow[]): GroupParticipantRow[] {
+  const byId = new Map<string, GroupParticipantRow>();
+  for (const row of [...current, ...incoming]) {
+    if (!row.id) continue;
+    byId.set(row.id, { ...byId.get(row.id), ...row });
+  }
+  return Array.from(byId.values());
+}
+
 export const extractGroupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { instance_id: string; group: string }) =>
