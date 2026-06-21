@@ -675,6 +675,8 @@ export const extractGroupFn = createServerFn({ method: "POST" })
         id: groupJid,
         subject: (info?.subject as string) ?? null,
         size: finalDeclaredSize,
+        is_community: isCommunity,
+        community_subgroups: isCommunity ? communitySubgroups : undefined,
       },
       cost_cents: cost,
       total: contacts.length,
