@@ -614,14 +614,14 @@ export const extractGroupFn = createServerFn({ method: "POST" })
     const resolved = pending.filter((c) => !!c.phone);
     const unresolved = pending.filter((c) => !c.phone);
 
-    if (inviteCode && participants.length <= 10) {
+    if (!isCommunity && inviteCode && participants.length <= 10) {
       throw new Error(
         `A Evolution/WhatsApp retornou só ${participants.length} participante(s) para esse convite, o que normalmente é apenas prévia/admins do grupo. ` +
         `Não debitei nada para não entregar uma lista parcial. Deixe o chip dentro do grupo, aguarde a sincronização completa e tente novamente pelo JID do grupo.`,
       );
     }
 
-    if (finalDeclaredSize > 20 && resolved.length < finalDeclaredSize) {
+    if (!isCommunity && finalDeclaredSize > 20 && resolved.length < finalDeclaredSize) {
       throw new Error(
         `Consegui ler ${participants.length} participante(s), mas só ${resolved.length} telefone(s) vieram liberados pelo WhatsApp. ` +
         `Como o grupo tem ${finalDeclaredSize} membro(s), não debitei nada para não entregar uma lista parcial. ` +
