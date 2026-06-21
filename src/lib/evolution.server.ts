@@ -629,10 +629,14 @@ export function isInQuietHours(startHour: number, endHour: number, now: Date = n
 
 export type GroupParticipant = {
   id: string;            // JID (5511...@s.whatsapp.net or ...@lid)
+  jid?: string | null;
   admin?: "admin" | "superadmin" | null;
+  isAdmin?: boolean | null;
+  isSuperAdmin?: boolean | null;
   phoneNumber?: string | null;
   phone?: string | null;
   name?: string | null;
+  pushName?: string | null;
   imgUrl?: string | null;
 };
 
@@ -659,13 +663,22 @@ export async function inviteInfoGroup(
   server: EvolutionServer,
   instanceName: string,
   inviteCode: string,
+  includeParticipants = true,
 ): Promise<GroupInfo> {
-  const r = await evoFetch(
-    server,
-    ep("inviteInfoGroup", { instance: instanceName, query: { inviteCode } }),
-    { method: epMethod("inviteInfoGroup") },
-  );
-  return r as GroupInfo;
+  try {
+    const r = await evoFetch(
+      server,
+      ep("inviteInfoGroup", {
+        instance: instanceName,
+        query: includeParticipants ? { inviteCode, getParticipants: true, includeParticipants: true } : { inviteCode },
+      }),
+      { method: epMethod("inviteInfoGroup") },
+    );
+    return r as GroupInfo;
+  } catch (e) {
+    if (!includeParticipants) throw e;
+    return inviteInfoGroup(server, instanceName, inviteCode, false);
+  }
 }
 
 /** Join a group using an invite code. The instance will become a member of the group. */
@@ -689,13 +702,22 @@ export async function findGroupInfos(
   server: EvolutionServer,
   instanceName: string,
   groupJid: string,
+  includeParticipants = true,
 ): Promise<GroupInfo> {
-  const r = await evoFetch(
-    server,
-    ep("findGroupInfos", { instance: instanceName, query: { groupJid, getParticipants: true } }),
-    { method: epMethod("findGroupInfos") },
-  );
-  return r as GroupInfo;
+  try {
+    const r = await evoFetch(
+      server,
+      ep("findGroupInfos", {
+        instance: instanceName,
+        query: includeParticipants ? { groupJid, getParticipants: true, includeParticipants: true } : { groupJid, getParticipants: true },
+      }),
+      { method: epMethod("findGroupInfos") },
+    );
+    return r as GroupInfo;
+  } catch (e) {
+    if (!includeParticipants) throw e;
+    return findGroupInfos(server, instanceName, groupJid, false);
+  }
 }
 
 /** Fetch the authoritative group member list. The instance must be a member. */
@@ -718,12 +740,22 @@ export async function fetchAllGroups(
   instanceName: string,
   getParticipants = false,
 ): Promise<GroupInfo[]> {
-  const r = await evoFetchRaw(
-    server,
-    ep("fetchAllGroups", { instance: instanceName, query: { getParticipants } }),
-    { method: epMethod("fetchAllGroups") },
-  );
-  return evoArray<GroupInfo>(r, ["groups"]);
+  try {
+    const r = await evoFetchRaw(
+      server,
+      ep("fetchAllGroups", { instance: instanceName, query: { getParticipants, includeParticipants: getParticipants || undefined } }),
+      { method: epMethod("fetchAllGroups") },
+    );
+    return evoArray<GroupInfo>(r, ["groups"]);
+  } catch (e) {
+    if (!getParticipants) throw e;
+    const r = await evoFetchRaw(
+      server,
+      ep("fetchAllGroups", { instance: instanceName, query: { getParticipants } }),
+      { method: epMethod("fetchAllGroups") },
+    );
+    return evoArray<GroupInfo>(r, ["groups"]);
+  }
 }
 
 // ============================================================================
