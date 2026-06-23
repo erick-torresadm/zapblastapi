@@ -1,25 +1,69 @@
-Plano para ajustar o extrator de grupo:
+## O que vou entregar
 
-1. Corrigir a resolução do grupo
-- Não confiar no `id` retornado por `inviteInfo`, porque ele pode ser só o código interno do convite e causar `404` em `/group/participants`.
-- Depois de entrar no grupo, usar obrigatoriamente o `groupJid` retornado por `acceptInviteCode`.
-- Se o chip já estiver no grupo ou o retorno vier incompleto, localizar o grupo correto em `fetchAllGroups` comparando convite, nome e tamanho, em vez de consultar um JID errado.
+Vou dividir em **2 PRs sequenciais** pra você poder testar cada coisa sem misturar bug com feature nova.
 
-2. Buscar a lista total do jeito que a Evolution realmente permite
-- Usar `/group/participants/{instance}?groupJid=...` como fonte principal, porque é o endpoint oficial de membros.
-- Manter `findGroupInfos` e `fetchAllGroups?getParticipants=true` como fallbacks.
-- Normalizar diferentes formatos de resposta da Evolution (`participants`, `members`, `data.participants`, arrays aninhados), para não perder membros quando a versão do servidor muda.
+---
 
-3. Bloquear cobrança quando não vier a lista completa
-- Se o grupo declara 518 membros e só vier 1, 8 ou 10, a ferramenta não deve entregar nem cobrar como se estivesse tudo certo.
-- Mostrar erro claro: o WhatsApp/Evolution só libera a lista completa quando o chip é membro real do grupo e a sessão sincronizou; se a API devolver só resumo/admins, não há como extrair os 518 números com segurança.
+### PR 1 — Correção rápida do Maps (sai primeiro, ~15 min)
 
-4. Melhorar diagnóstico para não ficar no escuro
-- Retornar/logar contagens por fonte: convite, join, participants, findGroupInfos e fetchAllGroups.
-- Incluir no erro a contagem esperada versus recebida, sem expor dados sensíveis.
+**Sintoma reportado:**
+- "Não consigo salvar contatos no Pro" → o botão *Enviar para campanha* só fica ativo depois de uma busca e quando algum lead tem telefone; provavelmente você tentou clicar antes ou todos vieram sem telefone. Vou deixar o motivo do bloqueio visível (tooltip explicando).
+- "Tá puxando muitos contatos" → a busca atual paginha 3x (até 60 leads) e o botão *Enviar para campanha* manda **todos** de uma vez. Vou trocar isso por:
 
-5. Ajustar exportação/resultado
-- Só exibir resultado quando a lista total foi obtida ou quando o grupo realmente tem poucos membros.
-- Continuar cobrando apenas por telefone real resolvido; participantes `@lid` sem telefone não serão cobrados.
+**Mudanças:**
+1. **Checkbox em cada lead** no resultado da busca (com "Selecionar todos" / "só com WhatsApp validado").
+2. **Botão "Enviar para campanha" passa a usar só a seleção** — não mais o array inteiro.
+3. **Slider "Quantidade máxima"** (10 / 20 / 40 / 60) antes de rodar a busca — controla o paginar do Places API. Default = 20.
+4. **Mensagens de erro melhores** no `pushMapsLeadsToListFn` (diz quantos foram descartados por telefone inválido / duplicado).
+5. **Tooltip no botão** quando bloqueado, dizendo o porquê ("nenhum lead com telefone", "selecione ao menos 1", etc.).
 
-Observação importante: se o WhatsApp devolver participantes como `@lid`, a Evolution consegue listar o participante, mas nem sempre consegue converter para telefone. Isso depende de metadados/histórico do próprio chip. O primeiro problema aqui é obter os 518 participantes; depois disso, a conversão para telefone será feita quando houver mapeamento disponível.
+Não vou portar o snippet do WhatsApp Web (você confirmou que era só referência). A lógica dele é só DOM scraping da barra lateral — não dá pra rodar dentro do nosso app por causa de iframe/CORS do WhatsApp Web.
+
+**Arquivos:** `src/components/tools/MapsExtractorCard.tsx`, `src/lib/maps.functions.ts` (parâmetro `max_results`), `src/lib/tool-credits.functions.ts` (mensagem de erro melhor).
+
+---
+
+### PR 2 — PWA instalável + Web Push admin
+
+**A. PWA instalável (app inteiro)**
+- `vite-plugin-pwa` com `generateSW`, `registerType: "autoUpdate"`, `NetworkFirst` pra HTML.
+- Wrapper de registro com todas as guardas do Lovable (não registra em preview/iframe/dev, suporta `?sw=off`).
+- `manifest.webmanifest` com nome **Perseidas**, theme color roxo, ícones 192/512 (gero com imagegen), `display: standalone`.
+- Botão "Instalar app" no menu lateral quando `beforeinstallprompt` dispara.
+
+**B. Web Push (VAPID)**
+- Migration: tabela `push_subscriptions(user_id, endpoint, p256dh, auth, user_agent, created_at)` com RLS por `auth.uid()`.
+- Migration: tabela `admin_push_events(id, type, title, body, data jsonb, created_at)` para histórico.
+- Secrets novos via `add_secret`: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (te peço pra gerar — eu te dou o comando ou gero server-side via openssl).
+- `VITE_VAPID_PUBLIC_KEY` no `.env` (chave pública é safe).
+- Server fn `subscribePushFn` / `unsubscribePushFn` (qualquer user autenticado).
+- Server fn `sendAdminPushFn` (admin-only via `has_role`) pra teste manual.
+- Worker `public/push-sw.js` (separado do SW de cache) escutando `push` e `notificationclick` (abre `/app/admin/notifications`).
+- Hook `usePushSubscription()` que pede permissão e registra.
+
+**C. Eventos que disparam push pro admin**
+Vou plugar em 4 pontos do código existente:
+1. **Novo trial** (`signup_ip_log` insert OU `subscriptions` com `plan=trial` criado).
+2. **Pagamento aprovado** (webhook Stripe/Paddle existente — onde a `subscriptions` vira `active` paga).
+3. **Plano bloqueado/expirado** (cron que já roda, ou trigger no `subscriptions.status='past_due'/'canceled'`).
+4. **Erros críticos** (catch global do server-side via `log_admin_action` com severity='critical').
+
+Implementação: trigger SQL `AFTER INSERT/UPDATE` nessas tabelas chama uma **edge function** `notify-admins-push` que lê todos os admins de `user_roles WHERE role='admin'`, pega subscriptions deles e dispara `web-push`. (Edge function porque precisa do `web-push` npm com chave VAPID — ok aqui porque é caller externo: trigger Postgres → pg_net.)
+
+**D. Tela `/app/admin/notifications`**
+- Lista cronológica de `admin_push_events` (paginada, realtime).
+- Filtros: tipo (trial/pago/bloqueado/erro), data.
+- Botão "Enviar push de teste pra mim".
+- Toggle "Receber push neste dispositivo" (chama `subscribePushFn`).
+
+**iOS:** funciona, mas só depois que você instalar o PWA na tela inicial (limite do iOS 16.4+, não tem como contornar). Android/Chrome/Edge funciona direto.
+
+---
+
+## Ordem de execução
+
+1. Aprovar este plano.
+2. Eu mando o PR 1 (Maps fix) → você testa → confirma OK.
+3. Eu peço os secrets VAPID e mando o PR 2 (PWA + Push).
+
+Posso começar pelo PR 1 já?
