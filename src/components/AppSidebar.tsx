@@ -6,7 +6,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Server, Smartphone, Users, Send, Inbox, UserCog,
-  LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, Bot, Sparkles, Ticket, Calendar, Megaphone, Rocket, User2,
+  LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, Bot, Sparkles, Ticket, Calendar, Megaphone, Rocket, User2, Bell,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -209,6 +209,14 @@ export function AppSidebar() {
                     <Link to="/app/admin/security">
                       <ShieldCheck className="h-4 w-4" />
                       <span>Segurança</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={path.startsWith("/app/admin/notifications")} className="h-9 rounded-lg">
+                    <Link to="/app/admin/notifications">
+                      <Bell className="h-4 w-4" />
+                      <span>Notificações</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

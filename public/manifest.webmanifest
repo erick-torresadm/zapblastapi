@@ -1,0 +1,16 @@
+{
+  "name": "Perseidas - WhatsApp Marketing",
+  "short_name": "Perseidas",
+  "description": "Disparo em massa, CRM e aquecimento WhatsApp",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

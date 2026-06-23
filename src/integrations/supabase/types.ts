@@ -50,6 +50,42 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_push_events: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          meta: Json
+          pushed_at: string | null
+          read_at: string | null
+          title: string
+          type: string
+          url: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          meta?: Json
+          pushed_at?: string | null
+          read_at?: string | null
+          title: string
+          type: string
+          url?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          meta?: Json
+          pushed_at?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       agenda_appointments: {
         Row: {
           business_id: string
@@ -2310,6 +2346,39 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_seen_at: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_seen_at?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_seen_at?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       security_events: {
         Row: {
           created_at: string
@@ -3432,6 +3501,16 @@ export type Database = {
           _description: string
         }
         Returns: number
+      }
+      emit_admin_event: {
+        Args: {
+          _body: string
+          _meta?: Json
+          _title: string
+          _type: string
+          _url?: string
+        }
+        Returns: string
       }
       expire_trials: { Args: never; Returns: number }
       get_published_funnel_by_host: { Args: { _host: string }; Returns: Json }

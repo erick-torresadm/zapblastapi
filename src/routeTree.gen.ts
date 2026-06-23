@@ -25,6 +25,7 @@ import { Route as ApiPublicTrafficLeadRouteImport } from './routes/api/public/tr
 import { Route as ApiPublicTrafficEventRouteImport } from './routes/api/public/traffic-event'
 import { Route as ApiPublicFlowWorkerRouteImport } from './routes/api/public/flow-worker'
 import { Route as ApiPublicDispatchWorkerRouteImport } from './routes/api/public/dispatch-worker'
+import { Route as ApiPublicDispatchAdminPushesRouteImport } from './routes/api/public/dispatch-admin-pushes'
 import { Route as ApiPublicAgendaDispatchRouteImport } from './routes/api/public/agenda-dispatch'
 import { Route as AgendaConfirmarTokenRouteImport } from './routes/agenda.confirmar.$token'
 import { Route as AuthenticatedAppWarmupRouteImport } from './routes/_authenticated/app.warmup'
@@ -59,6 +60,7 @@ import { Route as AuthenticatedAppTrafficIdEditorRouteImport } from './routes/_a
 import { Route as AuthenticatedAppTrafficIdAnalyticsRouteImport } from './routes/_authenticated/app.traffic.$id.analytics'
 import { Route as AuthenticatedAdminAppAdminUsersRouteImport } from './routes/_authenticated/_admin.app.admin.users'
 import { Route as AuthenticatedAdminAppAdminSecurityRouteImport } from './routes/_authenticated/_admin.app.admin.security'
+import { Route as AuthenticatedAdminAppAdminNotificationsRouteImport } from './routes/_authenticated/_admin.app.admin.notifications'
 import { Route as AuthenticatedAdminAppAdminCouponsRouteImport } from './routes/_authenticated/_admin.app.admin.coupons'
 import { Route as AuthenticatedAdminAppAdminCatalogRouteImport } from './routes/_authenticated/_admin.app.admin.catalog'
 
@@ -140,6 +142,12 @@ const ApiPublicDispatchWorkerRoute = ApiPublicDispatchWorkerRouteImport.update({
   path: '/api/public/dispatch-worker',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDispatchAdminPushesRoute =
+  ApiPublicDispatchAdminPushesRouteImport.update({
+    id: '/api/public/dispatch-admin-pushes',
+    path: '/api/public/dispatch-admin-pushes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAgendaDispatchRoute = ApiPublicAgendaDispatchRouteImport.update({
   id: '/api/public/agenda-dispatch',
   path: '/api/public/agenda-dispatch',
@@ -328,6 +336,12 @@ const AuthenticatedAdminAppAdminSecurityRoute =
     path: '/app/admin/security',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminAppAdminNotificationsRoute =
+  AuthenticatedAdminAppAdminNotificationsRouteImport.update({
+    id: '/app/admin/notifications',
+    path: '/app/admin/notifications',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminAppAdminCouponsRoute =
   AuthenticatedAdminAppAdminCouponsRouteImport.update({
     id: '/app/admin/coupons',
@@ -368,6 +382,7 @@ export interface FileRoutesByFullPath {
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/agenda/confirmar/$token': typeof AgendaConfirmarTokenRoute
   '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
+  '/api/public/dispatch-admin-pushes': typeof ApiPublicDispatchAdminPushesRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
@@ -388,6 +403,7 @@ export interface FileRoutesByFullPath {
   '/app/traffic/': typeof AuthenticatedAppTrafficIndexRoute
   '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
+  '/app/admin/notifications': typeof AuthenticatedAdminAppAdminNotificationsRoute
   '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
   '/app/admin/users': typeof AuthenticatedAdminAppAdminUsersRoute
   '/app/traffic/$id/analytics': typeof AuthenticatedAppTrafficIdAnalyticsRoute
@@ -419,6 +435,7 @@ export interface FileRoutesByTo {
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/agenda/confirmar/$token': typeof AgendaConfirmarTokenRoute
   '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
+  '/api/public/dispatch-admin-pushes': typeof ApiPublicDispatchAdminPushesRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
@@ -439,6 +456,7 @@ export interface FileRoutesByTo {
   '/app/traffic': typeof AuthenticatedAppTrafficIndexRoute
   '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
+  '/app/admin/notifications': typeof AuthenticatedAdminAppAdminNotificationsRoute
   '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
   '/app/admin/users': typeof AuthenticatedAdminAppAdminUsersRoute
   '/app/traffic/$id/analytics': typeof AuthenticatedAppTrafficIdAnalyticsRoute
@@ -474,6 +492,7 @@ export interface FileRoutesById {
   '/_authenticated/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/agenda/confirmar/$token': typeof AgendaConfirmarTokenRoute
   '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
+  '/api/public/dispatch-admin-pushes': typeof ApiPublicDispatchAdminPushesRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
@@ -494,6 +513,7 @@ export interface FileRoutesById {
   '/_authenticated/app/traffic/': typeof AuthenticatedAppTrafficIndexRoute
   '/_authenticated/_admin/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/_authenticated/_admin/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
+  '/_authenticated/_admin/app/admin/notifications': typeof AuthenticatedAdminAppAdminNotificationsRoute
   '/_authenticated/_admin/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
   '/_authenticated/_admin/app/admin/users': typeof AuthenticatedAdminAppAdminUsersRoute
   '/_authenticated/app/traffic/$id/analytics': typeof AuthenticatedAppTrafficIdAnalyticsRoute
@@ -528,6 +548,7 @@ export interface FileRouteTypes {
     | '/app/warmup'
     | '/agenda/confirmar/$token'
     | '/api/public/agenda-dispatch'
+    | '/api/public/dispatch-admin-pushes'
     | '/api/public/dispatch-worker'
     | '/api/public/flow-worker'
     | '/api/public/traffic-event'
@@ -548,6 +569,7 @@ export interface FileRouteTypes {
     | '/app/traffic/'
     | '/app/admin/catalog'
     | '/app/admin/coupons'
+    | '/app/admin/notifications'
     | '/app/admin/security'
     | '/app/admin/users'
     | '/app/traffic/$id/analytics'
@@ -579,6 +601,7 @@ export interface FileRouteTypes {
     | '/app/warmup'
     | '/agenda/confirmar/$token'
     | '/api/public/agenda-dispatch'
+    | '/api/public/dispatch-admin-pushes'
     | '/api/public/dispatch-worker'
     | '/api/public/flow-worker'
     | '/api/public/traffic-event'
@@ -599,6 +622,7 @@ export interface FileRouteTypes {
     | '/app/traffic'
     | '/app/admin/catalog'
     | '/app/admin/coupons'
+    | '/app/admin/notifications'
     | '/app/admin/security'
     | '/app/admin/users'
     | '/app/traffic/$id/analytics'
@@ -633,6 +657,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/warmup'
     | '/agenda/confirmar/$token'
     | '/api/public/agenda-dispatch'
+    | '/api/public/dispatch-admin-pushes'
     | '/api/public/dispatch-worker'
     | '/api/public/flow-worker'
     | '/api/public/traffic-event'
@@ -653,6 +678,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/traffic/'
     | '/_authenticated/_admin/app/admin/catalog'
     | '/_authenticated/_admin/app/admin/coupons'
+    | '/_authenticated/_admin/app/admin/notifications'
     | '/_authenticated/_admin/app/admin/security'
     | '/_authenticated/_admin/app/admin/users'
     | '/_authenticated/app/traffic/$id/analytics'
@@ -671,6 +697,7 @@ export interface RootRouteChildren {
   GSlugRoute: typeof GSlugRoute
   AgendaConfirmarTokenRoute: typeof AgendaConfirmarTokenRoute
   ApiPublicAgendaDispatchRoute: typeof ApiPublicAgendaDispatchRoute
+  ApiPublicDispatchAdminPushesRoute: typeof ApiPublicDispatchAdminPushesRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
   ApiPublicFlowWorkerRoute: typeof ApiPublicFlowWorkerRoute
   ApiPublicTrafficEventRoute: typeof ApiPublicTrafficEventRoute
@@ -793,6 +820,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/dispatch-worker'
       fullPath: '/api/public/dispatch-worker'
       preLoaderRoute: typeof ApiPublicDispatchWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/dispatch-admin-pushes': {
+      id: '/api/public/dispatch-admin-pushes'
+      path: '/api/public/dispatch-admin-pushes'
+      fullPath: '/api/public/dispatch-admin-pushes'
+      preLoaderRoute: typeof ApiPublicDispatchAdminPushesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/agenda-dispatch': {
@@ -1033,6 +1067,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAppAdminSecurityRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/_admin/app/admin/notifications': {
+      id: '/_authenticated/_admin/app/admin/notifications'
+      path: '/app/admin/notifications'
+      fullPath: '/app/admin/notifications'
+      preLoaderRoute: typeof AuthenticatedAdminAppAdminNotificationsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/_admin/app/admin/coupons': {
       id: '/_authenticated/_admin/app/admin/coupons'
       path: '/app/admin/coupons'
@@ -1053,6 +1094,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminAppAdminCatalogRoute: typeof AuthenticatedAdminAppAdminCatalogRoute
   AuthenticatedAdminAppAdminCouponsRoute: typeof AuthenticatedAdminAppAdminCouponsRoute
+  AuthenticatedAdminAppAdminNotificationsRoute: typeof AuthenticatedAdminAppAdminNotificationsRoute
   AuthenticatedAdminAppAdminSecurityRoute: typeof AuthenticatedAdminAppAdminSecurityRoute
   AuthenticatedAdminAppAdminUsersRoute: typeof AuthenticatedAdminAppAdminUsersRoute
 }
@@ -1063,6 +1105,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminAppAdminCatalogRoute,
     AuthenticatedAdminAppAdminCouponsRoute:
       AuthenticatedAdminAppAdminCouponsRoute,
+    AuthenticatedAdminAppAdminNotificationsRoute:
+      AuthenticatedAdminAppAdminNotificationsRoute,
     AuthenticatedAdminAppAdminSecurityRoute:
       AuthenticatedAdminAppAdminSecurityRoute,
     AuthenticatedAdminAppAdminUsersRoute: AuthenticatedAdminAppAdminUsersRoute,
@@ -1176,6 +1220,7 @@ const rootRouteChildren: RootRouteChildren = {
   GSlugRoute: GSlugRoute,
   AgendaConfirmarTokenRoute: AgendaConfirmarTokenRoute,
   ApiPublicAgendaDispatchRoute: ApiPublicAgendaDispatchRoute,
+  ApiPublicDispatchAdminPushesRoute: ApiPublicDispatchAdminPushesRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
   ApiPublicFlowWorkerRoute: ApiPublicFlowWorkerRoute,
   ApiPublicTrafficEventRoute: ApiPublicTrafficEventRoute,
