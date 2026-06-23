@@ -54,13 +54,15 @@ export const pushMapsLeadsToListFn = createServerFn({ method: "POST" })
 
     // Dedupe phones (digits only, length 10-15)
     const seen = new Set<string>();
+    let invalidCount = 0;
+    let dupCount = 0;
     const rows = [] as Array<{
       user_id: string; list_id: string; phone: string; variables: Record<string, string>;
     }>;
     for (const l of data.leads) {
       const digits = String(l.phone).replace(/\D/g, "");
-      if (digits.length < 10 || digits.length > 15) continue;
-      if (seen.has(digits)) continue;
+      if (digits.length < 10 || digits.length > 15) { invalidCount++; continue; }
+      if (seen.has(digits)) { dupCount++; continue; }
       seen.add(digits);
       const first = (l.name ?? "").split(/\s+/)[0] ?? "";
       rows.push({
@@ -80,13 +82,25 @@ export const pushMapsLeadsToListFn = createServerFn({ method: "POST" })
 
     if (rows.length === 0) {
       await supabase.from("contact_lists").delete().eq("id", list.id);
-      throw new Error("Nenhum telefone válido nos leads selecionados");
+      throw new Error(
+        `Nenhum telefone válido nos leads selecionados (${invalidCount} inválidos, ${dupCount} duplicados). Selecione leads que tenham telefone.`,
+      );
     }
 
     const { error: cErr } = await supabase.from("contacts").insert(rows);
-    if (cErr) throw new Error(`Falha ao salvar contatos: ${cErr.message}`);
+    if (cErr) {
+      await supabase.from("contact_lists").delete().eq("id", list.id);
+      throw new Error(`Falha ao salvar contatos: ${cErr.message}`);
+    }
 
     await supabase.from("contact_lists").update({ total_count: rows.length }).eq("id", list.id);
 
-    return { list_id: list.id as string, list_name: data.list_name, inserted: rows.length };
+    return {
+      list_id: list.id as string,
+      list_name: data.list_name,
+      inserted: rows.length,
+      skipped_invalid: invalidCount,
+      skipped_duplicates: dupCount,
+    };
   });
+
