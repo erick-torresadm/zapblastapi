@@ -248,8 +248,6 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
     let leads: Lead[] = places.slice(0, Math.min(cap, TOOL_PRICES.maps_search_max_leads)).map(placeToLead);
 
 
-    // 3. Shape leads, optionally filter "only_with_phone"
-    let leads: Lead[] = places.slice(0, TOOL_PRICES.maps_search_max_leads).map(placeToLead);
     if (data.only_with_phone) {
       leads = leads.filter((l) => l.phone && l.phone.length >= 10);
     }
