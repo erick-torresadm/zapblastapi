@@ -24,6 +24,19 @@ export const toggleWarmupFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const togglePoolOptInFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: { instance_id: string; opt_in: boolean }) =>
+    z.object({ instance_id: z.string().uuid(), opt_in: z.boolean() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const patch: { warmup_pool_opt_in: boolean; warmup_pool_joined_at?: string | null } = { warmup_pool_opt_in: data.opt_in };
+    if (data.opt_in) patch.warmup_pool_joined_at = new Date().toISOString();
+    else patch.warmup_pool_joined_at = null;
+    const { error } = await context.supabase.from("whatsapp_instances").update(patch).eq("id", data.instance_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const resetWarmupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { instance_id: string }) => z.object({ instance_id: z.string().uuid() }).parse(i))
@@ -39,3 +52,4 @@ export const resetWarmupFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
