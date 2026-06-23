@@ -136,28 +136,8 @@ export function UnsavedContactsCard({ instances }: { instances: any[] }) {
               )}
             </div>
 
-            {/* Upgrade gate */}
-            {!canExport && result.total > 0 && (
-              <div className="rounded-xl border-2 border-primary/40 bg-gradient-to-br from-primary/10 to-transparent p-5">
-                <div className="flex items-start gap-3">
-                  <Lock className="mt-0.5 h-5 w-5 text-primary" />
-                  <div className="flex-1">
-                    <div className="font-semibold">Exportação liberada no plano pago</div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Você está vendo só uma prévia. No plano <strong>Pro</strong> você baixa a lista completa em CSV, gera o arquivo .vcf pra importar direto no celular, e nunca mais perde uma conversa de um cliente sem nome.
-                    </p>
-                    <Link to="/app/billing" className="mt-3 inline-block">
-                      <Button size="sm" className="gap-1">
-                        <Crown className="h-4 w-4" /> Fazer upgrade agora
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Export actions */}
-            {canExport && result.total > 0 && (
+            {/* Export actions — disponível em todos os planos */}
+            {result.total > 0 && (
               <div className="flex flex-wrap gap-2">
                 <Button onClick={exportCsv} variant="outline" size="sm">
                   <Download className="mr-2 h-4 w-4" /> Baixar CSV
@@ -172,6 +152,7 @@ export function UnsavedContactsCard({ instances }: { instances: any[] }) {
                 </Button>
               </div>
             )}
+
 
             {/* Preview table */}
             {result.contacts?.length > 0 && (
