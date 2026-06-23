@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { UserPlus, Download, Loader2, AlertTriangle, Lock, Crown, FileDown, ScanSearch } from "lucide-react";
+import { UserPlus, Download, Loader2, AlertTriangle, FileDown, ScanSearch } from "lucide-react";
 import { toast } from "sonner";
 import { listUnsavedContactsFn, exportUnsavedAsVcardFn } from "@/lib/unsaved-contacts.functions";
 import { formatPhone } from "@/lib/format-instance";
+
 
 function downloadCsv(filename: string, rows: string[][]) {
   const csv = rows.map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
