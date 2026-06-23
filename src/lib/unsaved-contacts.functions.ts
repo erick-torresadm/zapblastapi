@@ -1,19 +1,10 @@
 // Identifica contatos que conversaram com o cliente mas NÃO estão salvos
-// na agenda do telefone dele. Gratuito no plano pago (gating via subscription).
+// na agenda do telefone dele. Disponível em todos os planos.
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const PAID_SLUGS = new Set(["pro", "business", "premium", "enterprise"]);
 
-async function ensurePaidPlan(supabase: any, userId: string): Promise<{ ok: boolean; plan: string | null }> {
-  const { data } = await supabase.rpc("get_user_plan_limits" as never, { _user_id: userId } as never);
-  const plan = (data as any)?.plan_slug ?? null;
-  const status = (data as any)?.status ?? null;
-  const canAct = (data as any)?.can_act ?? false;
-  const ok = canAct && plan && PAID_SLUGS.has(String(plan)) && status === "active";
-  return { ok, plan };
-}
 
 async function resolveServerByInstance(supabase: any, instanceId: string, userId: string) {
   const { data: inst } = await supabase
@@ -128,33 +119,25 @@ export const listUnsavedContactsFn = createServerFn({ method: "POST" })
       return 0;
     });
 
-    // 5. Gate by plan: free/trial sees only the COUNT
-    const gate = await ensurePaidPlan(supabase, userId);
-
+    // 5. Sempre liberado (disponível em todos os planos)
     return {
       total: unsaved.length,
       with_conversation: unsaved.filter((u) => u.last_message_at).length,
-      can_export: gate.ok,
-      plan: gate.plan,
-      contacts: gate.ok ? unsaved : unsaved.slice(0, 5).map((u) => ({
-        ...u,
-        phone: u.phone ? `${u.phone.slice(0, 4)}****${u.phone.slice(-2)}` : null,
-        profile_pic: null,
-      })),
+      can_export: true,
+      plan: null,
+      contacts: unsaved,
     };
   });
 
-/** Gera vCard (.vcf) com todos os contatos não salvos. Apenas plano pago. */
+
+/** Gera vCard (.vcf) com todos os contatos não salvos. Disponível em todos os planos. */
 export const exportUnsavedAsVcardFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { instance_id: string }) =>
     z.object({ instance_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const gate = await ensurePaidPlan(supabase, userId);
-    if (!gate.ok) {
-      throw new Error("Disponível apenas em planos pagos. Faça upgrade para exportar.");
-    }
+
 
     const { server, instance } = await resolveServerByInstance(supabase, data.instance_id, userId);
     const { findContacts } = await import("@/lib/evolution.server");

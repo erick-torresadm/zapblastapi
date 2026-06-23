@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { UserPlus, Download, Loader2, AlertTriangle, Lock, Crown, FileDown, ScanSearch } from "lucide-react";
+import { UserPlus, Download, Loader2, AlertTriangle, FileDown, ScanSearch } from "lucide-react";
 import { toast } from "sonner";
 import { listUnsavedContactsFn, exportUnsavedAsVcardFn } from "@/lib/unsaved-contacts.functions";
 import { formatPhone } from "@/lib/format-instance";
+
 
 function downloadCsv(filename: string, rows: string[][]) {
   const csv = rows.map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -72,7 +71,7 @@ export function UnsavedContactsCard({ instances }: { instances: any[] }) {
     downloadCsv(`nao-salvos-${Date.now()}.csv`, rows);
   }
 
-  const canExport = result?.can_export;
+  const canExport = true;
 
   return (
     <Card>
@@ -86,11 +85,9 @@ export function UnsavedContactsCard({ instances }: { instances: any[] }) {
               Quantos clientes te mandaram mensagem mas nunca foram salvos na sua agenda? A gente descobre — e você importa todos de uma vez.
             </CardDescription>
           </div>
-          <Badge variant="secondary" className="shrink-0 gap-1 bg-primary/10 text-primary">
-            <Crown className="h-3 w-3" /> Plano Pago
-          </Badge>
         </div>
       </CardHeader>
+
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-[1fr,auto]">
           <div className="space-y-1.5">
@@ -138,28 +135,8 @@ export function UnsavedContactsCard({ instances }: { instances: any[] }) {
               )}
             </div>
 
-            {/* Upgrade gate */}
-            {!canExport && result.total > 0 && (
-              <div className="rounded-xl border-2 border-primary/40 bg-gradient-to-br from-primary/10 to-transparent p-5">
-                <div className="flex items-start gap-3">
-                  <Lock className="mt-0.5 h-5 w-5 text-primary" />
-                  <div className="flex-1">
-                    <div className="font-semibold">Exportação liberada no plano pago</div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Você está vendo só uma prévia. No plano <strong>Pro</strong> você baixa a lista completa em CSV, gera o arquivo .vcf pra importar direto no celular, e nunca mais perde uma conversa de um cliente sem nome.
-                    </p>
-                    <Link to="/app/billing" className="mt-3 inline-block">
-                      <Button size="sm" className="gap-1">
-                        <Crown className="h-4 w-4" /> Fazer upgrade agora
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Export actions */}
-            {canExport && result.total > 0 && (
+            {/* Export actions — disponível em todos os planos */}
+            {result.total > 0 && (
               <div className="flex flex-wrap gap-2">
                 <Button onClick={exportCsv} variant="outline" size="sm">
                   <Download className="mr-2 h-4 w-4" /> Baixar CSV
@@ -174,6 +151,7 @@ export function UnsavedContactsCard({ instances }: { instances: any[] }) {
                 </Button>
               </div>
             )}
+
 
             {/* Preview table */}
             {result.contacts?.length > 0 && (
@@ -200,13 +178,9 @@ export function UnsavedContactsCard({ instances }: { instances: any[] }) {
                     ))}
                   </tbody>
                 </table>
-                {!canExport && result.total > result.contacts.length && (
-                  <div className="bg-muted/30 px-3 py-2 text-center text-xs text-muted-foreground">
-                    🔒 +{result.total - result.contacts.length} contatos ocultos — desbloqueie no Pro
-                  </div>
-                )}
               </div>
             )}
+
           </div>
         )}
       </CardContent>
