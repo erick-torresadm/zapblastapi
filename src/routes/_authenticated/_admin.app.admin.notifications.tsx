@@ -58,9 +58,10 @@ function AdminNotificationsPage() {
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
 
-  const events = ((data?.events ?? []) as EventRow[]).filter((e) => filter === "all" || e.type === filter);
-  const types = Array.from(new Set((data?.events ?? []).map((e: EventRow) => e.type)));
-  const unreadCount = (data?.events ?? []).filter((e: EventRow) => !e.read_at).length;
+  const allEvents = (data?.events ?? []) as unknown as EventRow[];
+  const events = allEvents.filter((e) => filter === "all" || e.type === filter);
+  const types = Array.from(new Set(allEvents.map((e) => e.type)));
+  const unreadCount = allEvents.filter((e) => !e.read_at).length;
 
   const handleEnable = async () => {
     try { await push.enable(); toast.success("Notificações ativadas neste dispositivo."); }
