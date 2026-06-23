@@ -103,6 +103,22 @@ export function AppSidebar() {
     return items.map((n) => {
       const active = ("exact" in n && n.exact) ? path === n.to : path.startsWith(n.to);
       const Icon = n.icon;
+      const host = typeof window !== "undefined" ? window.location.hostname : "";
+      const onLovable = host.endsWith(".lovable.app") || host.endsWith(".lovableproject.com") || host === "localhost";
+      const isToolsLink = n.to === "/app/tools";
+      const needsLovable = isToolsLink && !onLovable && host !== "";
+      const needsCustom = !isToolsLink && onLovable && host === "zapblastapi.lovable.app";
+
+      const handleCrossDomain = (e: React.MouseEvent) => {
+        if (needsLovable) {
+          e.preventDefault();
+          window.location.href = `https://zapblastapi.lovable.app${n.to}`;
+        } else if (needsCustom) {
+          e.preventDefault();
+          window.location.href = `https://perseidas.com.br${n.to}`;
+        }
+      };
+
       return (
         <SidebarMenuItem key={n.to}>
           <SidebarMenuButton
@@ -110,7 +126,7 @@ export function AppSidebar() {
             isActive={active}
             className="group relative h-9 rounded-lg data-[active=true]:bg-sidebar-accent/80 data-[active=true]:text-sidebar-accent-foreground data-[active=true]:font-medium"
           >
-            <Link to={n.to}>
+            <Link to={n.to} onClick={handleCrossDomain}>
               {active && (
                 <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-primary shadow-[0_0_8px_var(--color-primary)]" />
               )}
@@ -122,6 +138,7 @@ export function AppSidebar() {
       );
     });
   }
+
 
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
