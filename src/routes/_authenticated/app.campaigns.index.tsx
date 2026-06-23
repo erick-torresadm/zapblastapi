@@ -103,17 +103,27 @@ function CampaignsPage() {
 
 function NewCampaignButton() {
   const limits = usePlanLimits();
-  if (!limits.canCreateCampaign) {
-    const reason = !limits.canAct
-      ? "Teste grátis expirado. Assine pra criar campanhas."
-      : `Limite do plano ${limits.plan}: ${limits.data?.limits?.max_active_campaigns} campanha(s) ativa(s). Faça upgrade.`;
+  // Criar rascunho é sempre permitido — o limite de campanhas ATIVAS só vale na hora de iniciar/agendar.
+  // Se o teste/assinatura está expirado, aí sim bloqueamos com link pro upgrade.
+  if (!limits.canAct) {
     return (
-      <Button asChild variant="outline" title={reason}>
-        <Link to="/app/billing"><Plus className="mr-2 h-4 w-4" />Limite atingido — fazer upgrade</Link>
+      <Button asChild variant="outline" title="Teste grátis expirado. Assine pra criar campanhas.">
+        <Link to="/app/billing"><Plus className="mr-2 h-4 w-4" />Assinar para criar</Link>
       </Button>
     );
   }
-  return <Button asChild><Link to="/app/campaigns/new"><Plus className="mr-2 h-4 w-4" />Nova campanha</Link></Button>;
+  const atLimit = !limits.canCreateCampaign;
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <Button asChild><Link to="/app/campaigns/new"><Plus className="mr-2 h-4 w-4" />Nova campanha</Link></Button>
+      {atLimit && (
+        <span className="text-xs text-muted-foreground">
+          Você está no limite de {limits.data?.limits?.max_active_campaigns} campanha(s) ativa(s) do plano {limits.plan}. Pode criar o rascunho — pra iniciar, pause/exclua uma ativa ou{" "}
+          <Link to="/app/billing" className="underline">faça upgrade</Link>.
+        </span>
+      )}
+    </div>
+  );
 }
 
 function PastDueAlert() {
