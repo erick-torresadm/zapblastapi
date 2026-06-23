@@ -32,13 +32,35 @@ export function usePushSubscription() {
     const perm = Notification.permission as PushStatus;
     setStatus(perm);
     try {
-      const reg = await navigator.serviceWorker.getRegistration("/push-sw.js");
+      let reg = await navigator.serviceWorker.getRegistration("/push-sw.js");
+      // Se já tem permissão mas o SW sumiu (cache limpa, reinstalação), re-registra.
+      if (!reg && perm === "granted") {
+        reg = await navigator.serviceWorker.register("/push-sw.js");
+        await navigator.serviceWorker.ready;
+      }
       const sub = await reg?.pushManager.getSubscription();
       setSubscribed(!!sub);
+      // Keep-alive: re-upsert pra refrescar last_seen_at e garantir que o servidor
+      // ainda enxerga essa inscrição, mesmo que a sessão tenha expirado e voltado.
+      if (sub && perm === "granted") {
+        const json = sub.toJSON();
+        try {
+          await subscribe({
+            data: {
+              endpoint: sub.endpoint,
+              p256dh: json.keys?.p256dh ?? "",
+              auth: json.keys?.auth ?? "",
+              user_agent: navigator.userAgent,
+            },
+          });
+        } catch (_) {
+          // Se falhar (provavelmente 401 por token ainda hidratando), tenta de novo no próximo mount
+        }
+      }
     } catch {
       setSubscribed(false);
     }
-  }, []);
+  }, [subscribe]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
