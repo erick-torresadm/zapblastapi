@@ -95,10 +95,27 @@ function WarmupPage() {
       {connectedEnabled === 1 && (
         <Card className="border-warning">
           <CardContent className="pt-6 text-sm">
-            ⚠️ Aquecimento precisa de pelo menos <strong>2 chips conectados</strong> com o modo ligado para que conversem entre si.
+            ⚠️ Para aquecer com apenas 1 chip, ative a <strong>Pool Coletiva 🌐</strong> no card abaixo — seu chip vai conversar com chips de outros clientes Perseidas que também aceitaram entrar no pool.
           </CardContent>
         </Card>
       )}
+
+      <Card className="border-primary/40 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Users className="h-5 w-5 text-primary" /> Pool Coletiva de Aquecimento
+          </CardTitle>
+          <CardDescription>
+            Não tem 2+ números próprios? Entre no pool. Seu chip vai conversar de forma automática e segura com chips de outros clientes Perseidas que também optaram pelo pool — simulando uma comunidade real.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-sm space-y-2">
+          <div className="flex items-start gap-2"><Info className="h-4 w-4 mt-0.5 text-primary shrink-0" /><span>Mensagens curtas, naturais, com delays humanos. Sem links, sem propaganda.</span></div>
+          <div className="flex items-start gap-2"><Info className="h-4 w-4 mt-0.5 text-primary shrink-0" /><span>Os outros clientes <strong>não enxergam seus dados</strong> — só recebem a mensagem do bot.</span></div>
+          <div className="flex items-start gap-2"><Info className="h-4 w-4 mt-0.5 text-primary shrink-0" /><span>Você pode sair do pool a qualquer momento desativando o toggle no chip.</span></div>
+        </CardContent>
+      </Card>
+
 
       <div className="grid gap-4">
         {(instances ?? []).map((i) => {
@@ -113,7 +130,9 @@ function WarmupPage() {
                     {i.instance_name}
                     <Badge variant={i.status === "connected" ? "default" : "secondary"}>{i.status}</Badge>
                     {i.warmup_enabled && <Badge className="bg-orange-500 hover:bg-orange-600">🔥 Aquecendo</Badge>}
+                    {i.warmup_pool_opt_in && <Badge className="bg-primary hover:bg-primary/90">🌐 Pool</Badge>}
                   </CardTitle>
+
                   <CardDescription>{formatPhone(i.phone_number)} · Saúde: {i.health_score}%</CardDescription>
                 </div>
                 <Switch
@@ -151,11 +170,20 @@ function WarmupPage() {
                   </div>
                   <Progress value={pct} />
                 </div>
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between gap-3 pt-2 border-t">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Switch
+                      checked={i.warmup_pool_opt_in}
+                      disabled={i.status !== "connected"}
+                      onCheckedChange={(v) => togglePool.mutate({ instance_id: i.id, opt_in: v })}
+                    />
+                    <span className="flex items-center gap-1"><Users className="h-4 w-4" /> Participar da <strong>Pool Coletiva</strong></span>
+                  </label>
                   <Button variant="outline" size="sm" onClick={() => reset.mutate(i.id)}>
-                    <RotateCcw className="h-4 w-4 mr-2" /> Reiniciar aquecimento
+                    <RotateCcw className="h-4 w-4 mr-2" /> Reiniciar
                   </Button>
                 </div>
+
               </CardContent>
             </Card>
           );
