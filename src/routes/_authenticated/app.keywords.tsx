@@ -27,16 +27,30 @@ export const Route = createFileRoute("/_authenticated/app/keywords")({
 });
 
 type MatchMode = "exact" | "contains" | "starts_with" | "regex";
+type TriggerMode = "keyword" | "any_message";
 
 type Trigger = {
   id: string; user_id: string; flow_id: string; instance_id: string | null;
-  keywords: string[]; match_mode: MatchMode; active: boolean;
+  keywords: string[]; match_mode: MatchMode; trigger_mode: TriggerMode; active: boolean;
   created_by_admin: boolean; flow_name: string;
   allow_from_me: boolean; delay_seconds: number; cooldown_seconds: number;
   per_contact_cooldown_seconds: number;
   last_triggered_at: string | null;
   instance: { id: string; instance_name: string; phone_number: string | null; status: string } | null;
 };
+
+const COOLDOWN_PRESETS: Array<{ label: string; seconds: number }> = [
+  { label: "Sem limite (disparar sempre)", seconds: 0 },
+  { label: "1 hora", seconds: 3600 },
+  { label: "24 horas", seconds: 86_400 },
+  { label: "1 semana", seconds: 604_800 },
+  { label: "1 mês (30 dias)", seconds: 2_592_000 },
+  { label: "1 ano", seconds: 31_536_000 },
+];
+function presetLabelFor(seconds: number): string {
+  const found = COOLDOWN_PRESETS.find((p) => p.seconds === seconds);
+  return found ? found.label : `${seconds}s (personalizado)`;
+}
 
 const matchLabel: Record<MatchMode, string> = {
   exact: "Exato", contains: "Contém", starts_with: "Começa com", regex: "Regex",
@@ -140,6 +154,7 @@ function KeywordsPage() {
     flow_id: "", instance_id: "",
     keywords: [] as string[],
     match_mode: "contains" as MatchMode,
+    trigger_mode: "keyword" as TriggerMode,
     active: true, user_id: "",
     allow_from_me: false, delay_seconds: 0, cooldown_seconds: 0, per_contact_cooldown_seconds: 0,
   });
@@ -148,6 +163,7 @@ function KeywordsPage() {
     setEditing(null);
     setForm({
       flow_id: "", instance_id: "", keywords: [], match_mode: "contains",
+      trigger_mode: "keyword",
       active: true, user_id: "",
       allow_from_me: false, delay_seconds: 0, cooldown_seconds: 0, per_contact_cooldown_seconds: 0,
     });
@@ -160,6 +176,7 @@ function KeywordsPage() {
       instance_id: t.instance_id ?? "",
       keywords: t.keywords ?? [],
       match_mode: t.match_mode,
+      trigger_mode: t.trigger_mode ?? "keyword",
       active: t.active,
       user_id: t.user_id,
       allow_from_me: !!t.allow_from_me,
@@ -173,7 +190,9 @@ function KeywordsPage() {
   const saveMut = useMutation({
     mutationFn: async () => {
       if (!form.flow_id) throw new Error("Selecione um fluxo");
-      if (!form.keywords.length) throw new Error("Adicione pelo menos uma palavra-chave");
+      if (form.trigger_mode === "keyword" && !form.keywords.length) {
+        throw new Error("Adicione pelo menos uma palavra-chave (ou troque para 'Qualquer mensagem')");
+      }
       return saveFn({
         data: {
           id: editing?.id,
@@ -181,6 +200,7 @@ function KeywordsPage() {
           instance_id: form.instance_id || null,
           keywords: form.keywords,
           match_mode: form.match_mode,
+          trigger_mode: form.trigger_mode,
           active: form.active,
           allow_from_me: form.allow_from_me,
           delay_seconds: form.delay_seconds,
@@ -266,7 +286,11 @@ function KeywordsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium">{t.flow_name}</span>
-                  <Badge variant="outline">{matchLabel[t.match_mode]}</Badge>
+                  {t.trigger_mode === "any_message" ? (
+                    <Badge>Qualquer mensagem</Badge>
+                  ) : (
+                    <Badge variant="outline">{matchLabel[t.match_mode]}</Badge>
+                  )}
                   {t.instance ? (
                     <Badge variant="secondary">Chip: {formatInstanceLabel(t.instance.instance_name, t.instance.phone_number)}</Badge>
                   ) : (
@@ -282,15 +306,17 @@ function KeywordsPage() {
                     <Badge variant="outline" className="gap-1">Cooldown {t.cooldown_seconds}s</Badge>
                   )}
                   {t.per_contact_cooldown_seconds > 0 && (
-                    <Badge variant="outline" className="gap-1">Por contato {t.per_contact_cooldown_seconds}s</Badge>
+                    <Badge variant="outline" className="gap-1">Por contato: {presetLabelFor(t.per_contact_cooldown_seconds)}</Badge>
                   )}
                   {t.created_by_admin && <Badge>admin</Badge>}
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {t.keywords.map((k) => (
-                    <Badge key={k} variant="outline" className="font-mono text-xs">{k}</Badge>
-                  ))}
-                </div>
+                {t.trigger_mode !== "any_message" && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {t.keywords.map((k) => (
+                      <Badge key={k} variant="outline" className="font-mono text-xs">{k}</Badge>
+                    ))}
+                  </div>
+                )}
                 {t.last_triggered_at && (
                   <div className="text-xs text-muted-foreground mt-1">
                     Último disparo: {new Date(t.last_triggered_at).toLocaleString("pt-BR")}
@@ -549,29 +575,49 @@ function KeywordsPage() {
             </div>
 
             <div>
-              <Label>Variantes/sinônimos</Label>
-              <VariantsInput
-                value={form.keywords}
-                onChange={(v) => setForm({ ...form, keywords: v })}
-                placeholder={form.match_mode === "regex" ? "ex: ^(quero|preciso).*pre[çc]o" : "ex: preço, tabela, quanto custa"}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Pressione Enter ou vírgula para adicionar. Acentos e caixa são ignorados (exceto no modo Regex).
-              </p>
-            </div>
-
-            <div>
-              <Label>Modo de comparação</Label>
-              <Select value={form.match_mode} onValueChange={(v) => setForm({ ...form, match_mode: v as MatchMode })}>
+              <Label>Quando disparar</Label>
+              <Select value={form.trigger_mode} onValueChange={(v) => setForm({ ...form, trigger_mode: v as TriggerMode })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="contains">Contém — bate se a mensagem contiver a palavra</SelectItem>
-                  <SelectItem value="exact">Exato — só bate se a mensagem for igual</SelectItem>
-                  <SelectItem value="starts_with">Começa com — bate se a mensagem começar com a palavra</SelectItem>
-                  <SelectItem value="regex">Regex (avançado) — cada variante é uma expressão regular</SelectItem>
+                  <SelectItem value="keyword">Por palavra-chave — só quando a mensagem bater com alguma palavra/sinônimo</SelectItem>
+                  <SelectItem value="any_message">Qualquer mensagem — toda mensagem recebida aciona o fluxo (use o cooldown por contato!)</SelectItem>
                 </SelectContent>
               </Select>
+              {form.trigger_mode === "any_message" && form.per_contact_cooldown_seconds === 0 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  ⚠️ Modo "qualquer mensagem" sem limite por contato faz o bot responder a cada mensagem nova — defina um cooldown abaixo (ex.: 24h).
+                </p>
+              )}
             </div>
+
+            {form.trigger_mode === "keyword" && (
+              <>
+                <div>
+                  <Label>Variantes/sinônimos</Label>
+                  <VariantsInput
+                    value={form.keywords}
+                    onChange={(v) => setForm({ ...form, keywords: v })}
+                    placeholder={form.match_mode === "regex" ? "ex: ^(quero|preciso).*pre[çc]o" : "ex: preço, tabela, quanto custa"}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Pressione Enter ou vírgula para adicionar. Acentos e caixa são ignorados (exceto no modo Regex).
+                  </p>
+                </div>
+
+                <div>
+                  <Label>Modo de comparação</Label>
+                  <Select value={form.match_mode} onValueChange={(v) => setForm({ ...form, match_mode: v as MatchMode })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contains">Contém — bate se a mensagem contiver a palavra</SelectItem>
+                      <SelectItem value="exact">Exato — só bate se a mensagem for igual</SelectItem>
+                      <SelectItem value="starts_with">Começa com — bate se a mensagem começar com a palavra</SelectItem>
+                      <SelectItem value="regex">Regex (avançado) — cada variante é uma expressão regular</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
 
             <div className="rounded-md border p-3 space-y-3">
               <div className="flex items-center justify-between gap-3">
@@ -584,32 +630,45 @@ function KeywordsPage() {
                 <Switch id="afm" checked={form.allow_from_me} onCheckedChange={(v) => setForm({ ...form, allow_from_me: v })} />
               </div>
 
+              <div>
+                <Label htmlFor="pcool-preset" className="text-sm">Repetir para o mesmo contato</Label>
+                <Select
+                  value={String(form.per_contact_cooldown_seconds)}
+                  onValueChange={(v) => setForm({ ...form, per_contact_cooldown_seconds: Number(v) })}
+                >
+                  <SelectTrigger id="pcool-preset"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {COOLDOWN_PRESETS.map((p) => (
+                      <SelectItem key={p.seconds} value={String(p.seconds)}>{p.label}</SelectItem>
+                    ))}
+                    {!COOLDOWN_PRESETS.find((p) => p.seconds === form.per_contact_cooldown_seconds) && (
+                      <SelectItem value={String(form.per_contact_cooldown_seconds)}>
+                        {presetLabelFor(form.per_contact_cooldown_seconds)}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Mesmo se a pessoa mandar várias mensagens, o fluxo só dispara novamente após esse intervalo.
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="delay" className="text-sm">Atraso (segundos)</Label>
+                  <Label htmlFor="delay" className="text-sm">Atraso antes do envio (s)</Label>
                   <Input id="delay" type="number" min={0} max={86400}
                     value={form.delay_seconds}
                     onChange={(e) => setForm({ ...form, delay_seconds: Math.max(0, Number(e.target.value) || 0) })}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Espera antes de iniciar o fluxo.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Espera antes de iniciar o fluxo (deixa mais natural).</p>
                 </div>
                 <div>
-                  <Label htmlFor="cool" className="text-sm">Cooldown global (s)</Label>
+                  <Label htmlFor="cool" className="text-sm">Intervalo global (s)</Label>
                   <Input id="cool" type="number" min={0} max={86400}
                     value={form.cooldown_seconds}
                     onChange={(e) => setForm({ ...form, cooldown_seconds: Math.max(0, Number(e.target.value) || 0) })}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Tempo mínimo entre dois disparos deste gatilho.</p>
-                </div>
-                <div className="col-span-2">
-                  <Label htmlFor="pcool" className="text-sm">Cooldown por contato (s)</Label>
-                  <Input id="pcool" type="number" min={0} max={86400}
-                    value={form.per_contact_cooldown_seconds}
-                    onChange={(e) => setForm({ ...form, per_contact_cooldown_seconds: Math.max(0, Number(e.target.value) || 0) })}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Evita que o mesmo contato dispare o mesmo fluxo várias vezes seguidas. 0 = sem limite.
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Tempo mínimo entre dois disparos deste gatilho (qualquer contato).</p>
                 </div>
               </div>
             </div>
