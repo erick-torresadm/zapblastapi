@@ -273,3 +273,31 @@ function ValidatorCard({
   );
 }
 
+
+function MapsDomainGate({ children }: { children: React.ReactNode }) {
+  if (typeof window === "undefined") return <>{children}</>;
+  const host = window.location.hostname;
+  const isLovableDomain = host.endsWith(".lovable.app") || host.endsWith(".lovableproject.com") || host === "localhost";
+  if (isLovableDomain) return <>{children}</>;
+  const target = `https://zapblastapi.lovable.app${window.location.pathname}`;
+  return (
+    <Card className="border-amber-500/40 bg-amber-50 dark:bg-amber-950/20">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
+          <AlertTriangle className="h-5 w-5" /> Abra a ferramenta de Maps no domínio oficial
+        </CardTitle>
+        <CardDescription className="text-amber-800/80 dark:text-amber-200/80">
+          A busca de leads do Google Maps só funciona em <strong>zapblastapi.lovable.app</strong> no momento.
+          O resto do app continua funcionando normalmente neste domínio — clique abaixo para usar a Maps Tool.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button asChild>
+          <a href={target} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="mr-2 h-4 w-4" /> Abrir Maps Tool em zapblastapi.lovable.app
+          </a>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
