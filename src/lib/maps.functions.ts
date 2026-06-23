@@ -127,6 +127,7 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
     only_with_phone?: boolean;
     whatsapp_check?: boolean;
     whatsapp_instance_id?: string | null;
+    max_results?: number;
   }) =>
     z.object({
       mode: z.enum(["text", "nearby"]),
@@ -139,7 +140,9 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
       only_with_phone: z.boolean().optional(),
       whatsapp_check: z.boolean().optional(),
       whatsapp_instance_id: z.string().uuid().nullable().optional(),
+      max_results: z.number().int().min(10).max(60).optional(),
     }).parse(i))
+
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
