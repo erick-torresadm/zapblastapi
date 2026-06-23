@@ -1226,14 +1226,10 @@ export async function triggerKeywordFlows(
   }
 
   console.log("[trigger] start", { user_id: args.user_id, phone: args.phone, from_me: !!args.from_me, text_len: text.length });
-  if (!text) {
-    await writeAudit({ resolution_status: "no_text", triggers_evaluated: 0, triggers_matched: 0, matched_trigger_ids: [], matched_flow_ids: [], run_ids: [], note: "Mensagem sem texto (ex: mídia/áudio)" });
-    return { matched: 0, runs: [] };
-  }
   const lower = normalizeKeywordText(text);
 
   const { data: triggers, error: tErr } = await supabaseAdmin.from("flow_keyword_triggers")
-    .select("id, flow_id, instance_id, keywords, match_mode, allow_from_me, delay_seconds, cooldown_seconds, per_contact_cooldown_seconds, last_triggered_at")
+    .select("id, flow_id, instance_id, keywords, match_mode, trigger_mode, allow_from_me, delay_seconds, cooldown_seconds, per_contact_cooldown_seconds, last_triggered_at")
     .eq("user_id", args.user_id).eq("active", true);
   if (tErr) {
     console.error("[trigger] load triggers error", tErr);
@@ -1249,7 +1245,7 @@ export async function triggerKeywordFlows(
 
   type TriggerRow = {
     id: string; flow_id: string; instance_id: string | null;
-    keywords: string[]; match_mode: string;
+    keywords: string[]; match_mode: string; trigger_mode: string;
     allow_from_me: boolean; delay_seconds: number;
     cooldown_seconds: number; per_contact_cooldown_seconds: number;
     last_triggered_at: string | null;
@@ -1257,6 +1253,8 @@ export async function triggerKeywordFlows(
 
   const now = Date.now();
   function matchKeywords(t: TriggerRow): boolean {
+    if (t.trigger_mode === "any_message") return true;
+    if (!text) return false;
     const kws = (t.keywords ?? []).map((k) => k.trim()).filter(Boolean);
     if (!kws.length) return false;
     if (t.match_mode === "regex") {
