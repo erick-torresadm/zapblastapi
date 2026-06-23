@@ -286,7 +286,11 @@ function KeywordsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium">{t.flow_name}</span>
-                  <Badge variant="outline">{matchLabel[t.match_mode]}</Badge>
+                  {t.trigger_mode === "any_message" ? (
+                    <Badge>Qualquer mensagem</Badge>
+                  ) : (
+                    <Badge variant="outline">{matchLabel[t.match_mode]}</Badge>
+                  )}
                   {t.instance ? (
                     <Badge variant="secondary">Chip: {formatInstanceLabel(t.instance.instance_name, t.instance.phone_number)}</Badge>
                   ) : (
@@ -302,15 +306,17 @@ function KeywordsPage() {
                     <Badge variant="outline" className="gap-1">Cooldown {t.cooldown_seconds}s</Badge>
                   )}
                   {t.per_contact_cooldown_seconds > 0 && (
-                    <Badge variant="outline" className="gap-1">Por contato {t.per_contact_cooldown_seconds}s</Badge>
+                    <Badge variant="outline" className="gap-1">Por contato: {presetLabelFor(t.per_contact_cooldown_seconds)}</Badge>
                   )}
                   {t.created_by_admin && <Badge>admin</Badge>}
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {t.keywords.map((k) => (
-                    <Badge key={k} variant="outline" className="font-mono text-xs">{k}</Badge>
-                  ))}
-                </div>
+                {t.trigger_mode !== "any_message" && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {t.keywords.map((k) => (
+                      <Badge key={k} variant="outline" className="font-mono text-xs">{k}</Badge>
+                    ))}
+                  </div>
+                )}
                 {t.last_triggered_at && (
                   <div className="text-xs text-muted-foreground mt-1">
                     Último disparo: {new Date(t.last_triggered_at).toLocaleString("pt-BR")}
