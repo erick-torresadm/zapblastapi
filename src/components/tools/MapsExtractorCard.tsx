@@ -312,6 +312,21 @@ export function MapsExtractorCard({
         <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
           <div className="flex items-center justify-between gap-3">
             <div>
+              <Label className="text-sm">Quantidade máxima de leads por busca</Label>
+              <p className="text-xs text-muted-foreground">Menos leads = busca mais focada e rápida. Conta como 1 busca igual.</p>
+            </div>
+            <Select value={String(maxResults)} onValueChange={(v) => setMaxResults(Number(v))}>
+              <SelectTrigger className="h-9 w-[110px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10 leads</SelectItem>
+                <SelectItem value="20">20 leads</SelectItem>
+                <SelectItem value="40">40 leads</SelectItem>
+                <SelectItem value="60">60 leads</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-2">
+            <div>
               <Label className="text-sm">Apenas leads com telefone</Label>
               <p className="text-xs text-muted-foreground">Descarta os que não têm contato — sem cobrar a mais</p>
             </div>
@@ -345,6 +360,7 @@ export function MapsExtractorCard({
             </div>
           )}
         </div>
+
 
         <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
           <div>
