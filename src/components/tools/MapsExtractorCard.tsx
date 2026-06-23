@@ -86,7 +86,7 @@ export function MapsExtractorCard({
   const [waInstance, setWaInstance] = useState<string>("");
   const [result, setResult] = useState<any | null>(null);
   const [couponCode, setCouponCode] = useState("");
-  const [maxResults, setMaxResults] = useState<number>(20);
+  const [maxResults, setMaxResults] = useState<number>(60);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
 
