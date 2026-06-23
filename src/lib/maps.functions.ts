@@ -354,7 +354,7 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
       refunded: false,
       whatsapp_valid_count: whatsappValid,
       used_free: usedFree,
-      can_download: !usedFree,
+      can_download: true,
     };
   });
 
