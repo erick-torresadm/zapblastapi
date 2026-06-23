@@ -1631,6 +1631,7 @@ export type Database = {
           last_triggered_at: string | null
           match_mode: string
           per_contact_cooldown_seconds: number
+          trigger_mode: string
           updated_at: string
           user_id: string
         }
@@ -1648,6 +1649,7 @@ export type Database = {
           last_triggered_at?: string | null
           match_mode?: string
           per_contact_cooldown_seconds?: number
+          trigger_mode?: string
           updated_at?: string
           user_id: string
         }
@@ -1665,6 +1667,7 @@ export type Database = {
           last_triggered_at?: string | null
           match_mode?: string
           per_contact_cooldown_seconds?: number
+          trigger_mode?: string
           updated_at?: string
           user_id?: string
         }
