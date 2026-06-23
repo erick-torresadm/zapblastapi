@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, ShieldCheck, Download, Wallet, Sparkles, Loader2, MapPin, UserPlus } from "lucide-react";
+import { CheckCircle2, XCircle, ShieldCheck, Download, Wallet, Sparkles, Loader2, MapPin, UserPlus, ExternalLink, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { validateNumbersFn, getToolsPricingFn } from "@/lib/tools.functions";
 import { listInstancesFn } from "@/lib/instances.functions";
@@ -105,15 +105,18 @@ function ToolsPage() {
         </TabsList>
 
         <TabsContent value="maps">
-          <MapsExtractorCard
-            flatPrice={pricing?.maps_search_flat_cents ?? 500}
-            waCheckPrice={pricing?.maps_whatsapp_check_per_lead_cents ?? 2}
-            maxLeads={pricing?.maps_search_max_leads ?? 60}
-            balance={balance}
-            instances={connectedInstances}
-            onSuccess={() => refetchWallet()}
-          />
+          <MapsDomainGate>
+            <MapsExtractorCard
+              flatPrice={pricing?.maps_search_flat_cents ?? 500}
+              waCheckPrice={pricing?.maps_whatsapp_check_per_lead_cents ?? 2}
+              maxLeads={pricing?.maps_search_max_leads ?? 60}
+              balance={balance}
+              instances={connectedInstances}
+              onSuccess={() => refetchWallet()}
+            />
+          </MapsDomainGate>
         </TabsContent>
+
 
         <TabsContent value="unsaved">
           <UnsavedContactsCard instances={connectedInstances} />
@@ -270,3 +273,31 @@ function ValidatorCard({
   );
 }
 
+
+function MapsDomainGate({ children }: { children: React.ReactNode }) {
+  if (typeof window === "undefined") return <>{children}</>;
+  const host = window.location.hostname;
+  const isLovableDomain = host.endsWith(".lovable.app") || host.endsWith(".lovableproject.com") || host === "localhost";
+  if (isLovableDomain) return <>{children}</>;
+  const target = `https://zapblastapi.lovable.app${window.location.pathname}`;
+  return (
+    <Card className="border-amber-500/40 bg-amber-50 dark:bg-amber-950/20">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
+          <AlertTriangle className="h-5 w-5" /> Abra a ferramenta de Maps no domínio oficial
+        </CardTitle>
+        <CardDescription className="text-amber-800/80 dark:text-amber-200/80">
+          A busca de leads do Google Maps só funciona em <strong>zapblastapi.lovable.app</strong> no momento.
+          O resto do app continua funcionando normalmente neste domínio — clique abaixo para usar a Maps Tool.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button asChild>
+          <a href={target} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="mr-2 h-4 w-4" /> Abrir Maps Tool em zapblastapi.lovable.app
+          </a>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
