@@ -3,19 +3,24 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 const matchModeSchema = z.enum(["exact", "contains", "starts_with", "regex"]);
+const triggerModeSchema = z.enum(["keyword", "any_message"]);
 
 const upsertSchema = z.object({
   id: z.string().uuid().optional(),
   flow_id: z.string().uuid(),
   instance_id: z.string().uuid().nullable().optional(),
-  keywords: z.array(z.string().min(1)).min(1),
+  keywords: z.array(z.string().min(1)).default([]),
   match_mode: matchModeSchema.default("contains"),
+  trigger_mode: triggerModeSchema.default("keyword"),
   active: z.boolean().default(true),
   allow_from_me: z.boolean().default(false),
   delay_seconds: z.number().int().min(0).max(86400).default(0),
   cooldown_seconds: z.number().int().min(0).max(86400).default(0),
-  per_contact_cooldown_seconds: z.number().int().min(0).max(86400).default(0),
+  per_contact_cooldown_seconds: z.number().int().min(0).max(31_536_000).default(0),
   user_id: z.string().uuid().optional(),
+}).refine((v) => v.trigger_mode === "any_message" || (v.keywords?.length ?? 0) > 0, {
+  message: "Adicione pelo menos uma palavra-chave (ou escolha o modo 'qualquer mensagem').",
+  path: ["keywords"],
 });
 
 async function isAdmin(supabase: any, userId: string): Promise<boolean> {
