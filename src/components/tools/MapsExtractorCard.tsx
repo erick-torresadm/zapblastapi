@@ -150,17 +150,23 @@ export function MapsExtractorCard({
     mutationFn: async () => {
       if (!result?.leads?.length) throw new Error("Sem leads para enviar");
       const phoneLeads = result.leads
-        .filter((l: any) => l.phone)
+        .filter((l: any) => selectedIds.has(l.place_id) && l.phone)
         .map((l: any) => ({
           name: l.name, phone: l.phone,
           address: l.address ?? null, website: l.website ?? null, category: l.category ?? null,
         }));
-      if (phoneLeads.length === 0) throw new Error("Nenhum lead com telefone para enviar");
+      if (phoneLeads.length === 0) {
+        throw new Error("Selecione pelo menos 1 lead com telefone para enviar");
+      }
       const listName = `Maps • ${query || category || "leads"}${city ? ` • ${city}` : ""} • ${new Date().toLocaleDateString("pt-BR")}`;
       return pushToList({ data: { list_name: listName.slice(0, 120), leads: phoneLeads } });
     },
-    onSuccess: (r) => {
-      toast.success(`Lista criada com ${r.inserted} contatos`);
+    onSuccess: (r: any) => {
+      const extras: string[] = [];
+      if (r.skipped_invalid) extras.push(`${r.skipped_invalid} inválidos`);
+      if (r.skipped_duplicates) extras.push(`${r.skipped_duplicates} duplicados`);
+      const tail = extras.length ? ` (descartados: ${extras.join(", ")})` : "";
+      toast.success(`Lista criada com ${r.inserted} contatos${tail}`);
       nav({ to: "/app/campaigns/new", search: { list_id: r.list_id } as any });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -186,6 +192,27 @@ export function MapsExtractorCard({
   }
 
   const phonesEst = result?.leads?.filter((l: any) => l.phone)?.length ?? 0;
+  const selectedCount = result?.leads?.filter((l: any) => selectedIds.has(l.place_id))?.length ?? 0;
+  const selectedWithPhone = result?.leads?.filter((l: any) => selectedIds.has(l.place_id) && l.phone)?.length ?? 0;
+
+  function toggleLead(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function selectAll() {
+    setSelectedIds(new Set(result.leads.map((l: any) => l.place_id)));
+  }
+  function selectNone() { setSelectedIds(new Set()); }
+  function selectOnlyWhatsapp() {
+    setSelectedIds(new Set(result.leads.filter((l: any) => l.has_whatsapp === true).map((l: any) => l.place_id)));
+  }
+  function selectOnlyWithPhone() {
+    setSelectedIds(new Set(result.leads.filter((l: any) => l.phone).map((l: any) => l.place_id)));
+  }
+
 
   return (
     <Card>
