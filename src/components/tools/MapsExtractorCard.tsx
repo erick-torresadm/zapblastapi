@@ -108,10 +108,16 @@ export function MapsExtractorCard({
         only_with_phone: onlyWithPhone,
         whatsapp_check: waCheck,
         whatsapp_instance_id: waCheck ? waInstance || null : null,
+        max_results: maxResults,
       },
     }),
     onSuccess: (r) => {
       setResult(r);
+      // pre-select all leads with phone by default
+      const preSelect = new Set<string>(
+        (r?.leads ?? []).filter((l: any) => l.phone).map((l: any) => l.place_id),
+      );
+      setSelectedIds(preSelect);
       qc.invalidateQueries({ queryKey: ["tool-credits"] });
       if (r.refunded) {
         toast.warning("Nenhum lead retornado — saldo/crédito reembolsado");
@@ -124,6 +130,7 @@ export function MapsExtractorCard({
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const redeem = useMutation({
     mutationFn: () => redeemCoupon({ data: { code: couponCode.trim() } }),
