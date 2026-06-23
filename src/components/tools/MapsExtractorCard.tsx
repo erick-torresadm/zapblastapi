@@ -12,6 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MapPin, Search, Loader2, Download, Star, ExternalLink, Phone, Globe, MessageCircle, Send, Gift, Ticket, Lock } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { searchMapsLeadsFn } from "@/lib/maps.functions";
 import { getToolCreditsFn, redeemToolCreditCouponFn, pushMapsLeadsToListFn } from "@/lib/tool-credits.functions";
@@ -85,6 +86,9 @@ export function MapsExtractorCard({
   const [waInstance, setWaInstance] = useState<string>("");
   const [result, setResult] = useState<any | null>(null);
   const [couponCode, setCouponCode] = useState("");
+  const [maxResults, setMaxResults] = useState<number>(20);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
 
   const creditsQ = useQuery({ queryKey: ["tool-credits"], queryFn: () => getCredits() });
   const freeMaps = Number((creditsQ.data as any)?.maps_search ?? 0);
@@ -104,10 +108,16 @@ export function MapsExtractorCard({
         only_with_phone: onlyWithPhone,
         whatsapp_check: waCheck,
         whatsapp_instance_id: waCheck ? waInstance || null : null,
+        max_results: maxResults,
       },
     }),
     onSuccess: (r) => {
       setResult(r);
+      // pre-select all leads with phone by default
+      const preSelect = new Set<string>(
+        (r?.leads ?? []).filter((l: any) => l.phone).map((l: any) => l.place_id),
+      );
+      setSelectedIds(preSelect);
       qc.invalidateQueries({ queryKey: ["tool-credits"] });
       if (r.refunded) {
         toast.warning("Nenhum lead retornado — saldo/crédito reembolsado");
@@ -120,6 +130,7 @@ export function MapsExtractorCard({
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const redeem = useMutation({
     mutationFn: () => redeemCoupon({ data: { code: couponCode.trim() } }),
@@ -139,17 +150,23 @@ export function MapsExtractorCard({
     mutationFn: async () => {
       if (!result?.leads?.length) throw new Error("Sem leads para enviar");
       const phoneLeads = result.leads
-        .filter((l: any) => l.phone)
+        .filter((l: any) => selectedIds.has(l.place_id) && l.phone)
         .map((l: any) => ({
           name: l.name, phone: l.phone,
           address: l.address ?? null, website: l.website ?? null, category: l.category ?? null,
         }));
-      if (phoneLeads.length === 0) throw new Error("Nenhum lead com telefone para enviar");
+      if (phoneLeads.length === 0) {
+        throw new Error("Selecione pelo menos 1 lead com telefone para enviar");
+      }
       const listName = `Maps • ${query || category || "leads"}${city ? ` • ${city}` : ""} • ${new Date().toLocaleDateString("pt-BR")}`;
       return pushToList({ data: { list_name: listName.slice(0, 120), leads: phoneLeads } });
     },
-    onSuccess: (r) => {
-      toast.success(`Lista criada com ${r.inserted} contatos`);
+    onSuccess: (r: any) => {
+      const extras: string[] = [];
+      if (r.skipped_invalid) extras.push(`${r.skipped_invalid} inválidos`);
+      if (r.skipped_duplicates) extras.push(`${r.skipped_duplicates} duplicados`);
+      const tail = extras.length ? ` (descartados: ${extras.join(", ")})` : "";
+      toast.success(`Lista criada com ${r.inserted} contatos${tail}`);
       nav({ to: "/app/campaigns/new", search: { list_id: r.list_id } as any });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -175,6 +192,27 @@ export function MapsExtractorCard({
   }
 
   const phonesEst = result?.leads?.filter((l: any) => l.phone)?.length ?? 0;
+  const selectedCount = result?.leads?.filter((l: any) => selectedIds.has(l.place_id))?.length ?? 0;
+  const selectedWithPhone = result?.leads?.filter((l: any) => selectedIds.has(l.place_id) && l.phone)?.length ?? 0;
+
+  function toggleLead(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function selectAll() {
+    setSelectedIds(new Set(result.leads.map((l: any) => l.place_id)));
+  }
+  function selectNone() { setSelectedIds(new Set()); }
+  function selectOnlyWhatsapp() {
+    setSelectedIds(new Set(result.leads.filter((l: any) => l.has_whatsapp === true).map((l: any) => l.place_id)));
+  }
+  function selectOnlyWithPhone() {
+    setSelectedIds(new Set(result.leads.filter((l: any) => l.phone).map((l: any) => l.place_id)));
+  }
+
 
   return (
     <Card>
@@ -274,6 +312,21 @@ export function MapsExtractorCard({
         <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
           <div className="flex items-center justify-between gap-3">
             <div>
+              <Label className="text-sm">Quantidade máxima de leads por busca</Label>
+              <p className="text-xs text-muted-foreground">Menos leads = busca mais focada e rápida. Conta como 1 busca igual.</p>
+            </div>
+            <Select value={String(maxResults)} onValueChange={(v) => setMaxResults(Number(v))}>
+              <SelectTrigger className="h-9 w-[110px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10 leads</SelectItem>
+                <SelectItem value="20">20 leads</SelectItem>
+                <SelectItem value="40">40 leads</SelectItem>
+                <SelectItem value="60">60 leads</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-2">
+            <div>
               <Label className="text-sm">Apenas leads com telefone</Label>
               <p className="text-xs text-muted-foreground">Descarta os que não têm contato — sem cobrar a mais</p>
             </div>
@@ -307,6 +360,7 @@ export function MapsExtractorCard({
             </div>
           )}
         </div>
+
 
         <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
           <div>
@@ -352,18 +406,23 @@ export function MapsExtractorCard({
               <div>
                 <div className="text-sm font-semibold">{result.total} leads encontrados</div>
                 <div className="text-xs text-muted-foreground">
-                  {phonesEst} com telefone
+                  {phonesEst} com telefone · <span className="text-primary font-medium">{selectedCount} selecionado(s)</span>
                   {result.whatsapp_valid_count > 0 && ` • ${result.whatsapp_valid_count} com WhatsApp ativo`}
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
                   onClick={() => sendToCampaign.mutate()}
-                  disabled={sendToCampaign.isPending || phonesEst === 0}
+                  disabled={sendToCampaign.isPending || selectedWithPhone === 0}
                   size="sm"
+                  title={
+                    selectedWithPhone === 0
+                      ? "Selecione ao menos 1 lead com telefone (use os checkboxes abaixo)"
+                      : `Vai criar uma lista com ${selectedWithPhone} contato(s) selecionado(s)`
+                  }
                 >
                   {sendToCampaign.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                  Enviar para campanha
+                  Enviar {selectedWithPhone > 0 ? `${selectedWithPhone} ` : ""}p/ campanha
                 </Button>
                 {result.can_download ? (
                   <Button onClick={exportCsv} variant="outline" size="sm">
@@ -376,6 +435,20 @@ export function MapsExtractorCard({
                 )}
               </div>
             </div>
+
+            {/* Selection toolbar */}
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/40 bg-background/60 p-2 text-xs">
+              <span className="text-muted-foreground">Seleção rápida:</span>
+              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={selectAll}>Todos ({result.leads.length})</Button>
+              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={selectOnlyWithPhone}>Só com telefone ({phonesEst})</Button>
+              {result.whatsapp_valid_count > 0 && (
+                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={selectOnlyWhatsapp}>
+                  Só WhatsApp ✓ ({result.whatsapp_valid_count})
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={selectNone}>Nenhum</Button>
+            </div>
+
             {!result.can_download && (
               <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
                 Esta busca foi gratuita. Os números ficam disponíveis para disparo dentro da plataforma.
@@ -383,47 +456,65 @@ export function MapsExtractorCard({
               </div>
             )}
             <div className="max-h-[400px] space-y-2 overflow-y-auto">
-              {result.leads.slice(0, 50).map((l: any) => (
-                <div key={l.place_id} className="flex items-start justify-between gap-2 rounded-md border border-border/40 bg-background p-3 text-xs">
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm">{l.name}</span>
-                      {l.rating && (
-                        <span className="flex items-center gap-0.5 text-amber-500">
-                          <Star className="h-3 w-3 fill-current" />
-                          {l.rating} <span className="text-muted-foreground">({l.reviews})</span>
-                        </span>
-                      )}
-                      {l.has_whatsapp === true && (
-                        <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-400">WhatsApp ✓</Badge>
-                      )}
-                    </div>
-                    {l.address && <div className="text-muted-foreground">{l.address}</div>}
-                    <div className="flex flex-wrap items-center gap-3 pt-0.5">
-                      {l.phone_intl && (
-                        <span className="inline-flex items-center gap-1 font-mono">
-                          <Phone className="h-3 w-3" /> {l.phone_intl}
-                        </span>
-                      )}
-                      {l.website && (
-                        <a href={l.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
-                          <Globe className="h-3 w-3" /> Site
-                        </a>
-                      )}
-                      {l.maps_url && (
-                        <a href={l.maps_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
-                          <ExternalLink className="h-3 w-3" /> Maps
-                        </a>
-                      )}
+              {result.leads.slice(0, 100).map((l: any) => {
+                const checked = selectedIds.has(l.place_id);
+                const noPhone = !l.phone;
+                return (
+                  <div
+                    key={l.place_id}
+                    className={`flex items-start gap-2 rounded-md border bg-background p-3 text-xs transition-colors ${checked ? "border-primary/50 bg-primary/5" : "border-border/40"}`}
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={() => toggleLead(l.place_id)}
+                      disabled={noPhone}
+                      className="mt-1"
+                      aria-label={`Selecionar ${l.name}`}
+                    />
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm">{l.name}</span>
+                        {l.rating && (
+                          <span className="flex items-center gap-0.5 text-amber-500">
+                            <Star className="h-3 w-3 fill-current" />
+                            {l.rating} <span className="text-muted-foreground">({l.reviews})</span>
+                          </span>
+                        )}
+                        {l.has_whatsapp === true && (
+                          <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-400">WhatsApp ✓</Badge>
+                        )}
+                        {noPhone && (
+                          <Badge variant="outline" className="text-muted-foreground">sem telefone</Badge>
+                        )}
+                      </div>
+                      {l.address && <div className="text-muted-foreground">{l.address}</div>}
+                      <div className="flex flex-wrap items-center gap-3 pt-0.5">
+                        {l.phone_intl && (
+                          <span className="inline-flex items-center gap-1 font-mono">
+                            <Phone className="h-3 w-3" /> {l.phone_intl}
+                          </span>
+                        )}
+                        {l.website && (
+                          <a href={l.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                            <Globe className="h-3 w-3" /> Site
+                          </a>
+                        )}
+                        {l.maps_url && (
+                          <a href={l.maps_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
+                            <ExternalLink className="h-3 w-3" /> Maps
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {result.leads.length > 50 && (
-                <div className="py-2 text-center text-xs text-muted-foreground">+{result.leads.length - 50} no CSV</div>
+                );
+              })}
+              {result.leads.length > 100 && (
+                <div className="py-2 text-center text-xs text-muted-foreground">+{result.leads.length - 100} no CSV</div>
               )}
             </div>
           </div>
+
         )}
       </CardContent>
     </Card>
