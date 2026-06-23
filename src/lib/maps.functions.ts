@@ -219,18 +219,21 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
         }
       } else {
         const textQuery = `${data.query}${data.city ? ` em ${data.city}` : ""}`;
+        const maxResults = data.max_results ?? 20;
+        const pageSize = Math.min(20, maxResults);
+        const maxPages = Math.ceil(maxResults / pageSize);
         let pageToken: string | undefined;
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < maxPages; i++) {
           const body: Record<string, unknown> = {
             textQuery,
             languageCode: "pt-BR",
             regionCode: "BR",
-            pageSize: 20,
+            pageSize,
           };
           if (pageToken) body.pageToken = pageToken;
           const { places: p, nextPageToken } = await callSearchText(body);
           places.push(...p);
-          if (!nextPageToken || places.length >= TOOL_PRICES.maps_search_max_leads) break;
+          if (!nextPageToken || places.length >= maxResults) break;
           pageToken = nextPageToken;
           await new Promise((r) => setTimeout(r, 1200)); // token rate-limit
         }
@@ -239,6 +242,11 @@ export const searchMapsLeadsFn = createServerFn({ method: "POST" })
       await refund(`API falhou: ${(e as Error).message.slice(0, 60)}`);
       throw new Error(`Falha na busca: ${(e as Error).message}. Saldo reembolsado.`);
     }
+
+    // 3. Shape leads, cap at requested max_results, optionally filter "only_with_phone"
+    const cap = data.max_results ?? TOOL_PRICES.maps_search_max_leads;
+    let leads: Lead[] = places.slice(0, Math.min(cap, TOOL_PRICES.maps_search_max_leads)).map(placeToLead);
+
 
     // 3. Shape leads, optionally filter "only_with_phone"
     let leads: Lead[] = places.slice(0, TOOL_PRICES.maps_search_max_leads).map(placeToLead);
