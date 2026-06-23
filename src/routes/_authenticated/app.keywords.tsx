@@ -27,16 +27,30 @@ export const Route = createFileRoute("/_authenticated/app/keywords")({
 });
 
 type MatchMode = "exact" | "contains" | "starts_with" | "regex";
+type TriggerMode = "keyword" | "any_message";
 
 type Trigger = {
   id: string; user_id: string; flow_id: string; instance_id: string | null;
-  keywords: string[]; match_mode: MatchMode; active: boolean;
+  keywords: string[]; match_mode: MatchMode; trigger_mode: TriggerMode; active: boolean;
   created_by_admin: boolean; flow_name: string;
   allow_from_me: boolean; delay_seconds: number; cooldown_seconds: number;
   per_contact_cooldown_seconds: number;
   last_triggered_at: string | null;
   instance: { id: string; instance_name: string; phone_number: string | null; status: string } | null;
 };
+
+const COOLDOWN_PRESETS: Array<{ label: string; seconds: number }> = [
+  { label: "Sem limite (disparar sempre)", seconds: 0 },
+  { label: "1 hora", seconds: 3600 },
+  { label: "24 horas", seconds: 86_400 },
+  { label: "1 semana", seconds: 604_800 },
+  { label: "1 mês (30 dias)", seconds: 2_592_000 },
+  { label: "1 ano", seconds: 31_536_000 },
+];
+function presetLabelFor(seconds: number): string {
+  const found = COOLDOWN_PRESETS.find((p) => p.seconds === seconds);
+  return found ? found.label : `${seconds}s (personalizado)`;
+}
 
 const matchLabel: Record<MatchMode, string> = {
   exact: "Exato", contains: "Contém", starts_with: "Começa com", regex: "Regex",
