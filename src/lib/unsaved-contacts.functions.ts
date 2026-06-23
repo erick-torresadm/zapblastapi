@@ -1,19 +1,10 @@
 // Identifica contatos que conversaram com o cliente mas NÃO estão salvos
-// na agenda do telefone dele. Gratuito no plano pago (gating via subscription).
+// na agenda do telefone dele. Disponível em todos os planos.
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const PAID_SLUGS = new Set(["pro", "business", "premium", "enterprise"]);
 
-async function ensurePaidPlan(supabase: any, userId: string): Promise<{ ok: boolean; plan: string | null }> {
-  const { data } = await supabase.rpc("get_user_plan_limits" as never, { _user_id: userId } as never);
-  const plan = (data as any)?.plan_slug ?? null;
-  const status = (data as any)?.status ?? null;
-  const canAct = (data as any)?.can_act ?? false;
-  const ok = canAct && plan && PAID_SLUGS.has(String(plan)) && status === "active";
-  return { ok, plan };
-}
 
 async function resolveServerByInstance(supabase: any, instanceId: string, userId: string) {
   const { data: inst } = await supabase
