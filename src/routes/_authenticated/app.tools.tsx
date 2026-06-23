@@ -105,15 +105,18 @@ function ToolsPage() {
         </TabsList>
 
         <TabsContent value="maps">
-          <MapsExtractorCard
-            flatPrice={pricing?.maps_search_flat_cents ?? 500}
-            waCheckPrice={pricing?.maps_whatsapp_check_per_lead_cents ?? 2}
-            maxLeads={pricing?.maps_search_max_leads ?? 60}
-            balance={balance}
-            instances={connectedInstances}
-            onSuccess={() => refetchWallet()}
-          />
+          <MapsDomainGate>
+            <MapsExtractorCard
+              flatPrice={pricing?.maps_search_flat_cents ?? 500}
+              waCheckPrice={pricing?.maps_whatsapp_check_per_lead_cents ?? 2}
+              maxLeads={pricing?.maps_search_max_leads ?? 60}
+              balance={balance}
+              instances={connectedInstances}
+              onSuccess={() => refetchWallet()}
+            />
+          </MapsDomainGate>
         </TabsContent>
+
 
         <TabsContent value="unsaved">
           <UnsavedContactsCard instances={connectedInstances} />
