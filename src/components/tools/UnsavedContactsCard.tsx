@@ -179,13 +179,9 @@ export function UnsavedContactsCard({ instances }: { instances: any[] }) {
                     ))}
                   </tbody>
                 </table>
-                {!canExport && result.total > result.contacts.length && (
-                  <div className="bg-muted/30 px-3 py-2 text-center text-xs text-muted-foreground">
-                    🔒 +{result.total - result.contacts.length} contatos ocultos — desbloqueie no Pro
-                  </div>
-                )}
               </div>
             )}
+
           </div>
         )}
       </CardContent>
