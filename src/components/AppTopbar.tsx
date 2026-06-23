@@ -46,17 +46,47 @@ export function AppTopbar() {
       if (!u.user) return null;
       const { data } = await supabase
         .from("subscriptions")
-        .select("status, subscription_plans(name)")
+        .select("status, trial_ends_at, subscription_plans(name, price_cents)")
         .eq("user_id", u.user.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (!data) return { name: "Sem plano", status: "none" as const };
-      const planName = (data as { subscription_plans?: { name?: string } }).subscription_plans?.name ?? "Sem plano";
-      return { name: planName, status: (data.status as string) ?? "none" };
+      // Cheapest available plan, used as reference when user has no plan
+      const { data: cheapest } = await supabase
+        .from("subscription_plans")
+        .select("name, price_cents")
+        .eq("is_active", true)
+        .gt("price_cents", 0)
+        .order("price_cents", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const fallback = cheapest ? { name: cheapest.name as string, price_cents: cheapest.price_cents as number } : null;
+      if (!data) return { name: "Sem plano", status: "none" as const, price_cents: null as number | null, trial_ends_at: null as string | null, fallback };
+      const sp = (data as { subscription_plans?: { name?: string; price_cents?: number } }).subscription_plans;
+      return {
+        name: sp?.name ?? "Sem plano",
+        status: (data.status as string) ?? "none",
+        price_cents: sp?.price_cents ?? null,
+        trial_ends_at: (data as { trial_ends_at?: string | null }).trial_ends_at ?? null,
+        fallback,
+      };
     },
     refetchInterval: 60000,
   });
+
+  const trialDaysLeft = (() => {
+    if (!planInfo?.trial_ends_at) return null;
+    const ms = new Date(planInfo.trial_ends_at).getTime() - Date.now();
+    return Math.max(0, Math.ceil(ms / (24 * 3600 * 1000)));
+  })();
+  const isTrialing = planInfo?.status === "trialing";
+  const noPlan = planInfo?.status === "none" || planInfo?.status === "past_due";
+  const refPrice = isTrialing
+    ? (planInfo?.price_cents ?? planInfo?.fallback?.price_cents ?? null)
+    : noPlan
+    ? (planInfo?.fallback?.price_cents ?? null)
+    : (planInfo?.price_cents ?? null);
+  const priceLabel = refPrice != null ? `R$ ${(refPrice / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês` : null;
 
 
   return (
