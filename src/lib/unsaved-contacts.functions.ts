@@ -130,17 +130,14 @@ export const listUnsavedContactsFn = createServerFn({ method: "POST" })
   });
 
 
-/** Gera vCard (.vcf) com todos os contatos não salvos. Apenas plano pago. */
+/** Gera vCard (.vcf) com todos os contatos não salvos. Disponível em todos os planos. */
 export const exportUnsavedAsVcardFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { instance_id: string }) =>
     z.object({ instance_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const gate = await ensurePaidPlan(supabase, userId);
-    if (!gate.ok) {
-      throw new Error("Disponível apenas em planos pagos. Faça upgrade para exportar.");
-    }
+
 
     const { server, instance } = await resolveServerByInstance(supabase, data.instance_id, userId);
     const { findContacts } = await import("@/lib/evolution.server");
