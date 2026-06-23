@@ -71,13 +71,16 @@ export const sendTestPushFn = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" as never });
     if (!isAdmin) throw new Error("Forbidden");
-    await supabase.rpc("emit_admin_event" as never, {
-      _type: "test",
-      _title: "Notificação de teste",
-      _body: "Se você está vendo isso no celular, o PWA está funcionando! 🎉",
-      _url: "/app/admin/notifications",
-      _meta: {},
-    });
+    await (supabase.rpc as unknown as (n: string, p: Record<string, unknown>) => Promise<unknown>)(
+      "emit_admin_event",
+      {
+        _type: "test",
+        _title: "Notificação de teste",
+        _body: "Se você está vendo isso no celular, o PWA está funcionando! 🎉",
+        _url: "/app/admin/notifications",
+        _meta: {},
+      },
+    );
     // Dispara o ciclo de envio na hora (não espera o cron)
     try {
       await fetch("https://zapblastapi.lovable.app/api/public/dispatch-admin-pushes", { method: "POST" });
