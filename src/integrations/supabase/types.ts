@@ -3262,6 +3262,8 @@ export type Database = {
           warmup_enabled: boolean
           warmup_intensity: Database["public"]["Enums"]["warmup_intensity"]
           warmup_last_at: string | null
+          warmup_pool_joined_at: string | null
+          warmup_pool_opt_in: boolean
           warmup_received_today: number
           warmup_sent_today: number
           warmup_started_at: string | null
@@ -3298,6 +3300,8 @@ export type Database = {
           warmup_enabled?: boolean
           warmup_intensity?: Database["public"]["Enums"]["warmup_intensity"]
           warmup_last_at?: string | null
+          warmup_pool_joined_at?: string | null
+          warmup_pool_opt_in?: boolean
           warmup_received_today?: number
           warmup_sent_today?: number
           warmup_started_at?: string | null
@@ -3334,6 +3338,8 @@ export type Database = {
           warmup_enabled?: boolean
           warmup_intensity?: Database["public"]["Enums"]["warmup_intensity"]
           warmup_last_at?: string | null
+          warmup_pool_joined_at?: string | null
+          warmup_pool_opt_in?: boolean
           warmup_received_today?: number
           warmup_sent_today?: number
           warmup_started_at?: string | null

@@ -47,8 +47,10 @@ type InstanceRow = {
   warmup_total_sent: number;
   warmup_last_at: string | null;
   health_score: number;
+  warmup_pool_opt_in: boolean;
   evolution_servers: { base_url: string; api_key: string } | null;
 };
+
 
 export const Route = createFileRoute("/api/public/warmup-worker")({
   server: {
@@ -133,10 +135,16 @@ export const Route = createFileRoute("/api/public/warmup-worker")({
           byUser.get(i.user_id)!.push(i);
         }
 
-        for (const [, chips] of byUser) {
-          if (chips.length < 2) { skipped++; continue; }
+        // Pool global de chips opt-in (de qualquer cliente) — usado quando o usuário tem só 1 chip
+        // ou aleatoriamente para diversificar conversas (~40% das vezes quando opt-in).
+        const poolChips = ((allInst as InstanceRow[] | null) ?? []).filter((c) => c.warmup_pool_opt_in);
 
-          // Escolhe chip "from" com menor uso hoje
+        for (const [userId, chips] of byUser) {
+          const optInChips = chips.filter((c) => c.warmup_pool_opt_in);
+          const hasMultiple = chips.length >= 2;
+          if (!hasMultiple && optInChips.length === 0) { skipped++; continue; }
+
+          // Escolhe chip "from" com quota disponível
           const eligible = chips.filter((c) => {
             const day = warmupDay(c.warmup_started_at);
             const quota = Math.ceil(QUOTAS[c.warmup_intensity] * rampMultiplier(day));
@@ -144,14 +152,21 @@ export const Route = createFileRoute("/api/public/warmup-worker")({
           });
           if (eligible.length === 0) { skipped++; continue; }
 
-          // Respeita delay mínimo de 3min entre envios do mesmo chip
           const now = Date.now();
           const ready = eligible.filter((c) => !c.warmup_last_at || (now - new Date(c.warmup_last_at).getTime()) > 180000);
           if (ready.length === 0) { skipped++; continue; }
 
           const fromChip = ready[Math.floor(Math.random() * ready.length)];
-          // To = qualquer outro chip do mesmo usuário, conectado, com phone
-          const toCandidates = chips.filter((c) => c.id !== fromChip.id);
+
+          // Decide se busca parceiro no pool global ou entre chips próprios.
+          // Pool é usado se: (a) só tem 1 chip próprio, OU (b) fromChip está no pool e sorteio < 40%.
+          const usePool = fromChip.warmup_pool_opt_in && (chips.length === 1 || Math.random() < 0.4);
+          let toCandidates: InstanceRow[];
+          if (usePool) {
+            toCandidates = poolChips.filter((c) => c.user_id !== userId && c.id !== fromChip.id && c.phone_number);
+          } else {
+            toCandidates = chips.filter((c) => c.id !== fromChip.id && c.phone_number);
+          }
           if (toCandidates.length === 0) { skipped++; continue; }
           const toChip = toCandidates[Math.floor(Math.random() * toCandidates.length)];
           if (!toChip.phone_number || !fromChip.evolution_servers) { skipped++; continue; }
@@ -166,7 +181,6 @@ export const Route = createFileRoute("/api/public/warmup-worker")({
               fromChip.instance_name, toChip.phone_number, msg,
             );
             const evoId = (evoRes as { key?: { id?: string } })?.key?.id ?? null;
-            // Agenda resposta entre 15s e 3min (algumas categorias não pedem resposta)
             const wantsReply = category === "saudacao" || category === "pergunta";
             const replyDelay = wantsReply ? 15000 + Math.random() * 165000 : null;
             await supabaseAdmin.from("warmup_conversations").insert({
@@ -185,6 +199,7 @@ export const Route = createFileRoute("/api/public/warmup-worker")({
             errors++;
           }
         }
+
 
         return Response.json({ sent, replies, skipped, errors });
       },
