@@ -154,6 +154,7 @@ function KeywordsPage() {
     flow_id: "", instance_id: "",
     keywords: [] as string[],
     match_mode: "contains" as MatchMode,
+    trigger_mode: "keyword" as TriggerMode,
     active: true, user_id: "",
     allow_from_me: false, delay_seconds: 0, cooldown_seconds: 0, per_contact_cooldown_seconds: 0,
   });
@@ -162,6 +163,7 @@ function KeywordsPage() {
     setEditing(null);
     setForm({
       flow_id: "", instance_id: "", keywords: [], match_mode: "contains",
+      trigger_mode: "keyword",
       active: true, user_id: "",
       allow_from_me: false, delay_seconds: 0, cooldown_seconds: 0, per_contact_cooldown_seconds: 0,
     });
@@ -174,6 +176,7 @@ function KeywordsPage() {
       instance_id: t.instance_id ?? "",
       keywords: t.keywords ?? [],
       match_mode: t.match_mode,
+      trigger_mode: t.trigger_mode ?? "keyword",
       active: t.active,
       user_id: t.user_id,
       allow_from_me: !!t.allow_from_me,
@@ -187,8 +190,26 @@ function KeywordsPage() {
   const saveMut = useMutation({
     mutationFn: async () => {
       if (!form.flow_id) throw new Error("Selecione um fluxo");
-      if (!form.keywords.length) throw new Error("Adicione pelo menos uma palavra-chave");
+      if (form.trigger_mode === "keyword" && !form.keywords.length) {
+        throw new Error("Adicione pelo menos uma palavra-chave (ou troque para 'Qualquer mensagem')");
+      }
       return saveFn({
+        data: {
+          id: editing?.id,
+          flow_id: form.flow_id,
+          instance_id: form.instance_id || null,
+          keywords: form.keywords,
+          match_mode: form.match_mode,
+          trigger_mode: form.trigger_mode,
+          active: form.active,
+          allow_from_me: form.allow_from_me,
+          delay_seconds: form.delay_seconds,
+          cooldown_seconds: form.cooldown_seconds,
+          per_contact_cooldown_seconds: form.per_contact_cooldown_seconds,
+          user_id: opts?.isAdmin && form.user_id ? form.user_id : undefined,
+        },
+      });
+    },
         data: {
           id: editing?.id,
           flow_id: form.flow_id,
