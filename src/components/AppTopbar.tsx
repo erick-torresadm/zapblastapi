@@ -55,7 +55,7 @@ export function AppTopbar() {
       const { data: cheapest } = await supabase
         .from("subscription_plans")
         .select("name, price_cents")
-        .eq("is_active", true)
+        .eq("active", true)
         .gt("price_cents", 0)
         .order("price_cents", { ascending: true })
         .limit(1)
