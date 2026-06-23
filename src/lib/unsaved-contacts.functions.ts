@@ -119,21 +119,16 @@ export const listUnsavedContactsFn = createServerFn({ method: "POST" })
       return 0;
     });
 
-    // 5. Gate by plan: free/trial sees only the COUNT
-    const gate = await ensurePaidPlan(supabase, userId);
-
+    // 5. Sempre liberado (disponível em todos os planos)
     return {
       total: unsaved.length,
       with_conversation: unsaved.filter((u) => u.last_message_at).length,
-      can_export: gate.ok,
-      plan: gate.plan,
-      contacts: gate.ok ? unsaved : unsaved.slice(0, 5).map((u) => ({
-        ...u,
-        phone: u.phone ? `${u.phone.slice(0, 4)}****${u.phone.slice(-2)}` : null,
-        profile_pic: null,
-      })),
+      can_export: true,
+      plan: null,
+      contacts: unsaved,
     };
   });
+
 
 /** Gera vCard (.vcf) com todos os contatos não salvos. Apenas plano pago. */
 export const exportUnsavedAsVcardFn = createServerFn({ method: "POST" })
