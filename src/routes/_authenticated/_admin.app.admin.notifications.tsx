@@ -21,7 +21,7 @@ type EventRow = {
   title: string;
   body: string;
   url: string | null;
-  meta: Record<string, unknown>;
+  meta: unknown;
   created_at: string;
   read_at: string | null;
 };
