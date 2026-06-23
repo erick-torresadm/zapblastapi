@@ -72,7 +72,7 @@ export function UnsavedContactsCard({ instances }: { instances: any[] }) {
     downloadCsv(`nao-salvos-${Date.now()}.csv`, rows);
   }
 
-  const canExport = result?.can_export;
+  const canExport = true;
 
   return (
     <Card>
@@ -86,11 +86,9 @@ export function UnsavedContactsCard({ instances }: { instances: any[] }) {
               Quantos clientes te mandaram mensagem mas nunca foram salvos na sua agenda? A gente descobre — e você importa todos de uma vez.
             </CardDescription>
           </div>
-          <Badge variant="secondary" className="shrink-0 gap-1 bg-primary/10 text-primary">
-            <Crown className="h-3 w-3" /> Plano Pago
-          </Badge>
         </div>
       </CardHeader>
+
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-[1fr,auto]">
           <div className="space-y-1.5">
