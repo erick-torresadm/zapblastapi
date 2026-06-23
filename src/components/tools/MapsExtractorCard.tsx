@@ -12,6 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MapPin, Search, Loader2, Download, Star, ExternalLink, Phone, Globe, MessageCircle, Send, Gift, Ticket, Lock } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { searchMapsLeadsFn } from "@/lib/maps.functions";
 import { getToolCreditsFn, redeemToolCreditCouponFn, pushMapsLeadsToListFn } from "@/lib/tool-credits.functions";
