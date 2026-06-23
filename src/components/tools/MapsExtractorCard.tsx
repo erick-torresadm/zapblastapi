@@ -86,6 +86,9 @@ export function MapsExtractorCard({
   const [waInstance, setWaInstance] = useState<string>("");
   const [result, setResult] = useState<any | null>(null);
   const [couponCode, setCouponCode] = useState("");
+  const [maxResults, setMaxResults] = useState<number>(20);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
 
   const creditsQ = useQuery({ queryKey: ["tool-credits"], queryFn: () => getCredits() });
   const freeMaps = Number((creditsQ.data as any)?.maps_search ?? 0);
