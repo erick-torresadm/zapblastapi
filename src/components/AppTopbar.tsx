@@ -128,17 +128,50 @@ export function AppTopbar() {
         </Link>
         <Link
           to="/app/billing"
-          className="hidden sm:flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
-          title="Seu plano atual"
+          className={
+            "hidden sm:flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors " +
+            (noPlan
+              ? "border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20"
+              : isTrialing
+              ? "border-warning/50 bg-warning/10 text-warning hover:bg-warning/20"
+              : "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20")
+          }
+          title={isTrialing ? "Você está no teste grátis — veja o preço do plano" : "Seu plano atual"}
         >
           <Crown className="h-3.5 w-3.5" />
-          <span>Plano:&nbsp;<strong>{planInfo?.name ?? "…"}</strong></span>
-          {planInfo?.status === "trialing" && (
-            <Badge variant="outline" className="ml-1 border-warning/40 bg-warning/10 text-warning text-[10px] px-1.5 py-0">Teste</Badge>
+          <span>
+            {noPlan ? (
+              <>A partir de <strong>{priceLabel ?? "…"}</strong></>
+            ) : (
+              <>
+                {planInfo?.name ?? "…"}
+                {priceLabel && <> · <strong className="tabular-nums">{priceLabel}</strong></>}
+              </>
+            )}
+          </span>
+          {isTrialing && (
+            <Badge variant="outline" className="ml-1 border-warning/40 bg-warning/20 text-warning text-[10px] px-1.5 py-0">
+              Teste{trialDaysLeft != null ? ` · ${trialDaysLeft}d` : ""}
+            </Badge>
           )}
-          {(planInfo?.status === "none" || planInfo?.status === "past_due") && (
-            <Sparkles className="ml-0.5 h-3 w-3" />
-          )}
+          {noPlan && <Sparkles className="ml-0.5 h-3 w-3" />}
+        </Link>
+
+        {/* Mobile: pílula compacta com preço */}
+        <Link
+          to="/app/billing"
+          className={
+            "sm:hidden flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors " +
+            (noPlan
+              ? "border-destructive/50 bg-destructive/10 text-destructive"
+              : isTrialing
+              ? "border-warning/50 bg-warning/10 text-warning"
+              : "border-primary/40 bg-primary/10 text-primary")
+          }
+          title="Plano e preço"
+        >
+          <Crown className="h-3 w-3" />
+          <span className="tabular-nums">{priceLabel ?? "Planos"}</span>
         </Link>
 
       </div>
