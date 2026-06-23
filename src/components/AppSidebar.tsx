@@ -212,6 +212,14 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={path.startsWith("/app/admin/notifications")} className="h-9 rounded-lg">
+                    <Link to="/app/admin/notifications">
+                      <Bell className="h-4 w-4" />
+                      <span>Notificações</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
 
             </SidebarGroupContent>
