@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Flame, RotateCcw, Activity, MessageCircle } from "lucide-react";
+import { Flame, RotateCcw, Activity, MessageCircle, Users, Info } from "lucide-react";
 import { toast } from "sonner";
-import { toggleWarmupFn, resetWarmupFn } from "@/lib/warmup.functions";
+import { toggleWarmupFn, togglePoolOptInFn, resetWarmupFn } from "@/lib/warmup.functions";
+
 import { formatPhone } from "@/lib/format-instance";
 
 export const Route = createFileRoute("/_authenticated/app/warmup")({ component: WarmupPage });
@@ -27,15 +28,17 @@ function warmupDay(startedAt: string | null): number {
 function WarmupPage() {
   const qc = useQueryClient();
   const toggleFn = useServerFn(toggleWarmupFn);
+  const poolFn = useServerFn(togglePoolOptInFn);
   const resetFn = useServerFn(resetWarmupFn);
 
   const { data: instances } = useQuery({
     queryKey: ["instances-warmup"],
     queryFn: async () => (await supabase.from("whatsapp_instances")
-      .select("id, instance_name, phone_number, status, warmup_enabled, warmup_intensity, warmup_started_at, warmup_sent_today, warmup_total_sent, warmup_last_at, health_score")
+      .select("id, instance_name, phone_number, status, warmup_enabled, warmup_intensity, warmup_started_at, warmup_sent_today, warmup_total_sent, warmup_last_at, health_score, warmup_pool_opt_in")
       .order("created_at", { ascending: false })).data ?? [],
     refetchInterval: 10000,
   });
+
 
   const { data: stats } = useQuery({
     queryKey: ["warmup-stats-today"],
@@ -62,6 +65,16 @@ function WarmupPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["instances-warmup"] }); toast.success("Aquecimento reiniciado"); },
     onError: (e) => toast.error((e as Error).message),
   });
+
+  const togglePool = useMutation({
+    mutationFn: async (vars: { instance_id: string; opt_in: boolean }) => poolFn({ data: vars }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["instances-warmup"] });
+      toast.success(v.opt_in ? "Chip entrou na Pool Coletiva 🌐" : "Chip saiu da Pool Coletiva");
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
 
   const enabledCount = instances?.filter((i) => i.warmup_enabled).length ?? 0;
   const connectedEnabled = instances?.filter((i) => i.warmup_enabled && i.status === "connected").length ?? 0;
