@@ -77,14 +77,21 @@ function BillingPage() {
       </div>
 
       {/* Banner: trial acabando ou expirado */}
-      {limits.isTrialing && limits.trialDaysLeft !== null && limits.trialDaysLeft <= 3 && limits.trialDaysLeft > 0 && (
+      {limits.isTrialing && limits.trialDaysLeft !== null && limits.trialDaysLeft > 0 && (
         <Card className="border-warning bg-warning/10">
-          <CardContent className="flex items-center gap-3 py-4">
+          <CardContent className="flex flex-wrap items-center gap-3 py-4">
             <Clock className="h-5 w-5 text-warning flex-shrink-0" />
-            <div className="flex-1 text-sm">
-              <strong>Seu teste grátis acaba em {limits.trialDaysLeft} {limits.trialDaysLeft === 1 ? "dia" : "dias"}.</strong>
-              {" "}Assine pra não perder seus chips e campanhas.
+            <div className="flex-1 min-w-[200px] text-sm">
+              <strong>Teste grátis · {limits.trialDaysLeft} {limits.trialDaysLeft === 1 ? "dia restante" : "dias restantes"}.</strong>
+              {sub?.subscription_plans?.price_cents != null && (
+                <> Após o teste: <strong className="tabular-nums">{brl(sub.subscription_plans.price_cents)}/mês</strong> no plano <strong>{sub.subscription_plans.name}</strong>.</>
+              )}
             </div>
+            {sub?.subscription_plans?.price_cents != null && (
+              <Badge className="bg-warning text-warning-foreground text-sm px-3 py-1 tabular-nums">
+                {brl(sub.subscription_plans.price_cents)}/mês
+              </Badge>
+            )}
           </CardContent>
         </Card>
       )}

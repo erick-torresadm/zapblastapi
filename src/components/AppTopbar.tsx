@@ -46,17 +46,47 @@ export function AppTopbar() {
       if (!u.user) return null;
       const { data } = await supabase
         .from("subscriptions")
-        .select("status, subscription_plans(name)")
+        .select("status, trial_ends_at, subscription_plans(name, price_cents)")
         .eq("user_id", u.user.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (!data) return { name: "Sem plano", status: "none" as const };
-      const planName = (data as { subscription_plans?: { name?: string } }).subscription_plans?.name ?? "Sem plano";
-      return { name: planName, status: (data.status as string) ?? "none" };
+      // Cheapest available plan, used as reference when user has no plan
+      const { data: cheapest } = await supabase
+        .from("subscription_plans")
+        .select("name, price_cents")
+        .eq("active", true)
+        .gt("price_cents", 0)
+        .order("price_cents", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const fallback = cheapest ? { name: cheapest.name as string, price_cents: cheapest.price_cents as number } : null;
+      if (!data) return { name: "Sem plano", status: "none" as const, price_cents: null as number | null, trial_ends_at: null as string | null, fallback };
+      const sp = (data as { subscription_plans?: { name?: string; price_cents?: number } }).subscription_plans;
+      return {
+        name: sp?.name ?? "Sem plano",
+        status: (data.status as string) ?? "none",
+        price_cents: sp?.price_cents ?? null,
+        trial_ends_at: (data as { trial_ends_at?: string | null }).trial_ends_at ?? null,
+        fallback,
+      };
     },
     refetchInterval: 60000,
   });
+
+  const trialDaysLeft = (() => {
+    if (!planInfo?.trial_ends_at) return null;
+    const ms = new Date(planInfo.trial_ends_at).getTime() - Date.now();
+    return Math.max(0, Math.ceil(ms / (24 * 3600 * 1000)));
+  })();
+  const isTrialing = planInfo?.status === "trialing";
+  const noPlan = planInfo?.status === "none" || planInfo?.status === "past_due";
+  const refPrice = isTrialing
+    ? (planInfo?.price_cents ?? planInfo?.fallback?.price_cents ?? null)
+    : noPlan
+    ? (planInfo?.fallback?.price_cents ?? null)
+    : (planInfo?.price_cents ?? null);
+  const priceLabel = refPrice != null ? `R$ ${(refPrice / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês` : null;
 
 
   return (
@@ -98,17 +128,50 @@ export function AppTopbar() {
         </Link>
         <Link
           to="/app/billing"
-          className="hidden sm:flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
-          title="Seu plano atual"
+          className={
+            "hidden sm:flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors " +
+            (noPlan
+              ? "border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20"
+              : isTrialing
+              ? "border-warning/50 bg-warning/10 text-warning hover:bg-warning/20"
+              : "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20")
+          }
+          title={isTrialing ? "Você está no teste grátis — veja o preço do plano" : "Seu plano atual"}
         >
           <Crown className="h-3.5 w-3.5" />
-          <span>Plano:&nbsp;<strong>{planInfo?.name ?? "…"}</strong></span>
-          {planInfo?.status === "trialing" && (
-            <Badge variant="outline" className="ml-1 border-warning/40 bg-warning/10 text-warning text-[10px] px-1.5 py-0">Teste</Badge>
+          <span>
+            {noPlan ? (
+              <>A partir de <strong>{priceLabel ?? "…"}</strong></>
+            ) : (
+              <>
+                {planInfo?.name ?? "…"}
+                {priceLabel && <> · <strong className="tabular-nums">{priceLabel}</strong></>}
+              </>
+            )}
+          </span>
+          {isTrialing && (
+            <Badge variant="outline" className="ml-1 border-warning/40 bg-warning/20 text-warning text-[10px] px-1.5 py-0">
+              Teste{trialDaysLeft != null ? ` · ${trialDaysLeft}d` : ""}
+            </Badge>
           )}
-          {(planInfo?.status === "none" || planInfo?.status === "past_due") && (
-            <Sparkles className="ml-0.5 h-3 w-3" />
-          )}
+          {noPlan && <Sparkles className="ml-0.5 h-3 w-3" />}
+        </Link>
+
+        {/* Mobile: pílula compacta com preço */}
+        <Link
+          to="/app/billing"
+          className={
+            "sm:hidden flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors " +
+            (noPlan
+              ? "border-destructive/50 bg-destructive/10 text-destructive"
+              : isTrialing
+              ? "border-warning/50 bg-warning/10 text-warning"
+              : "border-primary/40 bg-primary/10 text-primary")
+          }
+          title="Plano e preço"
+        >
+          <Crown className="h-3 w-3" />
+          <span className="tabular-nums">{priceLabel ?? "Planos"}</span>
         </Link>
 
       </div>
