@@ -210,21 +210,6 @@ function KeywordsPage() {
         },
       });
     },
-        data: {
-          id: editing?.id,
-          flow_id: form.flow_id,
-          instance_id: form.instance_id || null,
-          keywords: form.keywords,
-          match_mode: form.match_mode,
-          active: form.active,
-          allow_from_me: form.allow_from_me,
-          delay_seconds: form.delay_seconds,
-          cooldown_seconds: form.cooldown_seconds,
-          per_contact_cooldown_seconds: form.per_contact_cooldown_seconds,
-          user_id: opts?.isAdmin && form.user_id ? form.user_id : undefined,
-        },
-      });
-    },
     onSuccess: () => {
       toast.success(editing ? "Atualizado" : "Criado");
       setOpen(false);
