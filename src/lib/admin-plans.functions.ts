@@ -158,7 +158,7 @@ const planSchema = z.object({
   feature_flags: z.record(z.string(), z.boolean()).default({}),
 });
 
-export const adminListPlansFn = createServerFn({ method: "GET" })
+export const adminListAllPlansFn = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await ensureAdmin(context);
