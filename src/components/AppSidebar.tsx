@@ -38,6 +38,7 @@ const accountNav = [
   { to: "/app/wallet", label: "Carteira", icon: Wallet },
   { to: "/app/billing", label: "Planos", icon: CreditCard },
   { to: "/app/settings/twenty", label: "Twenty CRM", icon: Zap },
+  { to: "/app/settings/chatwoot", label: "Chatwoot", icon: MessageCircle },
 ];
 
 
