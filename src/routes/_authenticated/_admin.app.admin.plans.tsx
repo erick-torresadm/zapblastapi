@@ -119,8 +119,8 @@ function PlansAdminPage() {
                   <TableCell><code className="text-xs">{p.slug}</code></TableCell>
                   <TableCell>{brl(p.price_cents)}</TableCell>
                   <TableCell>{brl(p.price_annual_cents)}</TableCell>
-                  <TableCell>{(p as { max_chips: number }).max_chips === -1 ? "∞" : (p as { max_chips: number }).max_chips}</TableCell>
-                  <TableCell>{(p as { max_active_campaigns: number }).max_active_campaigns === -1 ? "∞" : (p as { max_active_campaigns: number }).max_active_campaigns}</TableCell>
+                  <TableCell>{(p["max_chips"] as number) === -1 ? "∞" : (p["max_chips"] as number)}</TableCell>
+                  <TableCell>{(p["max_active_campaigns"] as number) === -1 ? "∞" : (p["max_active_campaigns"] as number)}</TableCell>
                   <TableCell>{p.visible_public ? "Pública" : "Oculta"}</TableCell>
                   <TableCell>{p.active ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}</TableCell>
                   <TableCell className="text-right">
