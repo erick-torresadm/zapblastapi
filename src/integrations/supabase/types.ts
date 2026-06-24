@@ -730,6 +730,7 @@ export type Database = {
           direction: string
           duration_seconds: number | null
           evolution_message_id: string | null
+          from_chatwoot: boolean
           id: string
           instance_id: string | null
           is_ptt: boolean | null
@@ -759,6 +760,7 @@ export type Database = {
           direction: string
           duration_seconds?: number | null
           evolution_message_id?: string | null
+          from_chatwoot?: boolean
           id?: string
           instance_id?: string | null
           is_ptt?: boolean | null
@@ -788,6 +790,7 @@ export type Database = {
           direction?: string
           duration_seconds?: number | null
           evolution_message_id?: string | null
+          from_chatwoot?: boolean
           id?: string
           instance_id?: string | null
           is_ptt?: boolean | null
@@ -823,6 +826,146 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      chatwoot_connections: {
+        Row: {
+          chatwoot_account_id: number
+          chatwoot_user_id: number
+          created_at: string
+          email_used: string
+          enabled: boolean
+          last_test_at: string | null
+          last_test_error: string | null
+          last_test_ok: boolean | null
+          replace_inbox: boolean
+          updated_at: string
+          user_access_token_encrypted: string
+          user_id: string
+          webhook_secret: string
+        }
+        Insert: {
+          chatwoot_account_id: number
+          chatwoot_user_id: number
+          created_at?: string
+          email_used: string
+          enabled?: boolean
+          last_test_at?: string | null
+          last_test_error?: string | null
+          last_test_ok?: boolean | null
+          replace_inbox?: boolean
+          updated_at?: string
+          user_access_token_encrypted: string
+          user_id: string
+          webhook_secret?: string
+        }
+        Update: {
+          chatwoot_account_id?: number
+          chatwoot_user_id?: number
+          created_at?: string
+          email_used?: string
+          enabled?: boolean
+          last_test_at?: string | null
+          last_test_error?: string | null
+          last_test_ok?: boolean | null
+          replace_inbox?: boolean
+          updated_at?: string
+          user_access_token_encrypted?: string
+          user_id?: string
+          webhook_secret?: string
+        }
+        Relationships: []
+      }
+      chatwoot_contact_map: {
+        Row: {
+          chatwoot_contact_id: number
+          chatwoot_conversation_id: number | null
+          id: string
+          phone_e164: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chatwoot_contact_id: number
+          chatwoot_conversation_id?: number | null
+          id?: string
+          phone_e164: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chatwoot_contact_id?: number
+          chatwoot_conversation_id?: number | null
+          id?: string
+          phone_e164?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatwoot_inbox_map: {
+        Row: {
+          chatwoot_inbox_id: number
+          created_at: string
+          id: string
+          instance_id: string
+          user_id: string
+        }
+        Insert: {
+          chatwoot_inbox_id: number
+          created_at?: string
+          id?: string
+          instance_id: string
+          user_id: string
+        }
+        Update: {
+          chatwoot_inbox_id?: number
+          created_at?: string
+          id?: string
+          instance_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatwoot_inbox_map_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatwoot_sync_queue: {
+        Row: {
+          attempts: number
+          chat_message_id: string
+          created_at: string
+          id: string
+          last_error: string | null
+          processed_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          chat_message_id: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          processed_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          chat_message_id?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          processed_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       chip_catalog: {
         Row: {
@@ -3631,6 +3774,15 @@ export type Database = {
       check_login_lockout: {
         Args: { _email: string; _ip: string }
         Returns: Json
+      }
+      consume_chatwoot_queue: {
+        Args: { _limit?: number }
+        Returns: {
+          attempts: number
+          chat_message_id: string
+          id: string
+          user_id: string
+        }[]
       }
       consume_tool_credit: { Args: { _tool: string }; Returns: boolean }
       credit_wallet: {
