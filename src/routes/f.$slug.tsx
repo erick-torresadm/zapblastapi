@@ -217,6 +217,13 @@ function PublicFunnelPage() {
   );
 }
 
+const FB_PIXEL_RE = /^\d{10,20}$/;
+const GA4_RE = /^G-[A-Z0-9]{4,20}$/;
+const GTM_RE = /^GTM-[A-Z0-9]{4,20}$/;
+function isValidFbPixel(v?: string | null): v is string { return !!v && FB_PIXEL_RE.test(v); }
+function isValidGA4(v?: string | null): v is string { return !!v && GA4_RE.test(v); }
+function isValidGTM(v?: string | null): v is string { return !!v && GTM_RE.test(v); }
+
 function injectFbPixel(id: string) {
   if (document.getElementById("fb-pixel")) return;
   const s = document.createElement("script"); s.id = "fb-pixel";
