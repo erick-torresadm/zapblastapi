@@ -4,7 +4,7 @@ import { subscribePushFn, unsubscribePushFn } from "@/lib/push.functions";
 
 // Chave VAPID pública — segura para expor no cliente
 const VAPID_PUBLIC_KEY =
-  "BFQ4VUaHNRjUi5h_XaNK_zs5LTz076cXff2K4WJVTnCu1_a3wfO2WAr1cbhWMZzq6hIkvmKbZKkzhgOkg6cg8z4";
+  "BOBVhn2W8GoHtB8dEjAKkSVMXtTTyKA54Yu8YFxggpq7jCANd8_D-7xHZCkMunblkUfYBXWtP6jFArC88o9s3S8";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
