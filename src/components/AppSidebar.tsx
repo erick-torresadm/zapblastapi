@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Server, Smartphone, Users, Send, Inbox, UserCog,
   LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, Bot, Sparkles, Ticket, Calendar, Megaphone, Rocket, User2, Bell,
-  Crown, MessageCircle,
+  Crown, MessageCircle, Headphones,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -24,7 +24,6 @@ const operationNav = [
   { to: "/app/campaigns", label: "Campanhas", icon: Send },
   { to: "/app/flows", label: "Fluxos", icon: Workflow },
   { to: "/app/keywords", label: "Bot", icon: Bot },
-  { to: "/app/inbox", label: "Conversas (CRM)", icon: Inbox, beta: true },
   { to: "/app/tools", label: "Ferramentas", icon: Sparkles, beta: true },
   { to: "/app/agenda", label: "Agenda", icon: Calendar },
   { to: "/app/traffic", label: "Tráfego & Funis", icon: Megaphone, beta: true },
@@ -33,13 +32,17 @@ const operationNav = [
 
   { to: "/app/anti-ban", label: "Anti-ban", icon: ShieldCheck },
 ];
+const atendimentoNav = [
+  { to: "/app/inbox", label: "Conversas", icon: Inbox },
+  { to: "/app/crm-vendas", label: "CRM Vendas", icon: Zap, beta: true },
+  { to: "/app/inbox-pro", label: "Inbox Pro", icon: Headphones, beta: true },
+];
 const accountNav = [
   { to: "/app/profile", label: "Meu perfil", icon: User2 },
   { to: "/app/wallet", label: "Carteira", icon: Wallet },
   { to: "/app/billing", label: "Planos", icon: CreditCard },
-  { to: "/app/settings/twenty", label: "Twenty CRM", icon: Zap },
-  { to: "/app/settings/chatwoot", label: "Chatwoot", icon: MessageCircle },
 ];
+
 
 
 export function AppSidebar() {

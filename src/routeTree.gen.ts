@@ -42,8 +42,10 @@ import { Route as AuthenticatedAppMarketplaceRouteImport } from './routes/_authe
 import { Route as AuthenticatedAppListsRouteImport } from './routes/_authenticated/app.lists'
 import { Route as AuthenticatedAppKeywordsRouteImport } from './routes/_authenticated/app.keywords'
 import { Route as AuthenticatedAppInstancesRouteImport } from './routes/_authenticated/app.instances'
+import { Route as AuthenticatedAppInboxProRouteImport } from './routes/_authenticated/app.inbox-pro'
 import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
 import { Route as AuthenticatedAppFlowsRouteImport } from './routes/_authenticated/app.flows'
+import { Route as AuthenticatedAppCrmVendasRouteImport } from './routes/_authenticated/app.crm-vendas'
 import { Route as AuthenticatedAppCancelarRouteImport } from './routes/_authenticated/app.cancelar'
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppAntiBanRouteImport } from './routes/_authenticated/app.anti-ban'
@@ -240,6 +242,12 @@ const AuthenticatedAppInstancesRoute =
     path: '/app/instances',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppInboxProRoute =
+  AuthenticatedAppInboxProRouteImport.update({
+    id: '/app/inbox-pro',
+    path: '/app/inbox-pro',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppInboxRoute = AuthenticatedAppInboxRouteImport.update({
   id: '/app/inbox',
   path: '/app/inbox',
@@ -250,6 +258,12 @@ const AuthenticatedAppFlowsRoute = AuthenticatedAppFlowsRouteImport.update({
   path: '/app/flows',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppCrmVendasRoute =
+  AuthenticatedAppCrmVendasRouteImport.update({
+    id: '/app/crm-vendas',
+    path: '/app/crm-vendas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppCancelarRoute =
   AuthenticatedAppCancelarRouteImport.update({
     id: '/app/cancelar',
@@ -415,8 +429,10 @@ export interface FileRoutesByFullPath {
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/cancelar': typeof AuthenticatedAppCancelarRoute
+  '/app/crm-vendas': typeof AuthenticatedAppCrmVendasRoute
   '/app/flows': typeof AuthenticatedAppFlowsRouteWithChildren
   '/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/app/inbox-pro': typeof AuthenticatedAppInboxProRoute
   '/app/instances': typeof AuthenticatedAppInstancesRoute
   '/app/keywords': typeof AuthenticatedAppKeywordsRoute
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
@@ -476,7 +492,9 @@ export interface FileRoutesByTo {
   '/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/cancelar': typeof AuthenticatedAppCancelarRoute
+  '/app/crm-vendas': typeof AuthenticatedAppCrmVendasRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/app/inbox-pro': typeof AuthenticatedAppInboxProRoute
   '/app/instances': typeof AuthenticatedAppInstancesRoute
   '/app/keywords': typeof AuthenticatedAppKeywordsRoute
   '/app/lists': typeof AuthenticatedAppListsRouteWithChildren
@@ -539,8 +557,10 @@ export interface FileRoutesById {
   '/_authenticated/app/anti-ban': typeof AuthenticatedAppAntiBanRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
   '/_authenticated/app/cancelar': typeof AuthenticatedAppCancelarRoute
+  '/_authenticated/app/crm-vendas': typeof AuthenticatedAppCrmVendasRoute
   '/_authenticated/app/flows': typeof AuthenticatedAppFlowsRouteWithChildren
   '/_authenticated/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/_authenticated/app/inbox-pro': typeof AuthenticatedAppInboxProRoute
   '/_authenticated/app/instances': typeof AuthenticatedAppInstancesRoute
   '/_authenticated/app/keywords': typeof AuthenticatedAppKeywordsRoute
   '/_authenticated/app/lists': typeof AuthenticatedAppListsRouteWithChildren
@@ -602,8 +622,10 @@ export interface FileRouteTypes {
     | '/app/anti-ban'
     | '/app/billing'
     | '/app/cancelar'
+    | '/app/crm-vendas'
     | '/app/flows'
     | '/app/inbox'
+    | '/app/inbox-pro'
     | '/app/instances'
     | '/app/keywords'
     | '/app/lists'
@@ -663,7 +685,9 @@ export interface FileRouteTypes {
     | '/app/anti-ban'
     | '/app/billing'
     | '/app/cancelar'
+    | '/app/crm-vendas'
     | '/app/inbox'
+    | '/app/inbox-pro'
     | '/app/instances'
     | '/app/keywords'
     | '/app/lists'
@@ -725,8 +749,10 @@ export interface FileRouteTypes {
     | '/_authenticated/app/anti-ban'
     | '/_authenticated/app/billing'
     | '/_authenticated/app/cancelar'
+    | '/_authenticated/app/crm-vendas'
     | '/_authenticated/app/flows'
     | '/_authenticated/app/inbox'
+    | '/_authenticated/app/inbox-pro'
     | '/_authenticated/app/instances'
     | '/_authenticated/app/keywords'
     | '/_authenticated/app/lists'
@@ -1034,6 +1060,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppInstancesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/inbox-pro': {
+      id: '/_authenticated/app/inbox-pro'
+      path: '/app/inbox-pro'
+      fullPath: '/app/inbox-pro'
+      preLoaderRoute: typeof AuthenticatedAppInboxProRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/inbox': {
       id: '/_authenticated/app/inbox'
       path: '/app/inbox'
@@ -1046,6 +1079,13 @@ declare module '@tanstack/react-router' {
       path: '/app/flows'
       fullPath: '/app/flows'
       preLoaderRoute: typeof AuthenticatedAppFlowsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/crm-vendas': {
+      id: '/_authenticated/app/crm-vendas'
+      path: '/app/crm-vendas'
+      fullPath: '/app/crm-vendas'
+      preLoaderRoute: typeof AuthenticatedAppCrmVendasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/cancelar': {
@@ -1295,8 +1335,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAntiBanRoute: typeof AuthenticatedAppAntiBanRoute
   AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
   AuthenticatedAppCancelarRoute: typeof AuthenticatedAppCancelarRoute
+  AuthenticatedAppCrmVendasRoute: typeof AuthenticatedAppCrmVendasRoute
   AuthenticatedAppFlowsRoute: typeof AuthenticatedAppFlowsRouteWithChildren
   AuthenticatedAppInboxRoute: typeof AuthenticatedAppInboxRoute
+  AuthenticatedAppInboxProRoute: typeof AuthenticatedAppInboxProRoute
   AuthenticatedAppInstancesRoute: typeof AuthenticatedAppInstancesRoute
   AuthenticatedAppKeywordsRoute: typeof AuthenticatedAppKeywordsRoute
   AuthenticatedAppListsRoute: typeof AuthenticatedAppListsRouteWithChildren
@@ -1326,8 +1368,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppAntiBanRoute: AuthenticatedAppAntiBanRoute,
   AuthenticatedAppBillingRoute: AuthenticatedAppBillingRoute,
   AuthenticatedAppCancelarRoute: AuthenticatedAppCancelarRoute,
+  AuthenticatedAppCrmVendasRoute: AuthenticatedAppCrmVendasRoute,
   AuthenticatedAppFlowsRoute: AuthenticatedAppFlowsRouteWithChildren,
   AuthenticatedAppInboxRoute: AuthenticatedAppInboxRoute,
+  AuthenticatedAppInboxProRoute: AuthenticatedAppInboxProRoute,
   AuthenticatedAppInstancesRoute: AuthenticatedAppInstancesRoute,
   AuthenticatedAppKeywordsRoute: AuthenticatedAppKeywordsRoute,
   AuthenticatedAppListsRoute: AuthenticatedAppListsRouteWithChildren,
