@@ -60,6 +60,7 @@ import { Route as AuthenticatedAppTrafficIdEditorRouteImport } from './routes/_a
 import { Route as AuthenticatedAppTrafficIdAnalyticsRouteImport } from './routes/_authenticated/app.traffic.$id.analytics'
 import { Route as AuthenticatedAdminAppAdminUsersRouteImport } from './routes/_authenticated/_admin.app.admin.users'
 import { Route as AuthenticatedAdminAppAdminSecurityRouteImport } from './routes/_authenticated/_admin.app.admin.security'
+import { Route as AuthenticatedAdminAppAdminPlansRouteImport } from './routes/_authenticated/_admin.app.admin.plans'
 import { Route as AuthenticatedAdminAppAdminNotificationsRouteImport } from './routes/_authenticated/_admin.app.admin.notifications'
 import { Route as AuthenticatedAdminAppAdminCouponsRouteImport } from './routes/_authenticated/_admin.app.admin.coupons'
 import { Route as AuthenticatedAdminAppAdminCatalogRouteImport } from './routes/_authenticated/_admin.app.admin.catalog'
@@ -336,6 +337,12 @@ const AuthenticatedAdminAppAdminSecurityRoute =
     path: '/app/admin/security',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminAppAdminPlansRoute =
+  AuthenticatedAdminAppAdminPlansRouteImport.update({
+    id: '/app/admin/plans',
+    path: '/app/admin/plans',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminAppAdminNotificationsRoute =
   AuthenticatedAdminAppAdminNotificationsRouteImport.update({
     id: '/app/admin/notifications',
@@ -404,6 +411,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
   '/app/admin/notifications': typeof AuthenticatedAdminAppAdminNotificationsRoute
+  '/app/admin/plans': typeof AuthenticatedAdminAppAdminPlansRoute
   '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
   '/app/admin/users': typeof AuthenticatedAdminAppAdminUsersRoute
   '/app/traffic/$id/analytics': typeof AuthenticatedAppTrafficIdAnalyticsRoute
@@ -457,6 +465,7 @@ export interface FileRoutesByTo {
   '/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
   '/app/admin/notifications': typeof AuthenticatedAdminAppAdminNotificationsRoute
+  '/app/admin/plans': typeof AuthenticatedAdminAppAdminPlansRoute
   '/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
   '/app/admin/users': typeof AuthenticatedAdminAppAdminUsersRoute
   '/app/traffic/$id/analytics': typeof AuthenticatedAppTrafficIdAnalyticsRoute
@@ -514,6 +523,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/app/admin/catalog': typeof AuthenticatedAdminAppAdminCatalogRoute
   '/_authenticated/_admin/app/admin/coupons': typeof AuthenticatedAdminAppAdminCouponsRoute
   '/_authenticated/_admin/app/admin/notifications': typeof AuthenticatedAdminAppAdminNotificationsRoute
+  '/_authenticated/_admin/app/admin/plans': typeof AuthenticatedAdminAppAdminPlansRoute
   '/_authenticated/_admin/app/admin/security': typeof AuthenticatedAdminAppAdminSecurityRoute
   '/_authenticated/_admin/app/admin/users': typeof AuthenticatedAdminAppAdminUsersRoute
   '/_authenticated/app/traffic/$id/analytics': typeof AuthenticatedAppTrafficIdAnalyticsRoute
@@ -570,6 +580,7 @@ export interface FileRouteTypes {
     | '/app/admin/catalog'
     | '/app/admin/coupons'
     | '/app/admin/notifications'
+    | '/app/admin/plans'
     | '/app/admin/security'
     | '/app/admin/users'
     | '/app/traffic/$id/analytics'
@@ -623,6 +634,7 @@ export interface FileRouteTypes {
     | '/app/admin/catalog'
     | '/app/admin/coupons'
     | '/app/admin/notifications'
+    | '/app/admin/plans'
     | '/app/admin/security'
     | '/app/admin/users'
     | '/app/traffic/$id/analytics'
@@ -679,6 +691,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/app/admin/catalog'
     | '/_authenticated/_admin/app/admin/coupons'
     | '/_authenticated/_admin/app/admin/notifications'
+    | '/_authenticated/_admin/app/admin/plans'
     | '/_authenticated/_admin/app/admin/security'
     | '/_authenticated/_admin/app/admin/users'
     | '/_authenticated/app/traffic/$id/analytics'
@@ -1067,6 +1080,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAppAdminSecurityRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/_admin/app/admin/plans': {
+      id: '/_authenticated/_admin/app/admin/plans'
+      path: '/app/admin/plans'
+      fullPath: '/app/admin/plans'
+      preLoaderRoute: typeof AuthenticatedAdminAppAdminPlansRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/_admin/app/admin/notifications': {
       id: '/_authenticated/_admin/app/admin/notifications'
       path: '/app/admin/notifications'
@@ -1095,6 +1115,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminAppAdminCatalogRoute: typeof AuthenticatedAdminAppAdminCatalogRoute
   AuthenticatedAdminAppAdminCouponsRoute: typeof AuthenticatedAdminAppAdminCouponsRoute
   AuthenticatedAdminAppAdminNotificationsRoute: typeof AuthenticatedAdminAppAdminNotificationsRoute
+  AuthenticatedAdminAppAdminPlansRoute: typeof AuthenticatedAdminAppAdminPlansRoute
   AuthenticatedAdminAppAdminSecurityRoute: typeof AuthenticatedAdminAppAdminSecurityRoute
   AuthenticatedAdminAppAdminUsersRoute: typeof AuthenticatedAdminAppAdminUsersRoute
 }
@@ -1107,6 +1128,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminAppAdminCouponsRoute,
     AuthenticatedAdminAppAdminNotificationsRoute:
       AuthenticatedAdminAppAdminNotificationsRoute,
+    AuthenticatedAdminAppAdminPlansRoute: AuthenticatedAdminAppAdminPlansRoute,
     AuthenticatedAdminAppAdminSecurityRoute:
       AuthenticatedAdminAppAdminSecurityRoute,
     AuthenticatedAdminAppAdminUsersRoute: AuthenticatedAdminAppAdminUsersRoute,

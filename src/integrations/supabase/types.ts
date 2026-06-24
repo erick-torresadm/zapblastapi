@@ -2491,14 +2491,20 @@ export type Database = {
           description: string | null
           efi_plan_id_prod: number | null
           efi_plan_id_sandbox: number | null
+          feature_flags: Json
           featured: boolean
           has_agenda: boolean
           id: string
           max_active_campaigns: number
+          max_agenda_businesses: number
           max_chips: number
+          max_contact_lists: number
           max_contacts_per_list: number
           max_crm_agents: number
+          max_flows: number
+          max_group_campaigns: number
           max_messages_per_day: number
+          max_traffic_funnels: number
           monthly_free_maps_searches: number
           name: string
           price_annual_cents: number | null
@@ -2507,6 +2513,7 @@ export type Database = {
           sort_order: number
           stripe_price_id: string | null
           stripe_price_id_annual: string | null
+          visible_public: boolean
           warmup_tier: string
         }
         Insert: {
@@ -2515,14 +2522,20 @@ export type Database = {
           description?: string | null
           efi_plan_id_prod?: number | null
           efi_plan_id_sandbox?: number | null
+          feature_flags?: Json
           featured?: boolean
           has_agenda?: boolean
           id?: string
           max_active_campaigns?: number
+          max_agenda_businesses?: number
           max_chips?: number
+          max_contact_lists?: number
           max_contacts_per_list?: number
           max_crm_agents?: number
+          max_flows?: number
+          max_group_campaigns?: number
           max_messages_per_day?: number
+          max_traffic_funnels?: number
           monthly_free_maps_searches?: number
           name: string
           price_annual_cents?: number | null
@@ -2531,6 +2544,7 @@ export type Database = {
           sort_order?: number
           stripe_price_id?: string | null
           stripe_price_id_annual?: string | null
+          visible_public?: boolean
           warmup_tier?: string
         }
         Update: {
@@ -2539,14 +2553,20 @@ export type Database = {
           description?: string | null
           efi_plan_id_prod?: number | null
           efi_plan_id_sandbox?: number | null
+          feature_flags?: Json
           featured?: boolean
           has_agenda?: boolean
           id?: string
           max_active_campaigns?: number
+          max_agenda_businesses?: number
           max_chips?: number
+          max_contact_lists?: number
           max_contacts_per_list?: number
           max_crm_agents?: number
+          max_flows?: number
+          max_group_campaigns?: number
           max_messages_per_day?: number
+          max_traffic_funnels?: number
           monthly_free_maps_searches?: number
           name?: string
           price_annual_cents?: number | null
@@ -2555,6 +2575,7 @@ export type Database = {
           sort_order?: number
           stripe_price_id?: string | null
           stripe_price_id_annual?: string | null
+          visible_public?: boolean
           warmup_tier?: string
         }
         Relationships: []

@@ -128,3 +128,117 @@ export const adminListUserSubscriptionFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+// ===== Plans CRUD (admin) =====
+
+const planSchema = z.object({
+  id: z.string().uuid().optional(),
+  slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/, "slug: somente minúsculas, números e -"),
+  name: z.string().min(2).max(100),
+  description: z.string().max(500).optional().default(""),
+  price_cents: z.number().int().min(0),
+  price_annual_cents: z.number().int().min(0).nullable().optional(),
+  featured: z.boolean().default(false),
+  active: z.boolean().default(true),
+  visible_public: z.boolean().default(true),
+  sort_order: z.number().int().default(100),
+  max_chips: z.number().int(),
+  max_messages_per_day: z.number().int(),
+  max_active_campaigns: z.number().int(),
+  max_contacts_per_list: z.number().int(),
+  max_crm_agents: z.number().int(),
+  max_contact_lists: z.number().int(),
+  max_flows: z.number().int(),
+  max_traffic_funnels: z.number().int(),
+  max_agenda_businesses: z.number().int(),
+  max_group_campaigns: z.number().int(),
+  monthly_free_maps_searches: z.number().int().min(0),
+  warmup_tier: z.enum(["off", "basic", "advanced"]),
+  has_agenda: z.boolean().default(true),
+  feature_flags: z.record(z.string(), z.boolean()).default({}),
+});
+
+export const adminListAllPlansFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureAdmin(context);
+    const { data, error } = await context.supabase
+      .from("subscription_plans")
+      .select("*")
+      .order("sort_order", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const adminUpsertPlanFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => planSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { id, ...rest } = data;
+    let result;
+    if (id) {
+      const { data: row, error } = await context.supabase
+        .from("subscription_plans")
+        .update(rest as never)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      result = row;
+      await context.supabase.rpc("log_admin_action", {
+        _actor: context.userId,
+        _action: "plan_updated",
+        _target_type: "subscription_plan",
+        _target_id: id,
+        _payload: { slug: rest.slug, name: rest.name } as never,
+        _ip: null,
+        _user_agent: null,
+      } as never);
+    } else {
+      const { data: row, error } = await context.supabase
+        .from("subscription_plans")
+        .insert(rest as never)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      result = row;
+      await context.supabase.rpc("log_admin_action", {
+        _actor: context.userId,
+        _action: "plan_created",
+        _target_type: "subscription_plan",
+        _target_id: (row as { id: string }).id,
+        _payload: { slug: rest.slug, name: rest.name } as never,
+        _ip: null,
+        _user_agent: null,
+      } as never);
+    }
+    return result;
+  });
+
+export const adminDeletePlanFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => ({ id: z.string().uuid().parse(input.id) }))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { count, error: cErr } = await context.supabase
+      .from("subscriptions")
+      .select("id", { count: "exact", head: true })
+      .eq("plan_id", data.id);
+    if (cErr) throw new Error(cErr.message);
+    if ((count ?? 0) > 0) {
+      throw new Error(`Plano em uso por ${count} assinatura(s). Desative em vez de excluir.`);
+    }
+    const { error } = await context.supabase.from("subscription_plans").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await context.supabase.rpc("log_admin_action", {
+      _actor: context.userId,
+      _action: "plan_deleted",
+      _target_type: "subscription_plan",
+      _target_id: data.id,
+      _payload: {} as never,
+      _ip: null,
+      _user_agent: null,
+    } as never);
+    return { ok: true };
+  });
