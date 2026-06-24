@@ -28,6 +28,8 @@ import { Route as ApiPublicTrafficEventRouteImport } from './routes/api/public/t
 import { Route as ApiPublicFlowWorkerRouteImport } from './routes/api/public/flow-worker'
 import { Route as ApiPublicDispatchWorkerRouteImport } from './routes/api/public/dispatch-worker'
 import { Route as ApiPublicDispatchAdminPushesRouteImport } from './routes/api/public/dispatch-admin-pushes'
+import { Route as ApiPublicChatwootWebhookRouteImport } from './routes/api/public/chatwoot-webhook'
+import { Route as ApiPublicChatwootSyncRouteImport } from './routes/api/public/chatwoot-sync'
 import { Route as ApiPublicAgendaDispatchRouteImport } from './routes/api/public/agenda-dispatch'
 import { Route as AgendaConfirmarTokenRouteImport } from './routes/agenda.confirmar.$token'
 import { Route as AuthenticatedAppWarmupRouteImport } from './routes/_authenticated/app.warmup'
@@ -163,6 +165,17 @@ const ApiPublicDispatchAdminPushesRoute =
     path: '/api/public/dispatch-admin-pushes',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicChatwootWebhookRoute =
+  ApiPublicChatwootWebhookRouteImport.update({
+    id: '/api/public/chatwoot-webhook',
+    path: '/api/public/chatwoot-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicChatwootSyncRoute = ApiPublicChatwootSyncRouteImport.update({
+  id: '/api/public/chatwoot-sync',
+  path: '/api/public/chatwoot-sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAgendaDispatchRoute = ApiPublicAgendaDispatchRouteImport.update({
   id: '/api/public/agenda-dispatch',
   path: '/api/public/agenda-dispatch',
@@ -409,6 +422,8 @@ export interface FileRoutesByFullPath {
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/agenda/confirmar/$token': typeof AgendaConfirmarTokenRoute
   '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
+  '/api/public/chatwoot-sync': typeof ApiPublicChatwootSyncRoute
+  '/api/public/chatwoot-webhook': typeof ApiPublicChatwootWebhookRoute
   '/api/public/dispatch-admin-pushes': typeof ApiPublicDispatchAdminPushesRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
@@ -466,6 +481,8 @@ export interface FileRoutesByTo {
   '/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/agenda/confirmar/$token': typeof AgendaConfirmarTokenRoute
   '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
+  '/api/public/chatwoot-sync': typeof ApiPublicChatwootSyncRoute
+  '/api/public/chatwoot-webhook': typeof ApiPublicChatwootWebhookRoute
   '/api/public/dispatch-admin-pushes': typeof ApiPublicDispatchAdminPushesRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
@@ -527,6 +544,8 @@ export interface FileRoutesById {
   '/_authenticated/app/warmup': typeof AuthenticatedAppWarmupRoute
   '/agenda/confirmar/$token': typeof AgendaConfirmarTokenRoute
   '/api/public/agenda-dispatch': typeof ApiPublicAgendaDispatchRoute
+  '/api/public/chatwoot-sync': typeof ApiPublicChatwootSyncRoute
+  '/api/public/chatwoot-webhook': typeof ApiPublicChatwootWebhookRoute
   '/api/public/dispatch-admin-pushes': typeof ApiPublicDispatchAdminPushesRoute
   '/api/public/dispatch-worker': typeof ApiPublicDispatchWorkerRoute
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
@@ -587,6 +606,8 @@ export interface FileRouteTypes {
     | '/app/warmup'
     | '/agenda/confirmar/$token'
     | '/api/public/agenda-dispatch'
+    | '/api/public/chatwoot-sync'
+    | '/api/public/chatwoot-webhook'
     | '/api/public/dispatch-admin-pushes'
     | '/api/public/dispatch-worker'
     | '/api/public/flow-worker'
@@ -644,6 +665,8 @@ export interface FileRouteTypes {
     | '/app/warmup'
     | '/agenda/confirmar/$token'
     | '/api/public/agenda-dispatch'
+    | '/api/public/chatwoot-sync'
+    | '/api/public/chatwoot-webhook'
     | '/api/public/dispatch-admin-pushes'
     | '/api/public/dispatch-worker'
     | '/api/public/flow-worker'
@@ -704,6 +727,8 @@ export interface FileRouteTypes {
     | '/_authenticated/app/warmup'
     | '/agenda/confirmar/$token'
     | '/api/public/agenda-dispatch'
+    | '/api/public/chatwoot-sync'
+    | '/api/public/chatwoot-webhook'
     | '/api/public/dispatch-admin-pushes'
     | '/api/public/dispatch-worker'
     | '/api/public/flow-worker'
@@ -748,6 +773,8 @@ export interface RootRouteChildren {
   GSlugRoute: typeof GSlugRoute
   AgendaConfirmarTokenRoute: typeof AgendaConfirmarTokenRoute
   ApiPublicAgendaDispatchRoute: typeof ApiPublicAgendaDispatchRoute
+  ApiPublicChatwootSyncRoute: typeof ApiPublicChatwootSyncRoute
+  ApiPublicChatwootWebhookRoute: typeof ApiPublicChatwootWebhookRoute
   ApiPublicDispatchAdminPushesRoute: typeof ApiPublicDispatchAdminPushesRoute
   ApiPublicDispatchWorkerRoute: typeof ApiPublicDispatchWorkerRoute
   ApiPublicFlowWorkerRoute: typeof ApiPublicFlowWorkerRoute
@@ -894,6 +921,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/dispatch-admin-pushes'
       fullPath: '/api/public/dispatch-admin-pushes'
       preLoaderRoute: typeof ApiPublicDispatchAdminPushesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/chatwoot-webhook': {
+      id: '/api/public/chatwoot-webhook'
+      path: '/api/public/chatwoot-webhook'
+      fullPath: '/api/public/chatwoot-webhook'
+      preLoaderRoute: typeof ApiPublicChatwootWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/chatwoot-sync': {
+      id: '/api/public/chatwoot-sync'
+      path: '/api/public/chatwoot-sync'
+      fullPath: '/api/public/chatwoot-sync'
+      preLoaderRoute: typeof ApiPublicChatwootSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/agenda-dispatch': {
@@ -1305,6 +1346,8 @@ const rootRouteChildren: RootRouteChildren = {
   GSlugRoute: GSlugRoute,
   AgendaConfirmarTokenRoute: AgendaConfirmarTokenRoute,
   ApiPublicAgendaDispatchRoute: ApiPublicAgendaDispatchRoute,
+  ApiPublicChatwootSyncRoute: ApiPublicChatwootSyncRoute,
+  ApiPublicChatwootWebhookRoute: ApiPublicChatwootWebhookRoute,
   ApiPublicDispatchAdminPushesRoute: ApiPublicDispatchAdminPushesRoute,
   ApiPublicDispatchWorkerRoute: ApiPublicDispatchWorkerRoute,
   ApiPublicFlowWorkerRoute: ApiPublicFlowWorkerRoute,
