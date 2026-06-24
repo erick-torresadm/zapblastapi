@@ -89,10 +89,16 @@ function TwentySettings() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold">Twenty CRM</h1>
+        <h1 className="text-2xl font-bold">Meu CRM Twenty</h1>
         <p className="text-sm text-muted-foreground">
-          Conecte sua instância <strong>self-hosted</strong> do Twenty pra substituir o CRM interno do ZapBlast.
-          Cada novo contato e mensagem do WhatsApp vira automaticamente atividade no Twenty.
+          Conecte <strong>seu próprio workspace</strong> do Twenty. Quando ativado, a aba
+          <strong> Conversas</strong> do Perseidas passa a mostrar o seu CRM direto aqui dentro,
+          e cada mensagem nova do WhatsApp (do QR code que você escaneou) vira automaticamente
+          uma nota no contato correspondente do <em>seu</em> Twenty.
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Cada usuário do Perseidas conecta o workspace dele — sua API key é privada,
+          criptografada e nunca compartilhada com outras contas.
         </p>
       </div>
 
@@ -103,7 +109,10 @@ function TwentySettings() {
             {conn?.last_test_ok === true && <Badge className="bg-emerald-500/15 text-emerald-600">conectado</Badge>}
             {conn?.last_test_ok === false && <Badge variant="destructive">falhou</Badge>}
           </CardTitle>
-          <CardDescription>Pegue a API Key em Settings → Developers → API Keys no seu Twenty.</CardDescription>
+          <CardDescription>
+            No seu Twenty: <strong>Settings → Developers → API Keys</strong> → crie uma key
+            só pro Perseidas e cole abaixo.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
