@@ -18,8 +18,10 @@ export type PushPayload = {
 };
 
 export async function sendWebPush(sub: PushSubscriptionRow, payload: PushPayload) {
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  if (!privateKey) throw new Error("VAPID_PRIVATE_KEY not configured");
   const webpush = (await import("web-push")).default;
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, privateKey);
   return webpush.sendNotification(
     {
       endpoint: sub.endpoint,
