@@ -6,7 +6,11 @@ import { sendWebPush, type PushSubscriptionRow } from "@/lib/vapid.server";
 export const Route = createFileRoute("/api/public/dispatch-admin-pushes")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const apikey = request.headers.get("apikey");
+        if (!apikey || apikey !== process.env.CRON_SECRET) {
+          return new Response("Unauthorized", { status: 401 });
+        }
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const { data: events, error: evErr } = await supabaseAdmin
