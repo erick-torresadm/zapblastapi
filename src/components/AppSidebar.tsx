@@ -171,6 +171,15 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+            Atendimento
+          </SidebarGroupLabel>
+          <SidebarGroupContent><SidebarMenu>{renderItems(atendimentoNav)}</SidebarMenu></SidebarGroupContent>
+        </SidebarGroup>
+
+
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
             Conta
           </SidebarGroupLabel>
           <SidebarGroupContent><SidebarMenu>{renderItems(accountNav)}</SidebarMenu></SidebarGroupContent>
