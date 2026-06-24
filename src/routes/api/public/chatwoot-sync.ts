@@ -44,7 +44,7 @@ export const Route = createFileRoute("/api/public/chatwoot-sync")({
             // carrega mensagem
             const { data: msg } = await supabaseAdmin
               .from("chat_messages")
-              .select("id, instance_id, contact_phone, contact_name, direction, text, message_type, media_url, from_chatwoot")
+              .select("id, instance_id, contact_phone, direction, text, media_type, media_url, from_chatwoot")
               .eq("id", it.chat_message_id)
               .maybeSingle();
             if (!msg) {
@@ -66,17 +66,17 @@ export const Route = createFileRoute("/api/public/chatwoot-sync")({
             const { data: inst } = await supabaseAdmin
               .from("whatsapp_instances")
               .select("instance_name")
-              .eq("id", msg.instance_id)
+              .eq("id", msg.instance_id!)
               .maybeSingle();
 
             const inboxId = await ensureInbox(conn, msg.instance_id!, inst?.instance_name ?? "WhatsApp");
             if (!inboxId) throw new Error("ensureInbox falhou");
 
-            const cc = await ensureContactAndConversation(conn, inboxId, msg.contact_phone!, msg.contact_name);
+            const cc = await ensureContactAndConversation(conn, inboxId, msg.contact_phone!, null);
             if (!cc) throw new Error("ensureContactAndConversation falhou");
 
             const body = msg.text?.trim() ||
-              (msg.media_url ? `[${msg.message_type ?? "mídia"}] ${msg.media_url}` : "(vazio)");
+              (msg.media_url ? `[${msg.media_type ?? "mídia"}] ${msg.media_url}` : "(vazio)");
             const ok = await postChatwootMessage(conn, cc.conversation_id, body, msg.direction === "in" ? "in" : "out", msg.id);
             if (!ok) throw new Error("postChatwootMessage falhou");
 

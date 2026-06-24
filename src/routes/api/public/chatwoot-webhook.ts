@@ -67,7 +67,7 @@ export const Route = createFileRoute("/api/public/chatwoot-webhook")({
         // pega instance pra Evolution
         const { data: inst } = await supabaseAdmin
           .from("whatsapp_instances")
-          .select("id, instance_name, evolution_server_id")
+          .select("id, instance_name, server_id")
           .eq("id", inboxMap.instance_id)
           .maybeSingle();
         if (!inst) return new Response("instance not found", { status: 404 });
@@ -75,7 +75,7 @@ export const Route = createFileRoute("/api/public/chatwoot-webhook")({
         const { data: server } = await supabaseAdmin
           .from("evolution_servers")
           .select("base_url, api_key")
-          .eq("id", inst.evolution_server_id)
+          .eq("id", inst.server_id)
           .maybeSingle();
         if (!server) return new Response("server not found", { status: 404 });
 
@@ -104,7 +104,7 @@ export const Route = createFileRoute("/api/public/chatwoot-webhook")({
           contact_phone: phone,
           direction: "out",
           text: content,
-          message_type: "text",
+          media_type: "text",
           from_chatwoot: true,
         });
 
