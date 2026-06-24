@@ -1,104 +1,103 @@
-# Planos customizáveis + correção de limites não vinculados
 
-## 1. O bug atual
+# Integração ZapBlast ↔ Twenty CRM
 
-Hoje os limites são lidos da RPC `get_user_plan_limits`, que junta `subscriptions` com `subscription_plans`. Quando você tem plano Scale ativo, o sistema **deveria** liberar 20 chips e ~10 campanhas — mas está bloqueando. Causas prováveis (vou diagnosticar em runtime no primeiro passo):
+Twenty self-hosted já está no ar em `crm.membropro.com.br`. ZapBlast vira produtor de dados (contatos WhatsApp + mensagens) e o Twenty vira a UI de CRM. A aba **Conversas** ganha um toggle "Usar Twenty".
 
-- A sua `subscription` (a do grant manual) está com `plan_id` apontando pra outro plano (ex.: Pro com 3 chips) ou com `status` que não passa em `can_act`.
-- A contagem de chips usa `status IN ('connected','open','connecting')` — chips zumbis em `connecting` consomem slot. Vou trocar pra contar só `connected/open` (descartar `connecting` antigo > 5min).
-- A flag `can_act` exige status `active|trialing`; um grant manual antigo pode ter ficado em `past_due`. Vou garantir que `grant_manual_plan` sobrescreve status pra `active` e zera `trial_ends_at`.
+> **Antes do build:** revogue a API key que veio no chat e gere uma nova no Twenty (Settings → Developers → API Keys). Você vai colar a nova na tela de configuração — ela é salva criptografada no banco, não no código.
 
-## 2. Tornar o plano 100% customizável (admin)
+## 1. Modelo de dados (migration)
 
-### 2a. Schema — novas colunas em `subscription_plans`
+**`twenty_connections`** — uma conexão por usuário ZapBlast
+- `user_id` (FK auth.users, UNIQUE) · `base_url` · `api_key_encrypted` (bytea via `pgsodium.crypto_aead_det_encrypt`) · `workspace_id` · `enabled` (bool) · `replace_inbox` (bool) · `last_test_at` · `last_test_ok` · timestamps
+- RLS: dono lê/escreve; service_role full
+- A chave nunca volta pro client — server fn de teste retorna só `{ok, error}`
 
-Já existem: `max_chips`, `max_messages_per_day`, `max_active_campaigns`, `max_contacts_per_list`, `max_crm_agents`, `warmup_tier`, `monthly_free_maps_searches`, `has_agenda`, `price_cents`, `price_annual_cents`.
+**`twenty_contact_map`** — evita duplicar contato no Twenty
+- `user_id` · `phone_e164` · `twenty_person_id` · `synced_at`
+- UNIQUE (`user_id`, `phone_e164`)
 
-Adicionar (todas com default sensato; `-1` = ilimitado quando aplicável):
+**`twenty_sync_queue`** — fila de mensagens a virar nota no Twenty
+- `user_id` · `chat_message_id` · `status` (pending/done/failed) · `attempts` · `last_error`
+- Trigger AFTER INSERT em `chat_messages` enfileira automático (só se o user tem conexão `enabled`)
 
-- `max_contact_lists INT` — quantas listas
-- `max_flows INT` — fluxos do construtor
-- `max_traffic_funnels INT` — funis de tráfego
-- `max_agenda_businesses INT`
-- `max_group_campaigns INT`
-- `feature_flags JSONB` — toggles booleanos por ferramenta, ex.:
-  ```json
-  {
-    "campaigns": true, "crm": true, "flows": true, "warmup": true,
-    "agenda": true, "traffic_funnels": true, "group_campaigns": true,
-    "tools_maps": true, "tools_unsaved_contacts": true,
-    "csv_export": true, "api_access": false
-  }
-  ```
-- `visible_public BOOLEAN` — se aparece na tela pública de billing (planos custom como "Los Angeles" podem ser ocultos e atribuídos só por grant manual).
+**`twenty_deals_cache`** — pipeline pra dashboard
+- `user_id` · `twenty_id` · `name` · `amount_micros` · `currency` · `stage` · `close_date` · `updated_at`
 
-### 2b. RPC `get_user_plan_limits` — retornar tudo
+## 2. Camada server
 
-Estender o JSON com as novas colunas + `feature_flags`. Manter retrocompat dos campos atuais.
+**`src/lib/twenty.server.ts`** (server-only helper)
+- `decryptApiKey(userId)` — lê `twenty_connections`, descriptografa
+- `twentyFetch(conn, path, init)` — wrapper `fetch` com `Authorization: Bearer`, base = `${conn.base_url}/rest`, trata 401/429/5xx com mensagem amigável
+- Endpoints usados (confirmados acima): `GET/POST /people`, `POST /notes`, `POST /noteTargets`, `GET /opportunities`
 
-### 2c. Hook `usePlanLimits` — expor helpers
+**`src/lib/twenty.functions.ts`** (`createServerFn` + `requireSupabaseAuth`)
+- `getTwentyConnection()` — retorna `{base_url, enabled, replace_inbox, last_test_ok}` (sem a key)
+- `saveTwentyConnection({base_url, api_key, enabled, replace_inbox})` — valida URL https, criptografa key, testa conexão antes de salvar
+- `testTwentyConnection()` — chama `/rest/people?limit=1`, atualiza `last_test_*`
+- `disconnectTwenty()` — apaga linha
+- `pushContactToTwenty({contact_id})` — upsert via `twenty_contact_map`; mapeia nome/phone E.164
+- `getTwentyDealsCached()` — leitura pro widget
 
-Adicionar:
-- `canUseFeature(key: string): boolean` — lê `feature_flags[key]`, fallback true.
-- `canCreateList`, `canCreateFlow`, `canCreateFunnel`, `canCreateAgenda`, `canCreateGroupCampaign` — todos com contagem atual vs. limite (RPC já passa a devolver o uso).
-- `limitOf(key)` / `usageOf(key)` genéricos.
+## 3. Sincronização automática
 
-### 2d. Página `/app/admin/plans`
+**Trigger DB** em `chat_messages` AFTER INSERT:
+```
+IF EXISTS twenty_connections WHERE user_id=NEW.owner_user_id AND enabled
+  INSERT INTO twenty_sync_queue (...)
+```
 
-Nova rota `src/routes/_authenticated/_admin.app.admin.plans.tsx`. UI:
+**Endpoint `/api/public/twenty-sync`** (TSS server route, autenticado por `apikey` header = SUPABASE anon key):
+- Pega até 200 itens `pending` da fila, agrupa por user
+- Pra cada msg: garante `person` no Twenty (cria se não existir via `twenty_contact_map`), cria `note` com corpo da msg + timestamp, linka via `noteTargets`
+- Marca `done`/`failed`
 
-- Tabela listando planos (slug, nome, preço mensal, preço anual, visível, ativo, ações).
-- Botão **Novo plano** abre dialog com formulário completo:
-  - Identidade: `slug`, `name`, `description`, `featured`, `sort_order`, `visible_public`, `active`.
-  - Preço: `price_cents` (mensal, em R$), `price_annual_cents` (anual, em R$).
-  - Limites numéricos (input com checkbox "Ilimitado" que grava `-1`): chips, msgs/dia, campanhas ativas, contatos/lista, agentes CRM, listas, fluxos, funis, agendas, campanhas de grupo, buscas Maps grátis/mês.
-  - Warmup: select `off/basic/advanced`.
-  - **Feature flags**: grid de checkboxes (Campanhas, CRM, Fluxos, Aquecimento, Agenda, Funis, Grupos, Ferramenta Maps, Contatos não salvos, Exportar CSV, API).
-- Editar reabre o mesmo dialog preenchido.
-- Excluir só se não houver `subscriptions` apontando pro plano (senão bloqueia com aviso).
+**Endpoint `/api/public/twenty-deals-refresh`**:
+- Pra cada user com conexão `enabled`: `GET /opportunities?limit=200` e faz upsert em `twenty_deals_cache`
 
-### 2e. Server fns — `src/lib/admin-plans.functions.ts`
+**pg_cron:**
+- `twenty-sync-messages` — `* * * * *` (1min)
+- `twenty-deals-refresh` — `*/5 * * * *`
 
-Adicionar (todas com `requireSupabaseAuth` + `ensureAdmin`):
-- `adminListPlansFn()` — lista completa (sem filtro `active`).
-- `adminUpsertPlanFn(plan)` — Zod valida; insert ou update.
-- `adminDeletePlanFn({ id })` — checa uso, deleta.
+## 4. UI no ZapBlast
 
-## 3. Enforcement em todas as áreas
+**`/app/settings/twenty`** (nova rota)
+- Card "Twenty CRM" com:
+  - Input URL (pré-preenche `https://crm.membropro.com.br`)
+  - Input API Key (type=password, only-on-create, "Substituir" pra trocar)
+  - Botão **Testar conexão** → mostra ✓/✗ inline
+  - Switch **Ativar sincronização** (liga trigger de fila)
+  - Switch **Substituir aba Conversas pelo Twenty**
+  - Botão Desconectar
+- Link na sidebar Settings
 
-Onde hoje não bloqueia / bloqueia errado, aplicar gates baseados em `usePlanLimits()` (client) e validações duplas no servidor (lendo da mesma RPC):
+**Aba Conversas (`/app/inbox`)**
+- Se `replace_inbox = true`: renderiza tela cheia com botão grande **"Abrir Twenty CRM"** (`target=_blank`, abre `base_url`) + mini-stats ("X mensagens sincronizadas hoje"). Não uso iframe — Twenty serve `X-Frame-Options: DENY` por padrão.
+- Senão: CRM atual inalterado.
+- Banner discreto "Powered by Twenty" quando ativo.
 
-| Área | Gate cliente | Gate servidor |
-|---|---|---|
-| Conectar chip (QR) | `canConnectChip && featureFlags.campaigns` | `instances.functions.ts`: bloquear `connectInstanceFn` se exceder |
-| Criar campanha | `canCreateCampaign` | `campaigns.functions.ts`: bloquear create/start |
-| Criar lista | `canCreateList` | `contact-lists.functions.ts` |
-| Criar fluxo | `canCreateFlow && featureFlags.flows` | `flows.functions.ts` |
-| Criar funil | `canCreateFunnel && featureFlags.traffic_funnels` | `traffic.functions.ts` |
-| Criar agenda (negócio) | `canCreateAgenda && featureFlags.agenda` | `agenda.functions.ts` |
-| Criar campanha de grupo | `canCreateGroupCampaign && featureFlags.group_campaigns` | `group-campaigns.functions.ts` |
-| Convidar agente CRM | usage CRM < `max_crm_agents` | `crm-invites.functions.ts` |
-| Importar contatos pra lista | tamanho ≤ `max_contacts_per_list` | server import |
-| Aquecimento | `featureFlags.warmup && warmup_tier !== 'off'` | server warmup |
-| Maps tool / Unsaved tool / CSV export | respectivos `featureFlags` | server fns dessas tools |
+**Dashboard** (`/app/dashboard`)
+- Widget "Pipeline (Twenty)" — lê `twenty_deals_cache`: total de deals, soma de `amount`, top 5 por estágio. Link "Ver no CRM" → `${base_url}/objects/opportunities`.
 
-Sidebar: itens cujas features estão `false` ficam ocultos (ou aparecem com cadeado + tooltip "Disponível em outro plano").
+**Sidebar**
+- Item "Conversas" ganha badge `Twenty` (azul) quando `replace_inbox` ativo, junto com o badge `Beta` atual.
 
-## 4. Diagnóstico imediato do bug Scale
+## 5. O que NÃO vou fazer
 
-Antes (ou em paralelo a) qualquer migration, um query rápido na sua subscription pra confirmar `plan_slug`, `status`, `trial_ends_at` e contagem real de chips/campanhas — pra ter certeza que a correção de RPC e o ajuste em `grant_manual_plan` cobrem o sintoma. Se o `plan_id` da sua subscription estiver errado, corrijo via insert/update direto.
+- ❌ Migrar `crm_contacts_profile` / `crm_conversations` antigos pro Twenty (você pediu começar do zero)
+- ❌ Mexer no CRM atual — fica em paralelo, controlado pelo toggle
+- ❌ Iframe do Twenty (bloqueado por `X-Frame-Options`)
+- ❌ Guardar API key em variável de ambiente — é per-user, vai no banco criptografado
 
-## 5. Detalhes técnicos
+## Limitações conhecidas
 
-- **Migration única** com: novas colunas, default JSONB pra `feature_flags` de cada plano existente (Starter/Pro/Scale com flags coerentes), recriação da RPC `get_user_plan_limits`, ajuste em `grant_manual_plan` (forçar `status='active'`, `trial_ends_at=NULL`), correção do COUNT de chips (descartar `connecting` antigo > 5min via `updated_at`).
-- **Tipos** regenerados depois da migration; só então escrevo o dialog/admin/page e os gates.
-- **Sem mudança visual nos planos públicos** além de respeitar `visible_public`.
-- Tudo passa por `has_role('admin')` e gera entrada em `admin_audit_log` (`plan_created`, `plan_updated`, `plan_deleted`).
+1. Se você desligar o Docker, sync vai falhar (`last_error` registrado, retry automático).
+2. Twenty REST API é beta — se mudarem schema de `people`/`opportunities` quebra; tratei com try/catch + log.
+3. `crm.membropro.com.br` precisa ter cert válido (parece OK, está atrás de Cloudflare).
 
-## Entregáveis
-1. Migration com novas colunas, RPC atualizada, fix do grant manual, fix do count de chips.
-2. `src/lib/admin-plans.functions.ts` estendida (list/upsert/delete).
-3. `src/routes/_authenticated/_admin.app.admin.plans.tsx` com CRUD completo.
-4. Link "Planos" no sidebar admin.
-5. `usePlanLimits` estendido com `canUseFeature` e novos helpers.
-6. Gates aplicados nas server fns e telas listadas em §3.
+## Arquivos
+
+**Criar:** `src/lib/twenty.server.ts`, `src/lib/twenty.functions.ts`, `src/routes/_authenticated/app.settings.twenty.tsx`, `src/routes/api/public/twenty-sync.ts`, `src/routes/api/public/twenty-deals-refresh.ts`, migration (tabelas + trigger + criptografia + cron)
+
+**Editar:** rota da inbox (toggle), `AppSidebar.tsx` (badge + link settings), dashboard (widget)
+
+Pode aprovar que sigo. Quando você ativar o toggle pela primeira vez na tela `/app/settings/twenty`, a sincronização começa a partir daquele momento — mensagens antigas não retroagem (posso adicionar botão "Importar últimos 30 dias" depois se quiser).
