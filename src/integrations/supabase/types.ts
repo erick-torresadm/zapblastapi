@@ -3450,6 +3450,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _get_cron_secret: { Args: never; Returns: string }
       accept_invite_link: { Args: { _token: string }; Returns: Json }
       agenda_public_book: {
         Args: {
