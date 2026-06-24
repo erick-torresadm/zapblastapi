@@ -133,6 +133,11 @@ export function AppSidebar() {
               )}
               <Icon className="h-4 w-4" />
               <span>{n.label}</span>
+              {("beta" in n && n.beta) && (
+                <span className="ml-auto rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  Beta
+                </span>
+              )}
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
