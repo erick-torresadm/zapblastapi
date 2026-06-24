@@ -46,7 +46,7 @@ export const saveTwentyConnectionFn = createServerFn({ method: "POST" })
     const { error } = await context.supabase.rpc("twenty_save_connection", {
       _base_url: data.base_url,
       _api_key: data.api_key ?? "",
-      _workspace_id: data.workspace_id ?? null,
+      _workspace_id: data.workspace_id ?? "",
       _enabled: data.enabled && testOk,
       _replace_inbox: data.replace_inbox,
     });
