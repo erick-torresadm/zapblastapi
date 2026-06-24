@@ -19,15 +19,15 @@ import { Logo } from "@/components/Logo";
 const operationNav = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/app/instances", label: "Chips", icon: Smartphone },
-  { to: "/app/warmup", label: "Aquecimento", icon: Flame },
+  { to: "/app/warmup", label: "Aquecimento", icon: Flame, beta: true },
   { to: "/app/lists", label: "Contatos", icon: Users },
   { to: "/app/campaigns", label: "Campanhas", icon: Send },
   { to: "/app/flows", label: "Fluxos", icon: Workflow },
   { to: "/app/keywords", label: "Bot", icon: Bot },
-  { to: "/app/inbox", label: "Conversas (CRM)", icon: Inbox },
-  { to: "/app/tools", label: "Ferramentas", icon: Sparkles },
+  { to: "/app/inbox", label: "Conversas (CRM)", icon: Inbox, beta: true },
+  { to: "/app/tools", label: "Ferramentas", icon: Sparkles, beta: true },
   { to: "/app/agenda", label: "Agenda", icon: Calendar },
-  { to: "/app/traffic", label: "Tráfego & Funis", icon: Megaphone },
+  { to: "/app/traffic", label: "Tráfego & Funis", icon: Megaphone, beta: true },
   { to: "/app/group-launcher", label: "Group Launcher", icon: Rocket },
   { to: "/app/team", label: "Equipe", icon: UserCog },
 
@@ -133,6 +133,11 @@ export function AppSidebar() {
               )}
               <Icon className="h-4 w-4" />
               <span>{n.label}</span>
+              {("beta" in n && n.beta) && (
+                <span className="ml-auto rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  Beta
+                </span>
+              )}
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
