@@ -21,6 +21,8 @@ import { Route as AgendaSlugRouteImport } from './routes/agenda.$slug'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as ApiPublicWarmupWorkerRouteImport } from './routes/api/public/warmup-worker'
+import { Route as ApiPublicTwentySyncRouteImport } from './routes/api/public/twenty-sync'
+import { Route as ApiPublicTwentyDealsRefreshRouteImport } from './routes/api/public/twenty-deals-refresh'
 import { Route as ApiPublicTrafficLeadRouteImport } from './routes/api/public/traffic-lead'
 import { Route as ApiPublicTrafficEventRouteImport } from './routes/api/public/traffic-event'
 import { Route as ApiPublicFlowWorkerRouteImport } from './routes/api/public/flow-worker'
@@ -51,6 +53,7 @@ import { Route as AuthenticatedAppCampaignsIndexRouteImport } from './routes/_au
 import { Route as ApiPublicGroupLauncherTickRouteImport } from './routes/api/public/group-launcher.tick'
 import { Route as ApiPublicEvolutionWebhookTokenRouteImport } from './routes/api/public/evolution-webhook.$token'
 import { Route as ApiPublicCrmResolvePendingRouteImport } from './routes/api/public/crm.resolve-pending'
+import { Route as AuthenticatedAppSettingsTwentyRouteImport } from './routes/_authenticated/app.settings.twenty'
 import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authenticated/app.lists.$id'
 import { Route as AuthenticatedAppGroupLauncherIdRouteImport } from './routes/_authenticated/app.group-launcher.$id'
 import { Route as AuthenticatedAppFlowsIdRouteImport } from './routes/_authenticated/app.flows.$id'
@@ -123,6 +126,17 @@ const ApiPublicWarmupWorkerRoute = ApiPublicWarmupWorkerRouteImport.update({
   path: '/api/public/warmup-worker',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTwentySyncRoute = ApiPublicTwentySyncRouteImport.update({
+  id: '/api/public/twenty-sync',
+  path: '/api/public/twenty-sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTwentyDealsRefreshRoute =
+  ApiPublicTwentyDealsRefreshRouteImport.update({
+    id: '/api/public/twenty-deals-refresh',
+    path: '/api/public/twenty-deals-refresh',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicTrafficLeadRoute = ApiPublicTrafficLeadRouteImport.update({
   id: '/api/public/traffic-lead',
   path: '/api/public/traffic-lead',
@@ -285,6 +299,12 @@ const ApiPublicCrmResolvePendingRoute =
     path: '/api/public/crm/resolve-pending',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedAppSettingsTwentyRoute =
+  AuthenticatedAppSettingsTwentyRouteImport.update({
+    id: '/app/settings/twenty',
+    path: '/app/settings/twenty',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppListsIdRoute = AuthenticatedAppListsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -394,6 +414,8 @@ export interface FileRoutesByFullPath {
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
   '/api/public/traffic-lead': typeof ApiPublicTrafficLeadRoute
+  '/api/public/twenty-deals-refresh': typeof ApiPublicTwentyDealsRefreshRoute
+  '/api/public/twenty-sync': typeof ApiPublicTwentySyncRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
@@ -401,6 +423,7 @@ export interface FileRoutesByFullPath {
   '/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
   '/app/group-launcher/$id': typeof AuthenticatedAppGroupLauncherIdRoute
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
+  '/app/settings/twenty': typeof AuthenticatedAppSettingsTwentyRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/api/public/group-launcher/tick': typeof ApiPublicGroupLauncherTickRoute
@@ -448,6 +471,8 @@ export interface FileRoutesByTo {
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
   '/api/public/traffic-lead': typeof ApiPublicTrafficLeadRoute
+  '/api/public/twenty-deals-refresh': typeof ApiPublicTwentyDealsRefreshRoute
+  '/api/public/twenty-sync': typeof ApiPublicTwentySyncRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
@@ -455,6 +480,7 @@ export interface FileRoutesByTo {
   '/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
   '/app/group-launcher/$id': typeof AuthenticatedAppGroupLauncherIdRoute
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
+  '/app/settings/twenty': typeof AuthenticatedAppSettingsTwentyRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/api/public/group-launcher/tick': typeof ApiPublicGroupLauncherTickRoute
@@ -506,6 +532,8 @@ export interface FileRoutesById {
   '/api/public/flow-worker': typeof ApiPublicFlowWorkerRoute
   '/api/public/traffic-event': typeof ApiPublicTrafficEventRoute
   '/api/public/traffic-lead': typeof ApiPublicTrafficLeadRoute
+  '/api/public/twenty-deals-refresh': typeof ApiPublicTwentyDealsRefreshRoute
+  '/api/public/twenty-sync': typeof ApiPublicTwentySyncRoute
   '/api/public/warmup-worker': typeof ApiPublicWarmupWorkerRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/campaigns/$id': typeof AuthenticatedAppCampaignsIdRoute
@@ -513,6 +541,7 @@ export interface FileRoutesById {
   '/_authenticated/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
   '/_authenticated/app/group-launcher/$id': typeof AuthenticatedAppGroupLauncherIdRoute
   '/_authenticated/app/lists/$id': typeof AuthenticatedAppListsIdRoute
+  '/_authenticated/app/settings/twenty': typeof AuthenticatedAppSettingsTwentyRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
   '/api/public/group-launcher/tick': typeof ApiPublicGroupLauncherTickRoute
@@ -563,6 +592,8 @@ export interface FileRouteTypes {
     | '/api/public/flow-worker'
     | '/api/public/traffic-event'
     | '/api/public/traffic-lead'
+    | '/api/public/twenty-deals-refresh'
+    | '/api/public/twenty-sync'
     | '/api/public/warmup-worker'
     | '/app/'
     | '/app/campaigns/$id'
@@ -570,6 +601,7 @@ export interface FileRouteTypes {
     | '/app/flows/$id'
     | '/app/group-launcher/$id'
     | '/app/lists/$id'
+    | '/app/settings/twenty'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
     | '/api/public/group-launcher/tick'
@@ -617,6 +649,8 @@ export interface FileRouteTypes {
     | '/api/public/flow-worker'
     | '/api/public/traffic-event'
     | '/api/public/traffic-lead'
+    | '/api/public/twenty-deals-refresh'
+    | '/api/public/twenty-sync'
     | '/api/public/warmup-worker'
     | '/app'
     | '/app/campaigns/$id'
@@ -624,6 +658,7 @@ export interface FileRouteTypes {
     | '/app/flows/$id'
     | '/app/group-launcher/$id'
     | '/app/lists/$id'
+    | '/app/settings/twenty'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
     | '/api/public/group-launcher/tick'
@@ -674,6 +709,8 @@ export interface FileRouteTypes {
     | '/api/public/flow-worker'
     | '/api/public/traffic-event'
     | '/api/public/traffic-lead'
+    | '/api/public/twenty-deals-refresh'
+    | '/api/public/twenty-sync'
     | '/api/public/warmup-worker'
     | '/_authenticated/app/'
     | '/_authenticated/app/campaigns/$id'
@@ -681,6 +718,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/flows/$id'
     | '/_authenticated/app/group-launcher/$id'
     | '/_authenticated/app/lists/$id'
+    | '/_authenticated/app/settings/twenty'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
     | '/api/public/group-launcher/tick'
@@ -715,6 +753,8 @@ export interface RootRouteChildren {
   ApiPublicFlowWorkerRoute: typeof ApiPublicFlowWorkerRoute
   ApiPublicTrafficEventRoute: typeof ApiPublicTrafficEventRoute
   ApiPublicTrafficLeadRoute: typeof ApiPublicTrafficLeadRoute
+  ApiPublicTwentyDealsRefreshRoute: typeof ApiPublicTwentyDealsRefreshRoute
+  ApiPublicTwentySyncRoute: typeof ApiPublicTwentySyncRoute
   ApiPublicWarmupWorkerRoute: typeof ApiPublicWarmupWorkerRoute
   ApiPublicCrmResolvePendingRoute: typeof ApiPublicCrmResolvePendingRoute
   ApiPublicEvolutionWebhookTokenRoute: typeof ApiPublicEvolutionWebhookTokenRoute
@@ -805,6 +845,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/warmup-worker'
       fullPath: '/api/public/warmup-worker'
       preLoaderRoute: typeof ApiPublicWarmupWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/twenty-sync': {
+      id: '/api/public/twenty-sync'
+      path: '/api/public/twenty-sync'
+      fullPath: '/api/public/twenty-sync'
+      preLoaderRoute: typeof ApiPublicTwentySyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/twenty-deals-refresh': {
+      id: '/api/public/twenty-deals-refresh'
+      path: '/api/public/twenty-deals-refresh'
+      fullPath: '/api/public/twenty-deals-refresh'
+      preLoaderRoute: typeof ApiPublicTwentyDealsRefreshRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/traffic-lead': {
@@ -1017,6 +1071,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCrmResolvePendingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/app/settings/twenty': {
+      id: '/_authenticated/app/settings/twenty'
+      path: '/app/settings/twenty'
+      fullPath: '/app/settings/twenty'
+      preLoaderRoute: typeof AuthenticatedAppSettingsTwentyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/lists/$id': {
       id: '/_authenticated/app/lists/$id'
       path: '/$id'
@@ -1189,6 +1250,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppCampaignsIdRoute: typeof AuthenticatedAppCampaignsIdRoute
   AuthenticatedAppCampaignsNewRoute: typeof AuthenticatedAppCampaignsNewRoute
   AuthenticatedAppGroupLauncherIdRoute: typeof AuthenticatedAppGroupLauncherIdRoute
+  AuthenticatedAppSettingsTwentyRoute: typeof AuthenticatedAppSettingsTwentyRoute
   AuthenticatedAppCampaignsIndexRoute: typeof AuthenticatedAppCampaignsIndexRoute
   AuthenticatedAppGroupLauncherIndexRoute: typeof AuthenticatedAppGroupLauncherIndexRoute
   AuthenticatedAppTrafficIndexRoute: typeof AuthenticatedAppTrafficIndexRoute
@@ -1218,6 +1280,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppCampaignsIdRoute: AuthenticatedAppCampaignsIdRoute,
   AuthenticatedAppCampaignsNewRoute: AuthenticatedAppCampaignsNewRoute,
   AuthenticatedAppGroupLauncherIdRoute: AuthenticatedAppGroupLauncherIdRoute,
+  AuthenticatedAppSettingsTwentyRoute: AuthenticatedAppSettingsTwentyRoute,
   AuthenticatedAppCampaignsIndexRoute: AuthenticatedAppCampaignsIndexRoute,
   AuthenticatedAppGroupLauncherIndexRoute:
     AuthenticatedAppGroupLauncherIndexRoute,
@@ -1247,6 +1310,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicFlowWorkerRoute: ApiPublicFlowWorkerRoute,
   ApiPublicTrafficEventRoute: ApiPublicTrafficEventRoute,
   ApiPublicTrafficLeadRoute: ApiPublicTrafficLeadRoute,
+  ApiPublicTwentyDealsRefreshRoute: ApiPublicTwentyDealsRefreshRoute,
+  ApiPublicTwentySyncRoute: ApiPublicTwentySyncRoute,
   ApiPublicWarmupWorkerRoute: ApiPublicWarmupWorkerRoute,
   ApiPublicCrmResolvePendingRoute: ApiPublicCrmResolvePendingRoute,
   ApiPublicEvolutionWebhookTokenRoute: ApiPublicEvolutionWebhookTokenRoute,
