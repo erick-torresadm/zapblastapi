@@ -7,7 +7,7 @@ export const Route = createFileRoute("/api/public/dispatch-worker")({
     handlers: {
       POST: async ({ request }) => {
         const apikey = request.headers.get("apikey");
-        if (!apikey || apikey !== process.env.SUPABASE_PUBLISHABLE_KEY) {
+        if (!apikey || apikey !== process.env.CRON_SECRET) {
           return new Response("Unauthorized", { status: 401 });
         }
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
