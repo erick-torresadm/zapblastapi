@@ -181,6 +181,14 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={path === "/app/admin/plans"} className="h-9 rounded-lg">
+                    <Link to="/app/admin/plans">
+                      <Crown className="h-4 w-4" />
+                      <span>Planos</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={path === "/app/admin/coupons"} className="h-9 rounded-lg">
                     <Link to="/app/admin/coupons">
                       <Ticket className="h-4 w-4" />
