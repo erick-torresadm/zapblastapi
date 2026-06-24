@@ -1,5 +1,5 @@
 // CRM estilo WhatsApp Web — lista de conversas, chat, painel do contato.
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -45,7 +45,52 @@ import { formatPhone, displayName, isPhoneResolved } from "@/lib/crm-phone";
 
 
 
-export const Route = createFileRoute("/_authenticated/app/inbox")({ component: Inbox });
+export const Route = createFileRoute("/_authenticated/app/inbox")({ component: InboxOrTwenty });
+
+function InboxOrTwenty() {
+  const { data } = useQuery({
+    queryKey: ["twenty-conn-inbox"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("twenty_connections")
+        .select("base_url, enabled, replace_inbox")
+        .maybeSingle();
+      return data;
+    },
+  });
+  if (data?.enabled && data?.replace_inbox && data?.base_url) {
+    return <TwentyRedirectScreen url={data.base_url} />;
+  }
+  return <Inbox />;
+}
+
+function TwentyRedirectScreen({ url }: { url: string }) {
+  return (
+    <div className="flex h-full min-h-[80vh] flex-col items-center justify-center gap-6 p-8 text-center">
+      <div className="rounded-full bg-primary/10 p-6">
+        <MessageCircle className="h-12 w-12 text-primary" />
+      </div>
+      <div>
+        <h1 className="text-2xl font-bold">CRM externo ativo</h1>
+        <p className="mt-2 max-w-md text-sm text-muted-foreground">
+          Suas conversas estão sendo sincronizadas com o <strong>Twenty CRM</strong>. Abra o painel completo
+          para gerenciar contatos, deals e pipelines.
+        </p>
+      </div>
+      <div className="flex gap-3">
+        <Button size="lg" asChild>
+          <a href={url} target="_blank" rel="noopener noreferrer">Abrir Twenty CRM →</a>
+        </Button>
+        <Button size="lg" variant="outline" asChild>
+          <Link to="/app/settings/twenty">Configurações</Link>
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Para voltar pro CRM interno, desative "Substituir aba Conversas" nas configurações.
+      </p>
+    </div>
+  );
+}
 
 type Conv = ContactConv & {
   owner_user_id: string;

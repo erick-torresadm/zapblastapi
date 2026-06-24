@@ -3146,6 +3146,149 @@ export type Database = {
         }
         Relationships: []
       }
+      twenty_connections: {
+        Row: {
+          api_key_encrypted: string
+          base_url: string
+          created_at: string
+          enabled: boolean
+          last_test_at: string | null
+          last_test_error: string | null
+          last_test_ok: boolean | null
+          replace_inbox: boolean
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          api_key_encrypted: string
+          base_url: string
+          created_at?: string
+          enabled?: boolean
+          last_test_at?: string | null
+          last_test_error?: string | null
+          last_test_ok?: boolean | null
+          replace_inbox?: boolean
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          api_key_encrypted?: string
+          base_url?: string
+          created_at?: string
+          enabled?: boolean
+          last_test_at?: string | null
+          last_test_error?: string | null
+          last_test_ok?: boolean | null
+          replace_inbox?: boolean
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      twenty_contact_map: {
+        Row: {
+          id: string
+          phone_e164: string
+          synced_at: string
+          twenty_person_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          phone_e164: string
+          synced_at?: string
+          twenty_person_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          phone_e164?: string
+          synced_at?: string
+          twenty_person_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      twenty_deals_cache: {
+        Row: {
+          amount_micros: number | null
+          close_date: string | null
+          currency: string | null
+          id: string
+          name: string | null
+          stage: string | null
+          twenty_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_micros?: number | null
+          close_date?: string | null
+          currency?: string | null
+          id?: string
+          name?: string | null
+          stage?: string | null
+          twenty_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_micros?: number | null
+          close_date?: string | null
+          currency?: string | null
+          id?: string
+          name?: string | null
+          stage?: string | null
+          twenty_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      twenty_sync_queue: {
+        Row: {
+          attempts: number
+          chat_message_id: string
+          created_at: string
+          id: string
+          last_error: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          chat_message_id: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          chat_message_id?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twenty_sync_queue_chat_message_id_fkey"
+            columns: ["chat_message_id"]
+            isOneToOne: true
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -3451,6 +3594,7 @@ export type Database = {
     }
     Functions: {
       _get_cron_secret: { Args: never; Returns: string }
+      _twenty_enc_key: { Args: never; Returns: string }
       accept_invite_link: { Args: { _token: string }; Returns: Json }
       agenda_public_book: {
         Args: {
@@ -3664,6 +3808,17 @@ export type Database = {
             }
             Returns: string
           }
+      twenty_get_api_key: { Args: { _user_id: string }; Returns: string }
+      twenty_save_connection: {
+        Args: {
+          _api_key: string
+          _base_url: string
+          _enabled: boolean
+          _replace_inbox: boolean
+          _workspace_id: string
+        }
+        Returns: undefined
+      }
       validate_coupon: {
         Args: { _code: string; _plan_id?: string }
         Returns: Json
