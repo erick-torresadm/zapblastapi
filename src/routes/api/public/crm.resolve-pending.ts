@@ -11,7 +11,7 @@ export const Route = createFileRoute("/api/public/crm/resolve-pending")({
     handlers: {
       POST: async ({ request }) => {
         const apikey = request.headers.get("apikey") ?? "";
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
+        const expected = process.env.CRON_SECRET ?? "";
         if (!expected || apikey !== expected) {
           return new Response("unauthorized", { status: 401 });
         }

@@ -1,8 +1,7 @@
-// Chaves VAPID — keypair fixo do projeto.
-// A pública é exposta no cliente (uso normal de Web Push); a privada NUNCA sai do servidor.
+// Chaves VAPID — a privada vem APENAS de env var no servidor.
+// A pública é segura para expor no cliente (uso normal de Web Push).
 export const VAPID_PUBLIC_KEY =
-  "BFQ4VUaHNRjUi5h_XaNK_zs5LTz076cXff2K4WJVTnCu1_a3wfO2WAr1cbhWMZzq6hIkvmKbZKkzhgOkg6cg8z4";
-export const VAPID_PRIVATE_KEY = "Wd7xsqn4E0WY9Trz_Tij2W-YCq5JF34OPE3xH3gCN-o";
+  "BOBVhn2W8GoHtB8dEjAKkSVMXtTTyKA54Yu8YFxggpq7jCANd8_D-7xHZCkMunblkUfYBXWtP6jFArC88o9s3S8";
 export const VAPID_SUBJECT = "mailto:suporte@perseidas.com.br";
 
 export type PushSubscriptionRow = {
@@ -19,8 +18,10 @@ export type PushPayload = {
 };
 
 export async function sendWebPush(sub: PushSubscriptionRow, payload: PushPayload) {
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  if (!privateKey) throw new Error("VAPID_PRIVATE_KEY not configured");
   const webpush = (await import("web-push")).default;
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, privateKey);
   return webpush.sendNotification(
     {
       endpoint: sub.endpoint,
