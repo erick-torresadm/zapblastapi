@@ -56,6 +56,7 @@ import { Route as ApiPublicGroupLauncherTickRouteImport } from './routes/api/pub
 import { Route as ApiPublicEvolutionWebhookTokenRouteImport } from './routes/api/public/evolution-webhook.$token'
 import { Route as ApiPublicCrmResolvePendingRouteImport } from './routes/api/public/crm.resolve-pending'
 import { Route as AuthenticatedAppSettingsTwentyRouteImport } from './routes/_authenticated/app.settings.twenty'
+import { Route as AuthenticatedAppSettingsChatwootRouteImport } from './routes/_authenticated/app.settings.chatwoot'
 import { Route as AuthenticatedAppListsIdRouteImport } from './routes/_authenticated/app.lists.$id'
 import { Route as AuthenticatedAppGroupLauncherIdRouteImport } from './routes/_authenticated/app.group-launcher.$id'
 import { Route as AuthenticatedAppFlowsIdRouteImport } from './routes/_authenticated/app.flows.$id'
@@ -318,6 +319,12 @@ const AuthenticatedAppSettingsTwentyRoute =
     path: '/app/settings/twenty',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppSettingsChatwootRoute =
+  AuthenticatedAppSettingsChatwootRouteImport.update({
+    id: '/app/settings/chatwoot',
+    path: '/app/settings/chatwoot',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppListsIdRoute = AuthenticatedAppListsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -438,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
   '/app/group-launcher/$id': typeof AuthenticatedAppGroupLauncherIdRoute
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
+  '/app/settings/chatwoot': typeof AuthenticatedAppSettingsChatwootRoute
   '/app/settings/twenty': typeof AuthenticatedAppSettingsTwentyRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
@@ -497,6 +505,7 @@ export interface FileRoutesByTo {
   '/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
   '/app/group-launcher/$id': typeof AuthenticatedAppGroupLauncherIdRoute
   '/app/lists/$id': typeof AuthenticatedAppListsIdRoute
+  '/app/settings/chatwoot': typeof AuthenticatedAppSettingsChatwootRoute
   '/app/settings/twenty': typeof AuthenticatedAppSettingsTwentyRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
@@ -560,6 +569,7 @@ export interface FileRoutesById {
   '/_authenticated/app/flows/$id': typeof AuthenticatedAppFlowsIdRoute
   '/_authenticated/app/group-launcher/$id': typeof AuthenticatedAppGroupLauncherIdRoute
   '/_authenticated/app/lists/$id': typeof AuthenticatedAppListsIdRoute
+  '/_authenticated/app/settings/chatwoot': typeof AuthenticatedAppSettingsChatwootRoute
   '/_authenticated/app/settings/twenty': typeof AuthenticatedAppSettingsTwentyRoute
   '/api/public/crm/resolve-pending': typeof ApiPublicCrmResolvePendingRoute
   '/api/public/evolution-webhook/$token': typeof ApiPublicEvolutionWebhookTokenRoute
@@ -622,6 +632,7 @@ export interface FileRouteTypes {
     | '/app/flows/$id'
     | '/app/group-launcher/$id'
     | '/app/lists/$id'
+    | '/app/settings/chatwoot'
     | '/app/settings/twenty'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
@@ -681,6 +692,7 @@ export interface FileRouteTypes {
     | '/app/flows/$id'
     | '/app/group-launcher/$id'
     | '/app/lists/$id'
+    | '/app/settings/chatwoot'
     | '/app/settings/twenty'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
@@ -743,6 +755,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/flows/$id'
     | '/_authenticated/app/group-launcher/$id'
     | '/_authenticated/app/lists/$id'
+    | '/_authenticated/app/settings/chatwoot'
     | '/_authenticated/app/settings/twenty'
     | '/api/public/crm/resolve-pending'
     | '/api/public/evolution-webhook/$token'
@@ -1119,6 +1132,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSettingsTwentyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/settings/chatwoot': {
+      id: '/_authenticated/app/settings/chatwoot'
+      path: '/app/settings/chatwoot'
+      fullPath: '/app/settings/chatwoot'
+      preLoaderRoute: typeof AuthenticatedAppSettingsChatwootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/lists/$id': {
       id: '/_authenticated/app/lists/$id'
       path: '/$id'
@@ -1291,6 +1311,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppCampaignsIdRoute: typeof AuthenticatedAppCampaignsIdRoute
   AuthenticatedAppCampaignsNewRoute: typeof AuthenticatedAppCampaignsNewRoute
   AuthenticatedAppGroupLauncherIdRoute: typeof AuthenticatedAppGroupLauncherIdRoute
+  AuthenticatedAppSettingsChatwootRoute: typeof AuthenticatedAppSettingsChatwootRoute
   AuthenticatedAppSettingsTwentyRoute: typeof AuthenticatedAppSettingsTwentyRoute
   AuthenticatedAppCampaignsIndexRoute: typeof AuthenticatedAppCampaignsIndexRoute
   AuthenticatedAppGroupLauncherIndexRoute: typeof AuthenticatedAppGroupLauncherIndexRoute
@@ -1321,6 +1342,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppCampaignsIdRoute: AuthenticatedAppCampaignsIdRoute,
   AuthenticatedAppCampaignsNewRoute: AuthenticatedAppCampaignsNewRoute,
   AuthenticatedAppGroupLauncherIdRoute: AuthenticatedAppGroupLauncherIdRoute,
+  AuthenticatedAppSettingsChatwootRoute: AuthenticatedAppSettingsChatwootRoute,
   AuthenticatedAppSettingsTwentyRoute: AuthenticatedAppSettingsTwentyRoute,
   AuthenticatedAppCampaignsIndexRoute: AuthenticatedAppCampaignsIndexRoute,
   AuthenticatedAppGroupLauncherIndexRoute:
