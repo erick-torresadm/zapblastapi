@@ -45,10 +45,20 @@ import { formatPhone, displayName, isPhoneResolved } from "@/lib/crm-phone";
 
 
 
-export const Route = createFileRoute("/_authenticated/app/inbox")({ component: InboxOrTwenty });
+export const Route = createFileRoute("/_authenticated/app/inbox")({ component: InboxOrCRM });
 
-function InboxOrTwenty() {
-  const { data, isLoading } = useQuery({
+function InboxOrCRM() {
+  const { data: chatwoot, isLoading: lc } = useQuery({
+    queryKey: ["chatwoot-conn-inbox"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("chatwoot_connections")
+        .select("enabled, replace_inbox, last_test_ok")
+        .maybeSingle();
+      return data;
+    },
+  });
+  const { data: twenty, isLoading: lt } = useQuery({
     queryKey: ["twenty-conn-inbox"],
     queryFn: async () => {
       const { data } = await supabase
@@ -58,11 +68,101 @@ function InboxOrTwenty() {
       return data;
     },
   });
-  if (isLoading) return null;
-  if (data?.enabled && data?.replace_inbox && data?.base_url) {
-    return <TwentyEmbed url={data.base_url} ok={data.last_test_ok !== false} />;
+  if (lc || lt) return null;
+  if (chatwoot?.enabled && chatwoot?.replace_inbox) {
+    return <ChatwootEmbed ok={chatwoot.last_test_ok !== false} />;
+  }
+  if (twenty?.enabled && twenty?.replace_inbox && twenty?.base_url) {
+    return <TwentyEmbed url={twenty.base_url} ok={twenty.last_test_ok !== false} />;
   }
   return <Inbox />;
+}
+
+function ChatwootEmbed({ ok }: { ok: boolean }) {
+  const [blocked, setBlocked] = useState(false);
+  const [ssoUrl, setSsoUrl] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const fallbackUrl = "https://chatwoot.membropro.com.br";
+
+  useEffect(() => {
+    let alive = true;
+    import("@/lib/chatwoot.functions").then(async ({ getChatwootSsoUrlFn }) => {
+      const r = await getChatwootSsoUrlFn();
+      if (alive) setSsoUrl(r.url);
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (!iframeRef.current?.dataset.loaded) setBlocked(true);
+    }, 6000);
+    return () => window.clearTimeout(t);
+  }, [ssoUrl]);
+
+  if (blocked) {
+    return (
+      <div className="flex h-full min-h-[80vh] flex-col items-center justify-center gap-6 p-8 text-center">
+        <div className="rounded-full bg-primary/10 p-6">
+          <MessageCircle className="h-12 w-12 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Seu Chatwoot</h1>
+          <p className="mt-2 max-w-md text-sm text-muted-foreground">
+            Seu servidor Chatwoot está bloqueando a exibição dentro do Perseidas
+            (cabeçalho <code>X-Frame-Options</code>). Configure{" "}
+            <code>FRAME_ANCESTORS</code> no Docker pra liberar, ou abra em nova aba.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Button size="lg" asChild>
+            <a href={ssoUrl ?? fallbackUrl} target="_blank" rel="noopener noreferrer">Abrir meu Chatwoot →</a>
+          </Button>
+          <Button size="lg" variant="outline" asChild>
+            <Link to="/app/settings/chatwoot">Configurações</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-[calc(100vh-4rem)] flex-col">
+      <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2">
+        <div className="flex items-center gap-2 text-sm">
+          <MessageCircle className="h-4 w-4 text-primary" />
+          <span className="font-medium">Seu Chatwoot</span>
+          {ok ? (
+            <Badge className="bg-emerald-500/15 text-emerald-600">conectado</Badge>
+          ) : (
+            <Badge variant="destructive">offline</Badge>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" asChild>
+            <a href={ssoUrl ?? fallbackUrl} target="_blank" rel="noopener noreferrer">Abrir em nova aba ↗</a>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/app/settings/chatwoot">Configurar</Link>
+          </Button>
+        </div>
+      </div>
+      {ssoUrl ? (
+        <iframe
+          ref={iframeRef}
+          src={ssoUrl}
+          title="Chatwoot"
+          className="flex-1 w-full border-0 bg-background"
+          onLoad={(e) => { (e.currentTarget as HTMLIFrameElement).dataset.loaded = "1"; }}
+          allow="clipboard-read; clipboard-write; microphone; camera"
+        />
+      ) : (
+        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+          Carregando SSO…
+        </div>
+      )}
+    </div>
+  );
 }
 
 function TwentyEmbed({ url, ok }: { url: string; ok: boolean }) {

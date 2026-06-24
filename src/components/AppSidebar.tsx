@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Server, Smartphone, Users, Send, Inbox, UserCog,
   LogOut, Zap, Flame, ShoppingCart, Wallet, CreditCard, Shield, ShieldCheck, Workflow, Bot, Sparkles, Ticket, Calendar, Megaphone, Rocket, User2, Bell,
-  Crown,
+  Crown, MessageCircle,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -38,6 +38,7 @@ const accountNav = [
   { to: "/app/wallet", label: "Carteira", icon: Wallet },
   { to: "/app/billing", label: "Planos", icon: CreditCard },
   { to: "/app/settings/twenty", label: "Twenty CRM", icon: Zap },
+  { to: "/app/settings/chatwoot", label: "Chatwoot", icon: MessageCircle },
 ];
 
 
