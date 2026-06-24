@@ -104,9 +104,12 @@ function PublicFunnelPage() {
 
   // Pixel/GA/GTM + PageView no primeiro render
   useEffect(() => {
-    if (settings.pixel_id) injectFbPixel(settings.pixel_id);
-    if (settings.ga4_id) injectGA4(settings.ga4_id);
-    if (settings.gtm_id) injectGTM(settings.gtm_id);
+    const pid = isValidFbPixel(settings.pixel_id) ? settings.pixel_id! : null;
+    const gid = isValidGA4(settings.ga4_id) ? settings.ga4_id! : null;
+    const tid = isValidGTM(settings.gtm_id) ? settings.gtm_id! : null;
+    if (pid) injectFbPixel(pid);
+    if (gid) injectGA4(gid);
+    if (tid) injectGTM(tid);
     trackEvent(f.slug, "PageView");
   }, [f.slug, settings.pixel_id, settings.ga4_id, settings.gtm_id]);
 
