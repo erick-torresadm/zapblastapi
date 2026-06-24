@@ -48,46 +48,90 @@ import { formatPhone, displayName, isPhoneResolved } from "@/lib/crm-phone";
 export const Route = createFileRoute("/_authenticated/app/inbox")({ component: InboxOrTwenty });
 
 function InboxOrTwenty() {
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["twenty-conn-inbox"],
     queryFn: async () => {
       const { data } = await supabase
         .from("twenty_connections")
-        .select("base_url, enabled, replace_inbox")
+        .select("base_url, enabled, replace_inbox, last_test_ok")
         .maybeSingle();
       return data;
     },
   });
+  if (isLoading) return null;
   if (data?.enabled && data?.replace_inbox && data?.base_url) {
-    return <TwentyRedirectScreen url={data.base_url} />;
+    return <TwentyEmbed url={data.base_url} ok={data.last_test_ok !== false} />;
   }
   return <Inbox />;
 }
 
-function TwentyRedirectScreen({ url }: { url: string }) {
+function TwentyEmbed({ url, ok }: { url: string; ok: boolean }) {
+  const [blocked, setBlocked] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Se o iframe não disparar onLoad em 6s, assume bloqueio (X-Frame-Options/CSP).
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (!iframeRef.current?.dataset.loaded) setBlocked(true);
+    }, 6000);
+    return () => window.clearTimeout(t);
+  }, [url]);
+
+  if (blocked) {
+    return (
+      <div className="flex h-full min-h-[80vh] flex-col items-center justify-center gap-6 p-8 text-center">
+        <div className="rounded-full bg-primary/10 p-6">
+          <MessageCircle className="h-12 w-12 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Seu CRM Twenty</h1>
+          <p className="mt-2 max-w-md text-sm text-muted-foreground">
+            Seu servidor Twenty está bloqueando a exibição dentro do Perseidas
+            (cabeçalho <code>X-Frame-Options</code>). Abra em nova aba — todas as
+            conversas do seu WhatsApp já estão sincronizadas lá.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Button size="lg" asChild>
+            <a href={url} target="_blank" rel="noopener noreferrer">Abrir meu Twenty →</a>
+          </Button>
+          <Button size="lg" variant="outline" asChild>
+            <Link to="/app/settings/twenty">Configurações</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-full min-h-[80vh] flex-col items-center justify-center gap-6 p-8 text-center">
-      <div className="rounded-full bg-primary/10 p-6">
-        <MessageCircle className="h-12 w-12 text-primary" />
+    <div className="flex h-[calc(100vh-4rem)] flex-col">
+      <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2">
+        <div className="flex items-center gap-2 text-sm">
+          <MessageCircle className="h-4 w-4 text-primary" />
+          <span className="font-medium">Seu CRM Twenty</span>
+          {ok ? (
+            <Badge className="bg-emerald-500/15 text-emerald-600">conectado</Badge>
+          ) : (
+            <Badge variant="destructive">offline</Badge>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" asChild>
+            <a href={url} target="_blank" rel="noopener noreferrer">Abrir em nova aba ↗</a>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/app/settings/twenty">Configurar</Link>
+          </Button>
+        </div>
       </div>
-      <div>
-        <h1 className="text-2xl font-bold">CRM externo ativo</h1>
-        <p className="mt-2 max-w-md text-sm text-muted-foreground">
-          Suas conversas estão sendo sincronizadas com o <strong>Twenty CRM</strong>. Abra o painel completo
-          para gerenciar contatos, deals e pipelines.
-        </p>
-      </div>
-      <div className="flex gap-3">
-        <Button size="lg" asChild>
-          <a href={url} target="_blank" rel="noopener noreferrer">Abrir Twenty CRM →</a>
-        </Button>
-        <Button size="lg" variant="outline" asChild>
-          <Link to="/app/settings/twenty">Configurações</Link>
-        </Button>
-      </div>
-      <p className="text-xs text-muted-foreground">
-        Para voltar pro CRM interno, desative "Substituir aba Conversas" nas configurações.
-      </p>
+      <iframe
+        ref={iframeRef}
+        src={url}
+        title="Twenty CRM"
+        className="flex-1 w-full border-0 bg-background"
+        onLoad={(e) => { (e.currentTarget as HTMLIFrameElement).dataset.loaded = "1"; }}
+        allow="clipboard-read; clipboard-write"
+      />
     </div>
   );
 }
